@@ -7,8 +7,8 @@
   ],
   "exports": {
     ".": {
-      "api": "./dist/api",
-      "tooling": "./dist/tooling"
+      "api": "./dist/api/index.js",
+      "tooling": "./dist/tooling/index.js"
     }
   },
   "bin": "dist/cli.js",
