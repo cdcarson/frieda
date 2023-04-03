@@ -16,7 +16,8 @@
     "module": "esnext",
     "target": "esnext",
     "ignoreDeprecations": "5.0",
-    "outDir": "dist"
+    "outDir": "dist",
+    "declaration": true
   },
   "include": [
 		"src/**/*.ts"

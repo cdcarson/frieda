@@ -1,35 +1,37 @@
 {
   "name": "@nowzoo/frieda",
-  "version": "0.0.2",
+  "version": "0.0.5",
   "description": "",
-  "files": [
-    "dist"
-  ],
-  "exports": {
-    ".": {
-      "api": "./dist/api/index.js",
-      "tooling": "./dist/tooling/index.js"
-    }
-  },
+  "main": "./index.js",
+  "exports": "./index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
   "bin": "dist/cli.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc"
+    "build": "tsc",
+    "dev": "tsc --w"
   },
   "keywords": [],
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@clack/prompts": "^0.6.3",
     "@planetscale/database": "^1.6.0",
     "dotenv": "^16.0.3",
     "fs-extra": "^11.1.1",
     "lodash": "^4.17.21",
     "mysql2": "^3.2.0",
     "picocolors": "^1.0.0",
+    "prettier": "^2.8.7",
     "sql-template-tag": "^5.0.3"
   },
   "devDependencies": {
+    "@types/fs-extra": "^11.0.1",
+    "@types/lodash": "^4.14.192",
     "@types/node": "^18.15.11",
+    "@types/prettier": "^2.7.2",
+    "@types/yargs": "^17.0.24",
     "typescript": "^5.0.3"
   }
 }
