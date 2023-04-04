@@ -1,35 +1,79 @@
 import { spinner, log } from '@clack/prompts';
 import { join } from 'path';
-import type { Model, ModelSchema } from '../api/shared.server.js';
-import { generateCode } from './shared/generate-code.js';
-import type { GeneratedCode, ResolvedFriedaVars } from './shared/types.js';
-import fs from 'fs-extra';
-import { formatFilePath, prettify } from './shared/utils.js';
-
+import type {  RawSchema, ResolvedFriedaVars } from './shared/types.js';
+import fs, { ensureDir } from 'fs-extra';
+import { cancelAndExit, formatFilePath, getMysql2Connection, prettify } from './shared/utils.js';
+import { fetchSchema } from './shared/fetch-schema.js';
+import type { Connection } from '@planetscale/database';
+import { getSchemaSql, writeCurrentSchema } from './shared/write-schema.js';
+import colors from 'picocolors';
 export const migrate = async (
-  modelSchemas: ModelSchema<Model>[],
-  vars: ResolvedFriedaVars
+  beforeSchema: RawSchema,
+  vars: ResolvedFriedaVars,
+  connection: Connection
 ) => {
+  const fullPathToCurrentMigration = join(vars.migrationsDirectoryFullPath, 'current-migration.sql');
+  let sql = await readCurrentMigration(fullPathToCurrentMigration);
+  if (sql.length === 0) {
+    log.warning(`${formatFilePath(fullPathToCurrentMigration)} is empty.`);
+    cancelAndExit();
+  }
+  await executeMigration(vars.databaseUrl, sql);
+  const fetchSchemaSpinner = spinner();
+  fetchSchemaSpinner.start('Fetching database schema...')
+  const afterSchema = await fetchSchema(connection); 
+  fetchSchemaSpinner.stop('Database schema fetched.')
+  await writeCurrentSchema(afterSchema, vars);
   const writeSpinner = spinner();
-  writeSpinner.start(`hjk code...`);
-  const code: GeneratedCode = generateCode(modelSchemas, vars);
-  const filePaths = await Promise.all(
-    Object.keys(code).map((key) =>
-      writeFile(key, code[key as keyof GeneratedCode], vars)
-    )
-  );
-  const formatted = filePaths.map(p => formatFilePath(p));
-  writeSpinner.stop(`Code generated.`);
-  log.info(formatted.join('\n'));
+  writeSpinner.start('Writing migration files...');
+  const d = new Date();
+  const migrationDir = join(vars.migrationsDirectoryFullPath, 'history', d.toISOString());
+  const beforeSchemaPath = join(migrationDir, 'schema-before.sql')
+  const afterSchemaPath = join(migrationDir, 'schema-after.sql')
+  const migrationPath = join(migrationDir, 'migration.sql')
+  await ensureDir(migrationDir);
+  await fs.writeFile(beforeSchemaPath, getSchemaSql(beforeSchema))
+  await fs.writeFile(afterSchemaPath, getSchemaSql(afterSchema))
+  await fs.writeFile(migrationPath, `-- Migration completed: ${d.toUTCString()}\n\n${sql}`)
+  await fs.writeFile(fullPathToCurrentMigration, '');
+  writeSpinner.stop('Wrote migration files.');
+  log.info([
+    colors.dim('Migration files:'),
+    formatFilePath(migrationPath),
+    formatFilePath(beforeSchemaPath),
+    formatFilePath(afterSchemaPath),
+    `${formatFilePath(fullPathToCurrentMigration)} is now empty.`
+  ].join('\n'));
+
 };
 
-const writeFile = async (
-  key: string,
-  code: string,
-  vars: ResolvedFriedaVars
-): Promise<string> => {
-  const fullPath = join(vars.generatedModelsDirectoryFullPath, `${key}.ts`);
-  const prettified = await prettify(code, fullPath);
-  await fs.writeFile(fullPath, prettified);
-  return fullPath;
-};
+
+
+
+const readCurrentMigration = async (fullPath: string): Promise<string> => {
+  const s = spinner();
+  s.start(`Reading ${formatFilePath(fullPath)}`);
+  await fs.ensureFile(fullPath);
+  const sql = await fs.readFile(fullPath, 'utf-8');
+  s.stop(`Read SQL from ${formatFilePath(fullPath)}.`)
+  return sql.trim();
+}
+
+
+const executeMigration = async (databaseUrl: string, sql: string): Promise<void> => {
+  const s = spinner();
+  s.start(`Executing migration...`);
+  const connection = await getMysql2Connection(databaseUrl);
+  try {
+    await connection.execute(sql);
+    await connection.end();
+    s.stop(`Migration executed.`);
+  } catch (error) {
+    await connection.end();
+    s.stop(`Migration failed.`);
+    throw error;
+  }
+  
+
+}
+

@@ -9,8 +9,6 @@ import colors from 'picocolors';
 const ENV_DB_URL_KEYS = ['FRIEDA_DATABASE_URL', 'DATABASE_URL'];
 
 export const gatherVariables = async (forcePrompts = false): Promise<ResolvedFriedaVars> => {
-  
-
   const originalRcVars = await readFriedaRcVars();
   const externalTypeImports: string[] = originalRcVars.externalTypeImports || []
   let { migrationsDirectory, generatedModelsDirectory } =
@@ -215,4 +213,6 @@ const maskDatabaseURLPassword = (urlStr: string): string => {
   url.password = '<PASSWORD>';
   return colors.magenta(protocol + '//' + username + ':') + colors.dim('<password>') + colors.magenta('@' + hostname)
 };
+
+
 

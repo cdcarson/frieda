@@ -8,6 +8,7 @@ import { gatherVariables } from './shared/gather-variables.js';
 import { getModelSchemas } from './shared/get-model-schemas.js';
 import type { Command, CommandId, RawSchema } from './shared/types.js';
 import { getServerlessConnection } from './shared/utils.js';
+import { migrate } from './migrate.js';
 const version = '0.0.4';
 
 export const commands: Command[] = [
@@ -78,6 +79,7 @@ export const main = async () => {
     switch (commandId) {
     
       case 'migrate':
+        await migrate(rawSchema, vars, connection);
         break;
       case 'introspect':
         break;

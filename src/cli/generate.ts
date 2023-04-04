@@ -11,6 +11,7 @@ import fs from 'fs-extra';
 import { formatFilePath, prettify } from './shared/utils.js';
 import { writeCurrentSchema } from './shared/write-schema.js';
 import colors from 'picocolors';
+
 export const generate = async (
   schema: RawSchema,
   modelSchemas: ModelSchema<Model>[],
@@ -32,9 +33,8 @@ export const generate = async (
   log.info([
     colors.dim('Generated files:'),
     ...filePaths.map((p) => formatFilePath(p)),
-    '',
-    colors.dim('Usage:'),
-    `import `
+    `Visit ${colors.underline(colors.cyan('https://github.com/nowzoo/frieda'))} for documentation.`,
+    
   ].join('\n'));
 };
 
