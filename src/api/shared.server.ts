@@ -45,10 +45,10 @@ export type FullTextSearchIndex = {
   indexKey: string;
   indexedFields: string[];
 };
+export type FullTextSearchIndexes = {
+  [indexKey: string]: FullTextSearchIndex;
+}
 
-export type Schema<Models extends string[]> = {
-  models: Models;
-};
 
 export type CustomModelCast<M extends Model> = {
   [K in keyof M]?: SimplifiedDatabaseType;

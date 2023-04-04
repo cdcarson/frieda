@@ -7,7 +7,7 @@ import {
 } from '../../api/shared.server.js';
 import type { RawTableColumnInfo, RawTableInfo } from './types.js';
 import _ from 'lodash'
-export const createModelSchemas = (
+export const getModelSchemas = (
   tables: RawTableInfo[]
 ): ModelSchema<Model>[] => {
   return tables.map((t) => createModelSchema(t));

@@ -1,11 +1,33 @@
-import { introspect } from './introspect.js';
-import { migrate } from './migrate.js';
-import { generate } from './generate.js';
+
+import { intro, log, outro, spinner } from '@clack/prompts';
+import _ from 'lodash';
 import colors from 'picocolors';
-import { readFriedaVars } from './shared/read-frieda-vars.js';
-import { commands } from './shared/commands.js';
-import type { CommandId } from './shared/types.js';
+import { generate } from './generate.js';
+import { fetchSchema } from './shared/fetch-schema.js';
+import { gatherVariables } from './shared/gather-variables.js';
+import { getModelSchemas } from './shared/get-model-schemas.js';
+import type { Command, CommandId, RawSchema } from './shared/types.js';
+import { getServerlessConnection } from './shared/utils.js';
 const version = '0.0.4';
+
+export const commands: Command[] = [
+  {
+    id: 'migrate',
+    description: 'Run the current migration.'
+  },
+  {
+    id: 'introspect',
+    description: 'Create an introspection.sql file containing the current database schema.'
+  },
+  {
+    id: 'generate',
+    description: 'Generate javascript models and other code from the current database schema.'
+  },
+  {
+    id: 'help',
+    description: 'Show this help.'
+  }
+];
 
 const showHelp = () => {
   console.log(colors.dim('Usage: frieda <command>'));
@@ -37,17 +59,40 @@ const getCommandId = (arg: string | number | undefined): CommandId => {
   return 'help';
 };
 export const main = async () => {
-  const friedaVars = await readFriedaVars();
   showHeader();
   const commandId = getCommandId(process.argv[2]);
-  switch (commandId) {
-    case 'help':
-      return showHelp();
-    case 'migrate':
-      return await migrate(friedaVars);
-    case 'introspect':
-      return await introspect(friedaVars);
-    case 'generate':
-      return await generate(friedaVars);
+  if (commandId === 'help') {
+    return showHelp();
   }
+  intro(colors.bold(_.upperFirst(commandId)));
+  
+  
+  try {
+    const vars = await gatherVariables();
+    const connection = getServerlessConnection(vars.databaseUrl);
+    const fetchSchemaSpinner = spinner();
+    fetchSchemaSpinner.start('Fetching database schema...')
+    const rawSchema = await fetchSchema(connection);
+    const modelSchemas = getModelSchemas(rawSchema.tables);
+    fetchSchemaSpinner.stop('Database schema fetched.')
+    switch (commandId) {
+    
+      case 'migrate':
+        break;
+      case 'introspect':
+        break;
+      case 'generate': 
+        await generate(rawSchema, modelSchemas, vars);
+        break;
+    }
+  } catch (error) {
+    const logError = error instanceof Error ? error.message : 'An unknown error occurred.';
+    log.error(logError)
+  }
+  
+
+  
+  outro(colors.bold('Done'))
 };
+
+

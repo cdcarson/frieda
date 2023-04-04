@@ -40,6 +40,10 @@ export abstract class AbstractDb {
     return this._schemaCast;
   }
 
+  protected get loggingOptions(): DbLoggingOptions {
+    return this._loggingOptions;
+  }
+
   protected get performanceLogger(): (
     executedQuery: ExecutedQuery,
     roundTripMs: number

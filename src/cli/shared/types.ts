@@ -1,5 +1,5 @@
-export type CommandId = 'migrate'| 'introspect' | 'generate' | 'help'
-export type Command = { id: CommandId, description: string}
+export type CommandId = 'migrate' | 'introspect' | 'generate' | 'help';
+export type Command = { id: CommandId; description: string };
 
 export type FriedaRcVars = {
   migrationsDirectory?: string;
@@ -7,9 +7,7 @@ export type FriedaRcVars = {
   externalTypeImports?: string[];
 };
 
-export type FriedaVars = FriedaRcVars & {
-  databaseUrl?: string;
-};
+
 
 export type RawTableColumnInfo = {
   Field: string;
@@ -45,9 +43,22 @@ export type RawTableInfo = {
   tableCreateStatement: string;
 };
 
+export type RawSchema = {
+  fetched: Date;
+  databaseName: string;
+  tableNames: string[];
+  tables: RawTableInfo[];
+};
+
 export type GeneratedCode = {
-  searchIndices: string;
-  schemaCast: string;
-  models: string;
+  constants: string;
   database: string;
+  models: string;
 }
+
+export type ResolvedFriedaVars = {
+  generatedModelsDirectoryFullPath: string;
+  migrationsDirectoryFullPath: string;
+  externalTypeImports: string[];
+  databaseUrl: string;
+};
