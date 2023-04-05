@@ -19,20 +19,26 @@ There are three things you can do with the cli.
 
 ### Settings
 
+Most settings reside in a `.friedarc` JSON file in the project root directory. The exception is the database URL, which you can provide as an environment variable. 
+
+`.friedarc` can and should be committed to git.  
+
 #### Database URL
 
-Frieda uses this to connect to your database both via the serverless driver and via mysql2 (to run migrations). The format is: `mysql://user:pass@host`. If your app uses separate `host`, `user` and `password` variables to connect, you need to add another variable named either `DATABASE_URL` or `FRIEDA_DATABASE_URL`. 
+Frieda uses this to connect to your database both via the serverless driver and via mysql2 (to run migrations). The format is: `mysql://user:pass@host`. If your app uses separate `host`, `user` and `password` variables to connect, you need to add another variable named either `DATABASE_URL` or `FRIEDA_DATABASE_URL`. `FRIEDA_DATABASE_URL` takes precedence.
 
-By default, Frieda will look for an `.env` file in the project root directory. If your environment variables reside elsewhere, you can specify the path to the file in `.friedarc`. The file must be parseable by dotenv.
+By default, Frieda will look for an `.env` file in the project root directory. If your environment variables reside elsewhere, you can specify the path to the file in `.friedarc`, using the `envFile` key. The file must be parseable by [dotenv](https://github.com/motdotla/dotenv). Example:
 
+```json
+{
+  // ...
+  "envFile": ".dev.vars"
+}
+```
 
+If a valid database URL can't be found in `.env` or the environment file you specified, Frieda will prompt you for it each time. 
 
-If your environment variables
-
-If the database URL isn't present in `.env`, Frieda will prompt you for it.
-
-If you are using `host`, `user` and `password` to connect rather than a url, you can easily create the url in the format: 
-
+Don't forget to add the environment file to `.gitignore`.
 
 #### .friedarc
 
