@@ -14,7 +14,6 @@ export type RcSettingsDbUrl = Pick<RcSettings, 'databaseUrlEnvFile'|'databaseUrl
 
 
 
-
 export type RawTableColumnInfo = {
   Field: string;
   Type: string;
