@@ -9,26 +9,15 @@ export const VERSION = '0.0.4';
 export const COMMANDS: Command[] = [
   {
     id: 'migrate',
-    description: `Run the current migration in  ${colors.cyan(
-      `<migrations>/${CURRENT_MIGRATION_FILE_NAME}`
-    )}.`
+    description: `Execute the current migration.`
   },
   {
     id: 'generate',
-    description: `Generate javascript models and other code from the current database schema.`
+    description: `Generate model code.`
   },
   {
     id: 'fetch',
-    description: `Fetch the current database schema and save it to ${colors.cyan(
-      `<migrations>/${CURRENT_SCHEMA_FILE_NAME}`
-    )}.`
-  },
-
-  {
-    id: 'init',
-    description: `(Re)initialize Frieda settings and save them to ${colors.cyan(
-      RC_FILE_NAME
-    )}.`
+    description: `Fetch the database schema.`
   },
   {
     id: 'help',

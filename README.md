@@ -14,45 +14,62 @@ Database schema things designed for the PlanetScale Serverless Driver.
 
 ## CLI
 
-There are three things you can do with the cli.
+### Quick start
 
-
-### Settings
-
-Most settings reside in a `.friedarc` JSON file in the project root directory. The exception is the database URL, which you can provide as an environment variable. 
-
-`.friedarc` can and should be committed to git. 
-
-#### Database URL
-
-Frieda uses this to connect to your database both via the serverless driver and via mysql2 (to run migrations). The format is: `mysql://user:pass@host`. If your app uses separate `host`, `user` and `password` variables to connect, you need to add another variable named either `DATABASE_URL` or `FRIEDA_DATABASE_URL`. `FRIEDA_DATABASE_URL` takes precedence.
-
-By default, Frieda will look for an `.env` file in the project root directory. If your environment variables reside elsewhere, you can specify the path to the file in `.friedarc`, using the `envFile` key. The file must be parseable by [dotenv](https://github.com/motdotla/dotenv). Example:
-
-```jsonc
-// .friedarc
-{
-  // other settings
-  "envFile": ".dev.vars"
-}
+```bash
+frieda init
 ```
 
-Frieda will prompt you for a valid database URL if one can't be found in `.env` or the file you specified. If you get sick of this and add an environment file, **don't forget** to add it to `.gitignore`.
+### Commands
 
-#### .friedarc
+#### fetch
+```bash
+frieda fetch
+# or
+frieda f
+```
+Fetch the current database schema and save it to `<schemaDirectory>/current-schema.sql`.
 
-This is a JSON file at the project root that contains settings for your project. These settings are non-sensitive and shareable between developers, so `.friedarc` should be commited to git.
+- schema | s
+- migrate | m
+
+
+
+### CLI Settings
+
+Most settings reside in a `.friedarc` JSON file in the project root directory. The exception is the database URL, which needs to be provided as an environment variable, since `.friedarc` can and should be committed to git. 
+
+Example `.friedarc`:
 
 ```json
 {
-  "migrationsDirectory": "migrations",
-  "generatedModelsDirectory": "src/db/_generated",
-  "externalTypeImports": [
+  "schemaDirectory": "schema",
+  "generatedCodeDirectory": "src/db/_generated",
+  "externalImports": [
     "import type Stripe from 'stripe'",
     "import type { Foo } from '../../lib/types.js'"
   ]
 }
 ```
+
+- `schemaDirectory`: Required. Relative path to a folder containing the current schema, the current migration, and the migration history.
+- `generatedCodeDirectory`: Required. Relative path to the folder where you want Frieda to place generated typescript code.
+- `externalImports`: Optional. An array of full import statements corresponding to the types you have defined for JSON columns. These import statements will be added as is to the generated code files. Import paths should be relative to `generatedCodeDirectory` (path aliases are fine.)
+
+Running `frieda init` will ask you for `schemaDirectory` and `generatedCodeDirectory`, and create or modify  `.friedarc`. You must edit `externalImports` by hand.
+
+#### Database URL 
+
+Frieda uses a URL in the format  `mysql://user:pass@host` to connect to your database. If your app uses separate `host`, `user` and `password` variables to connect, you need to combine them into this format. The variable should be named either `DATABASE_URL` or `FRIEDA_DATABASE_URL`. If `FRIEDA_DATABASE_URL` is valid, it will be used rather than `DATABASE_URL`.
+
+Frieda will look for the value in an `.env` file in the project root directory. If a valid database URL can't be found, Frieda will prompt you to enter it. If you add a `.env` file with the URL, don't forget to add it to `.gitignore`.
+
+The database URL should point to a dev branch of your database, not the production branch.
+
+
+
+
+## Migration workflow
 
 - `migrationsDirectory`: The relative path where Frieda will place migration and introspection files.
 - `generatedModelsDirectory`: The relative path where Frieda will create model code.
@@ -65,3 +82,6 @@ In order to connect securely with mysql2, the program needs to read a `.pem` cer
 The default is `/etc/ssl/cert.pem`. This **should** work out of the box, but if it doesn't you can specify a different path
 
 
+- The current migration in `<schema-directory>/current-migration.sql`
+- The current schema definition in `<schema-directory>/current-schema.sql`
+- Migration history in `<schema-directory>/history`

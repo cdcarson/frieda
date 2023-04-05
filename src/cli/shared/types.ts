@@ -6,7 +6,7 @@ export type RcSettings = {
   generatedCodeDirectory: string;
   alwaysGenerateCode?: boolean;
   externalTypeImports?: string[];
-  databaseUrlEnvFile?: string;
+  envFile?: string;
   databaseUrlAlwaysAsk?: boolean;
 };
 export type RcSettingsDbUrl = Pick<RcSettings, 'databaseUrlEnvFile'|'databaseUrlAlwaysAsk'>
