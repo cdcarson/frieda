@@ -1,6 +1,5 @@
 import { spinner, log } from '@clack/prompts';
 import { join } from 'path';
-import type { Model, ModelSchema } from '../api/shared.server.js';
 import { generateCode } from './shared/generate-code.js';
 import type {
   GeneratedCode,
@@ -9,17 +8,16 @@ import type {
 } from './shared/types.js';
 import fs from 'fs-extra';
 import { formatFilePath, prettify } from './shared/utils.js';
-import { writeCurrentSchema } from './shared/write-schema.js';
 import colors from 'picocolors';
+import { getModelSchemas } from './shared/get-model-schemas.js';
 
 export const generate = async (
   schema: RawSchema,
-  modelSchemas: ModelSchema<Model>[],
   vars: ResolvedFriedaVars
 ) => {
-  await writeCurrentSchema(schema, vars);
   const writeSpinner = spinner();
   writeSpinner.start(`Generating code...`);
+  const modelSchemas = getModelSchemas(schema.tables);
   const code: GeneratedCode = generateCode(modelSchemas, vars);
   await fs.ensureDir(vars.generatedModelsDirectoryFullPath);
   const filePaths = await Promise.all(

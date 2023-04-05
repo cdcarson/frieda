@@ -1,11 +1,17 @@
-export type CommandId = 'migrate' | 'introspect' | 'generate' | 'help';
+export type CommandId = 'migrate' | 'fetch' | 'generate' | 'init' | 'help';
 export type Command = { id: CommandId; description: string };
 
-export type FriedaRcVars = {
-  migrationsDirectory?: string;
-  generatedModelsDirectory?: string;
+export type RcSettings = {
+  schemaDirectory: string;
+  generatedCodeDirectory: string;
+  alwaysGenerateCode?: boolean;
   externalTypeImports?: string[];
+  databaseUrlEnvFile?: string;
+  databaseUrlAlwaysAsk?: boolean;
 };
+export type RcSettingsDbUrl = Pick<RcSettings, 'databaseUrlEnvFile'|'databaseUrlAlwaysAsk'>
+
+
 
 
 
