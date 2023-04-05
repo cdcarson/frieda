@@ -21,7 +21,7 @@ There are three things you can do with the cli.
 
 Most settings reside in a `.friedarc` JSON file in the project root directory. The exception is the database URL, which you can provide as an environment variable. 
 
-`.friedarc` can and should be committed to git.  
+`.friedarc` can and should be committed to git. 
 
 #### Database URL
 
@@ -36,9 +36,7 @@ By default, Frieda will look for an `.env` file in the project root directory. I
 }
 ```
 
-If a valid database URL can't be found in `.env` or the environment file you specified, Frieda will prompt you for it each time. 
-
-Don't forget to add the environment file to `.gitignore`.
+Frieda will prompt you for a valid database URL if one can't be found in `.env` or the file you specified. If you get sick of this and add an environment file, **don't forget** to add it to `.gitignore`.
 
 #### .friedarc
 
