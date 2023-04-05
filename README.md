@@ -29,9 +29,9 @@ Frieda uses this to connect to your database both via the serverless driver and 
 
 By default, Frieda will look for an `.env` file in the project root directory. If your environment variables reside elsewhere, you can specify the path to the file in `.friedarc`, using the `envFile` key. The file must be parseable by [dotenv](https://github.com/motdotla/dotenv). Example:
 
-```json
+```jsonc
 {
-  // ...
+  // other settings
   "envFile": ".dev.vars"
 }
 ```
