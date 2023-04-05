@@ -17,19 +17,21 @@ Database schema things designed for the PlanetScale Serverless Driver.
 There are three things you can do with the cli.
 
 
-### Environment Variables and Settings
-
-Frieda needs to know several things.
+### Settings
 
 #### Database URL
 
-Frieda uses this to connect to your database both via the serverless driver and via mysql2 (to run migrations).
+Frieda uses this to connect to your database both via the serverless driver and via mysql2 (to run migrations). The format is: `mysql://user:pass@host`. If your app uses separate `host`, `user` and `password` variables to connect, you need to add another variable named either `DATABASE_URL` or `FRIEDA_DATABASE_URL`. 
 
-You can specify it in a `.env` file in your project root directory as either `DATABASE_URL` or `FRIEDA_DATABASE_URL`. The latter takes precedence. Don't forget to add `.env` to `.gitignore`.
+By default, Frieda will look for an `.env` file in the project root directory. If your environment variables reside elsewhere, you can specify the path to the file in `.friedarc`. The file must be parseable by dotenv.
+
+
+
+If your environment variables
 
 If the database URL isn't present in `.env`, Frieda will prompt you for it.
 
-If you are using `host`, `user` and `password` to connect rather than a url, you can easily create the url in the format: `mysql://user:pass@host`
+If you are using `host`, `user` and `password` to connect rather than a url, you can easily create the url in the format: 
 
 
 #### .friedarc
