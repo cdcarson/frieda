@@ -4,12 +4,15 @@ export type Command = { id: CommandId; description: string };
 export type RcSettings = {
   schemaDirectory: string;
   generatedCodeDirectory: string;
-  alwaysGenerateCode?: boolean;
-  externalTypeImports?: string[];
-  envFile?: string;
-  databaseUrlAlwaysAsk?: boolean;
+  envFile: string;
+  externalTypeImports: string[];
 };
-export type RcSettingsDbUrl = Pick<RcSettings, 'databaseUrlEnvFile'|'databaseUrlAlwaysAsk'>
+
+export type ResolvedSettings = Partial<RcSettings> & {
+  generatedCodeDirectoryFullPath: string;
+  schemaDirectoryFullPath: string;
+  databaseUrl: string;
+};
 
 
 
@@ -61,9 +64,4 @@ export type GeneratedCode = {
   models: string;
 }
 
-export type ResolvedFriedaVars = {
-  generatedModelsDirectoryFullPath: string;
-  migrationsDirectoryFullPath: string;
-  externalTypeImports: string[];
-  databaseUrl: string;
-};
+

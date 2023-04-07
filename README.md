@@ -28,7 +28,7 @@ frieda fetch
 # or
 frieda f
 ```
-Fetch the current database schema and save it to `<schemaDirectory>/current-schema.sql`.
+Fetch the current database schema. The output is a series of `CREATE TABLE`
 
 - schema | s
 - migrate | m

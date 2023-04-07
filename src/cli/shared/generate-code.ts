@@ -7,7 +7,7 @@ import type {
 import type {
   GeneratedCode,
   RawSchema,
-  ResolvedFriedaVars
+  ResolvedSettings
 } from './types';
 
 const constNames = {
@@ -17,7 +17,7 @@ const constNames = {
 
 export const generateCode = (
   modelSchemas: ModelSchema<Model>[],
-  vars: ResolvedFriedaVars
+  vars: ResolvedSettings
 ): GeneratedCode => {
   const bannerComment = `
     /**
@@ -34,7 +34,7 @@ export const generateCode = (
 
 const getModelsCode = (
   modelSchemas: ModelSchema<Model>[],
-  vars: ResolvedFriedaVars,
+  vars: ResolvedSettings,
   bannerComment: string
 ): string => {
   const declarations: string[] = [];
@@ -154,7 +154,7 @@ const getConstantsCode = (
 
 const getDatabaseCode = (
   modelSchemas: ModelSchema<Model>[],
-  vars: ResolvedFriedaVars,
+  vars: ResolvedSettings,
   bannerComment: string
 ): string => {
   return `

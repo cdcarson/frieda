@@ -4,7 +4,7 @@ import { generateCode } from './shared/generate-code.js';
 import type {
   GeneratedCode,
   RawSchema,
-  ResolvedFriedaVars
+  ResolvedSettings
 } from './shared/types.js';
 import fs from 'fs-extra';
 import { formatFilePath, prettify } from './shared/utils.js';
@@ -13,13 +13,13 @@ import { getModelSchemas } from './shared/get-model-schemas.js';
 
 export const generate = async (
   schema: RawSchema,
-  vars: ResolvedFriedaVars
+  vars: ResolvedSettings
 ) => {
   const writeSpinner = spinner();
   writeSpinner.start(`Generating code...`);
   const modelSchemas = getModelSchemas(schema.tables);
   const code: GeneratedCode = generateCode(modelSchemas, vars);
-  await fs.ensureDir(vars.generatedModelsDirectoryFullPath);
+  await fs.ensureDir(vars.generatedCodeDirectoryFullPath);
   const filePaths = await Promise.all(
     Object.keys(code).map((key) =>
       writeFile(key, code[key as keyof GeneratedCode], vars)
@@ -39,9 +39,9 @@ export const generate = async (
 const writeFile = async (
   key: string,
   code: string,
-  vars: ResolvedFriedaVars
+  vars: ResolvedSettings
 ): Promise<string> => {
-  const fullPath = join(vars.generatedModelsDirectoryFullPath, `${key}.ts`);
+  const fullPath = join(vars.generatedCodeDirectoryFullPath, `${key}.ts`);
 
   const prettified = await prettify(code, fullPath);
   await fs.writeFile(fullPath, prettified);

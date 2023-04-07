@@ -20,6 +20,10 @@ export const COMMANDS: Command[] = [
     description: `Fetch the database schema.`
   },
   {
+    id: 'init',
+    description: `Initialize or edit settings.`
+  },
+  {
     id: 'help',
     description: 'Show this help.'
   }

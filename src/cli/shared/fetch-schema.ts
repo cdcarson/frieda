@@ -23,18 +23,23 @@ export const fetchSchema = async (
 };
 
 const fetchTableNames = async (connection: Connection) => {
-  const query = sql`SHOW TABLES;`;
+  const query = sql`SHOW FULL TABLES;`;
   const executedQuery = await connection.execute(query.sql);
-  const col1Key = executedQuery.fields[0].name;
+  const nameKey = executedQuery.fields[0].name;
   const result: {databaseName: string, tableNames: string[]} = {
-    databaseName: col1Key.replace(/^tables_in_/g, ''),
+    databaseName: nameKey.replace(/^tables_in_/g, ''),
     tableNames: []
   }
   const rows: Record<string,string>[] = executedQuery.rows as Record<string,string>[];
   rows.forEach((row: Record<string,string>) => {
     const keys: (keyof typeof row)[] = Object.keys(row);
-    const key: keyof typeof row = keys[0];
-    const tableName: string = row[key]
+    const k0: keyof typeof row = keys[0];
+    const k1: keyof typeof row = keys[1];
+    // ignore views for now
+    if (row[k1] !== 'BASE TABLE') {
+      return;
+    }
+    const tableName: string = row[k0]
     result.tableNames.push(tableName)
   });
   return result;

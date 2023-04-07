@@ -1,6 +1,6 @@
 import { spinner, log } from '@clack/prompts';
 import { join } from 'path';
-import type { RawSchema, ResolvedFriedaVars } from './shared/types.js';
+import type { RawSchema, ResolvedSettings } from './shared/types.js';
 import fs, { ensureDir } from 'fs-extra';
 import {
   cancelAndExit,
@@ -20,11 +20,11 @@ import {
 
 export const migrate = async (
   beforeSchema: RawSchema,
-  vars: ResolvedFriedaVars,
+  vars: ResolvedSettings,
   connection: Connection
 ) => {
   const fullPathToCurrentMigration = join(
-    vars.migrationsDirectoryFullPath,
+    vars.schemaDirectoryFullPath,
     CURRENT_MIGRATION_FILE_NAME
   );
   let sql = await readCurrentMigration(fullPathToCurrentMigration);
@@ -42,7 +42,7 @@ export const migrate = async (
   writeSpinner.start('Writing migration files...');
   const d = new Date();
   const migrationDir = join(
-    vars.migrationsDirectoryFullPath,
+    vars.schemaDirectoryFullPath,
     MIGRATION_HISTORY_FOLDER,
     d.toISOString()
   );
