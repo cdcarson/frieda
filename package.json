@@ -1,6 +1,6 @@
 {
   "name": "@nowzoo/frieda",
-  "version": "0.0.8",
+  "version": "0.0.10",
   "description": "",
   "main": "./index.js",
   "exports": "./index.js",
@@ -9,6 +9,7 @@
   "bin": "dist/cli.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "postversion": "node scripts/write-version.cjs",
     "clean": "rimraf dist",
     "build": "rimraf dist & tsc",
     "dev": "tsc --w"
