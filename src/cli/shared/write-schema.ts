@@ -1,19 +1,15 @@
-import { spinner } from "@clack/prompts";
 import {  join } from "path";
 import type { RawSchema, ResolvedSettings } from "./types.js";
-import { formatFilePath } from "./utils.js";
 import fs from 'fs-extra'
 import { CURRENT_SCHEMA_FILE_NAME } from "./constants.js";
 export const writeCurrentSchema = async (
   schema: RawSchema,
-  vars: ResolvedSettings
-): Promise<void> => {
-  const fullPath = join(vars.schemaDirectoryFullPath, CURRENT_SCHEMA_FILE_NAME)
-  const s = spinner();
-  s.start(`Saving ${formatFilePath(fullPath)}...`)
-  await fs.ensureDir(vars.schemaDirectoryFullPath)
+  settings: ResolvedSettings
+): Promise<string> => {
+  const fullPath = join(settings.schemaDirectoryFullPath, CURRENT_SCHEMA_FILE_NAME)
+  await fs.ensureDir(settings.schemaDirectoryFullPath)
   await fs.writeFile(fullPath, getSchemaSql(schema) );
-  s.stop(`Saved ${formatFilePath(fullPath)}.`)
+  return fullPath;
 };
 
 export const getSchemaSql = (schema: RawSchema): string => {

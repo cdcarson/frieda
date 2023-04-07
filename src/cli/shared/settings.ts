@@ -58,7 +58,7 @@ const readRcSettings = async (): Promise<Partial<RcSettings>> => {
     }
   }
 
-  s.stop(`Reading ${formatFilePath(rcPath)}... Done.`);
+  s.stop(`Reading ${formatFilePath(rcPath)}... done.`);
   return rawSettings;
 };
 
@@ -79,7 +79,7 @@ const writeRcSettings = async (
   }
   rawSettings = { ...rawSettings, ...update };
   await fs.writeJSON(rcPath, rawSettings, { spaces: 1 });
-  s.stop(`Saving ${formatFilePath(rcPath)}... Done.`);
+  s.stop(`Saving ${formatFilePath(rcPath)}... done.`);
   return rawSettings;
 };
 const getRcFilePath = (): string => {

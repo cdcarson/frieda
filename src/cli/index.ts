@@ -1,45 +1,36 @@
-import { intro, log } from '@clack/prompts';
-import _ from 'lodash';
+import { log } from '@clack/prompts';
 import colors from 'picocolors';
-import type { CommandId } from './shared/types.js';
-import { cancelAndExit, getServerlessConnection } from './shared/utils.js';
-import { COMMANDS, VERSION } from './shared/constants.js';
-import { showHelp } from './shared/show-help.js';
-import pkgJson from '../../package.json'
-
+import { cancelAndExit } from './shared/utils.js';
+import { getCommand, showHelp, getOptionFlag } from './shared/commands.js';
+import { cmdFetch } from './cmd-fetch.js';
 const showHeader = () => {
-  console.log(`${colors.bold('frieda')} 🐕 ${colors.gray(`v${pkgJson.version}`)} `);
+  const version = 0
+  console.log(
+    `${colors.bold('frieda')} 🐕 ${colors.gray(`v${version}`)} `
+  );
   console.log();
 };
-const getCommandId = (arg: string | number | undefined): CommandId => {
-  if (!arg) {
-    return 'help';
-  }
-  for (const c of COMMANDS) {
-    if (c.id === arg || c.id[0] === arg) {
-      return c.id;
-    }
-  }
-  return 'help';
-};
+
 export const main = async () => {
   showHeader();
-  const commandId = getCommandId(process.argv[2]);
-  if (commandId === 'help') {
+  const args = process.argv.slice(2)
+  const command = getCommand(args);
+  if (! command) {
+    if (getOptionFlag(args, 'version', 'v')) {
+      return log.message('Version 1.0')
+    }
     return showHelp();
   }
-  intro(colors.bold(_.upperFirst(commandId)));
+  
 
   try {
-    
-    switch (commandId) {
-      case 'init':
-        // await initSettings();
-        break;
+    switch (command.id) {
+      
       case 'migrate':
         // await migrate(rawSchema, vars, connection);
         break;
       case 'fetch':
+        await cmdFetch();
         break;
       case 'generate':
         // await generate(rawSchema, vars);

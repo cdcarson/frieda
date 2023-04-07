@@ -1,5 +1,3 @@
-export type CommandId = 'migrate' | 'fetch' | 'generate' | 'init' | 'help';
-export type Command = { id: CommandId; description: string };
 
 export type RcSettings = {
   schemaDirectory: string;

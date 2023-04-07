@@ -116,7 +116,7 @@ const getModelsCode = (
     import { type ModelRepo, type ModelSchema, SimplifiedDatabaseType } from '@nowzoo/frieda';
 
     // type imports defined in .friedarc...
-    ${vars.externalTypeImports.join('\n')}
+    ${(vars.externalTypeImports || []).join('\n')}
 
     ${declarations.join('\n')}
   `;
