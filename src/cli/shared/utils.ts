@@ -1,7 +1,7 @@
 import colors from 'picocolors';
 import prettier from 'prettier';
 import { join, relative } from 'path';
-import { cancel } from '@clack/prompts';
+import { cancel, spinner } from '@clack/prompts';
 import fs from 'fs-extra';
 import {
   createConnection,
@@ -76,3 +76,16 @@ export const splitString = (s: string, lineLength = 75): string[] => {
   
   return lines;
 };
+
+export const createSpinner = (msg: string): {done: ()=> void, error: () => void} => {
+  const s = spinner();
+  s.start(`${msg}...`);
+  return {
+    done: () => {
+      s.stop(`${msg}...done.`)
+    },
+    error: () => {
+      s.stop(colors.strikethrough(`${msg}...`))
+    }
+  }
+}

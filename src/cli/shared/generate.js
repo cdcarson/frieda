@@ -1,0 +1,331 @@
+"use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __generator = (this && this.__generator) || function (thisArg, body) {
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    function verb(n) { return function (v) { return step([n, v]); }; }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (g && (g = 0, op[0] && (_ = 0)), _) try {
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [op[0] & 2, t.value];
+            switch (op[0]) {
+                case 0: case 1: t = op; break;
+                case 4: _.label++; return { value: op[1], done: false };
+                case 5: _.label++; y = op[1]; op = [0]; continue;
+                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop(); continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+    }
+};
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getModelSchemas = exports.generateCode = exports.generate = void 0;
+var shared_server_js_1 = require("../../api/shared.server.js");
+var lodash_1 = require("lodash");
+var utils_js_1 = require("./utils.js");
+var fs_extra_1 = require("fs-extra");
+var path_1 = require("path");
+var prompts_1 = require("@clack/prompts");
+var picocolors_1 = require("picocolors");
+var constNames = {
+    schemaCasts: 'schemaCasts',
+    searchIndexes: 'searchIndexes'
+};
+var generate = function (schema, settings) { return __awaiter(void 0, void 0, void 0, function () {
+    var s, modelSchemas, code, filePaths;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                s = (0, utils_js_1.createSpinner)("Generating code");
+                modelSchemas = (0, exports.getModelSchemas)(schema.tables);
+                code = (0, exports.generateCode)(modelSchemas, settings);
+                return [4 /*yield*/, fs_extra_1.default.ensureDir(settings.generatedCodeDirectoryFullPath)];
+            case 1:
+                _a.sent();
+                return [4 /*yield*/, Promise.all(Object.keys(code).map(function (key) {
+                        return writeFile(key, code[key], settings);
+                    }))];
+            case 2:
+                filePaths = _a.sent();
+                s.done();
+                prompts_1.log.info(__spreadArray(__spreadArray([
+                    picocolors_1.default.dim('Generated files:')
+                ], filePaths.map(function (p) { return (0, utils_js_1.formatFilePath)(p); }), true), [
+                    "Visit ".concat(picocolors_1.default.underline(picocolors_1.default.cyan('https://github.com/nowzoo/frieda')), " for documentation.")
+                ], false).join('\n'));
+                return [2 /*return*/];
+        }
+    });
+}); };
+exports.generate = generate;
+var generateCode = function (modelSchemas, vars) {
+    var bannerComment = "\n    /**\n     * Generated by frieda on ".concat(new Date().toUTCString(), "\n     * To regenerate run \"frieda g\"\n     */\n  ");
+    return {
+        models: getModelsCode(modelSchemas, vars, bannerComment),
+        database: getDatabaseCode(modelSchemas, vars, bannerComment),
+        constants: getConstantsCode(modelSchemas, bannerComment)
+    };
+};
+exports.generateCode = generateCode;
+var getModelsCode = function (modelSchemas, vars, bannerComment) {
+    var declarations = [];
+    modelSchemas.forEach(function (m) {
+        var names = getModelNames(m);
+        declarations.push('', "// Model ".concat(m.modelName));
+        declarations.push("\n      export type ".concat(m.modelName, " = {\n        ").concat(m.fields
+            .map(function (f) {
+            return "".concat(f.name, ": ").concat(f.javascriptType).concat(f.nullable ? '|null' : '', ";");
+        })
+            .join('\n'), "\n      }\n    "));
+        declarations.push("\n      export type ".concat(names.primaryKey, " =  {\n        ").concat(m.fields
+            .filter(function (c) { return c.isPrimaryKey; })
+            .map(function (c) {
+            return "".concat(c.name, ": ").concat(c.javascriptType, ";");
+        })
+            .join('\n'), "\n      }\n    "));
+        declarations.push("\n      export type ".concat(names.createData, " = {\n        ").concat(m.fields
+            .filter(function (c) {
+            return !c.isGeneratedAlways;
+        })
+            .map(function (c) {
+            var optional = c.isDefaultGenerated || c.nullable;
+            return "".concat(c.name).concat(optional ? '?' : '', ": ").concat(c.javascriptType, ";");
+        })
+            .join('\n'), "\n      }\n    "));
+        declarations.push("\n      export type ".concat(names.updateData, " = {\n        ").concat(m.fields
+            .filter(function (c) {
+            return !c.isGeneratedAlways && !c.isPrimaryKey;
+        })
+            .map(function (c) {
+            return "".concat(c.name, "?: ").concat(c.javascriptType, ";");
+        })
+            .join('\n'), "\n      }\n    "));
+        var uniqueDefs = m.fields
+            .filter(function (c) { return c.isUnique; })
+            .map(function (c) { return "{".concat(c.name, ": ").concat(c.javascriptType, "}"); });
+        uniqueDefs.unshift(names.primaryKey);
+        declarations.push("\n      export type ".concat(names.findUniqueParams, " = ").concat(uniqueDefs.join('|'), "\n    "));
+        declarations.push("\n      export type ".concat(names.modelRepo, " = ModelRepo<\n      ").concat(m.modelName, ",\n      ").concat(names.primaryKey, ",\n      ").concat(names.createData, ",\n      ").concat(names.updateData, ",\n      ").concat(names.findUniqueParams, "\n      >\n    "));
+        var def = JSON.stringify(m).replaceAll(/"databaseType"\s*:\s*"([^"]+)"/g, 'databaseType:SimplifiedDatabaseType.$1');
+        declarations.push("export const ".concat(names.modelSchemaDef, ":ModelSchema<").concat(m.modelName, "> = ").concat(def));
+    });
+    return "\n    ".concat(bannerComment, " \n\n    import { type ModelRepo, type ModelSchema, SimplifiedDatabaseType } from '@nowzoo/frieda';\n\n    // type imports defined in .friedarc...\n    ").concat((vars.externalTypeImports || []).join('\n'), "\n\n    ").concat(declarations.join('\n'), "\n  ");
+};
+var getConstantsCode = function (modelSchemas, bannerComment) {
+    var searchIndexes = {};
+    modelSchemas
+        .flatMap(function (m) { return m.fullTextSearchIndexes; })
+        .forEach(function (index) { return (searchIndexes[index.indexKey] = index); });
+    return "\n    ".concat(bannerComment, "\n\n    import type { SchemaCasts, FullTextSearchIndexes } from '@nowzoo/frieda';\n\n    export const ").concat(constNames.schemaCasts, ": SchemaCasts = {\n      ").concat(modelSchemas
+        .flatMap(function (m) {
+        return m.fields.map(function (f) {
+            return "'".concat(m.tableName, ".").concat(f.name, "': SimplifiedDatabaseType.").concat(f.databaseType, ",");
+        });
+    })
+        .join('\n'), "\n    }\n\n    export const ").concat(constNames.searchIndexes, ": FullTextSearchIndexes = ").concat(JSON.stringify(searchIndexes), "\n  ");
+};
+var getDatabaseCode = function (modelSchemas, vars, bannerComment) {
+    return "\n    ".concat(bannerComment, "\n    import { AbstractDb, ModelRepo, SimplifiedDatabaseType, type DbLoggingOptions } from '@nowzoo/frieda';\n    import type {\n      Connection,\n      Transaction\n    } from '@planetscale/database';\n\n  \n\n    import {\n      ").concat(modelSchemas
+        .flatMap(function (m) {
+        var _a = getModelNames(m), modelRepo = _a.modelRepo, modelSchemaDef = _a.modelSchemaDef;
+        return ["type ".concat(modelRepo), modelSchemaDef];
+    })
+        .join(','), "\n    } from './models.js'\n    import { ").concat(constNames.schemaCasts, " } from './constants.js';\n\n    abstract class ModelRepos extends AbstractDb {\n      private repos: Partial<{\n        ").concat(modelSchemas
+        .map(function (m) {
+        var names = getModelNames(m);
+        return "".concat(names.classAccessor, ": ").concat(names.modelRepo, ";");
+    })
+        .join("\n"), "\n      }> = {};\n      constructor(\n        connOrTx: Connection | Transaction,\n        loggingOptions: DbLoggingOptions = {}\n      ) {\n        super(connOrTx, schemaCasts, loggingOptions)\n      }\n      ").concat(modelSchemas.map(function (m) {
+        var names = getModelNames(m);
+        return "\n          get ".concat(names.classAccessor, "(): ").concat(names.modelRepo, " {\n            if (! this.repos.").concat(names.classAccessor, ") {\n              this.repos.").concat(names.classAccessor, " = new ModelRepo(\n                ").concat(names.modelSchemaDef, ",\n                this.connection,\n                ").concat(constNames.schemaCasts, ",\n                this.loggingOptions\n              )\n            }\n            return this.repos.").concat(names.classAccessor, ";\n          }\n        ");
+    }).join('\n'), "\n    }\n    \n\n    class TxDb extends ModelRepos {\n      constructor(\n        transaction: Transaction,\n        loggingOptions: DbLoggingOptions = {}\n      ) {\n          super(transaction, loggingOptions)\n        }\n      }\n    \n\n    export class AppDb extends ModelRepos {\n      constructor(\n        private conn: Connection,\n        loggingOptions: DbLoggingOptions = {}\n      ) {\n          super(conn, loggingOptions)\n        }\n      \n      async transaction<T>(txFn: (txDb: TxDb) => Promise<T>) {\n        const result = await this.conn.transaction(async (tx) => {\n          const txDb = new TxDb(tx, this.loggingOptions);\n          return await txFn(txDb);\n        });\n        return result;\n      }\n    }\n    \n  ");
+};
+var getModelNames = function (m) {
+    return {
+        primaryKey: "".concat(m.modelName, "PrimaryKey"),
+        createData: "".concat(m.modelName, "CreateData"),
+        updateData: "".concat(m.modelName, "UpdateData"),
+        findUniqueParams: "".concat(m.modelName, "FindUniqueParams"),
+        modelRepo: "".concat(m.modelName, "ModelRepo"),
+        classAccessor: lodash_1.default.camelCase(m.modelName),
+        modelSchemaDef: "".concat(lodash_1.default.camelCase(m.modelName), "ModelSchema")
+    };
+};
+var getModelSchemas = function (tables) {
+    return tables.map(function (t) { return createModelSchema(t); });
+};
+exports.getModelSchemas = getModelSchemas;
+var createModelSchema = function (table) {
+    var indexNames = table.indexes.map(function (index) { return index.Key_name; });
+    var fields = table.columns.map(function (c) { return createFieldSchema(c, table.name); });
+    return {
+        modelName: lodash_1.default.upperFirst(lodash_1.default.camelCase(table.name)),
+        tableName: table.name,
+        fields: fields,
+        fullTextSearchIndexes: getTableFullTextSearchIndexes(table)
+    };
+};
+var createFieldSchema = function (column, tableName) {
+    var databaseType = getSimplifiedDatabaseType(column, tableName);
+    var def = {
+        name: column.Field,
+        databaseType: databaseType,
+        javascriptType: getJavascriptType(column, databaseType, tableName),
+        hasDefault: column.Default !== null,
+        isPrimaryKey: /PRI/i.test(column.Key),
+        nullable: /yes/i.test(column.Null),
+        isCreatedAt: false,
+        isUpdatedAt: false,
+        isPrimaryKeyGenerated: false,
+        isDefaultGenerated: /DEFAULT_GENERATED/i.test(column.Extra),
+        isGeneratedAlways: /STORED/i.test(column.Extra) && /GENERATED/i.test(column.Extra),
+        isUnique: /UNI/i.test(column.Key)
+    };
+    if (def.isPrimaryKey && /auto_increment/i.test(column.Extra)) {
+        def.isPrimaryKeyGenerated = true;
+        def.isDefaultGenerated = true;
+    }
+    if (databaseType === shared_server_js_1.SimplifiedDatabaseType.Date) {
+        if (/DEFAULT_GENERATED/i.test(column.Extra)) {
+            if (/on\s+update\s+CURRENT_TIMESTAMP/i.test(column.Extra)) {
+                def.isUpdatedAt = true;
+            }
+            else {
+                def.isCreatedAt = true;
+            }
+        }
+    }
+    return def;
+};
+var getSimplifiedDatabaseType = function (column, tableName) {
+    // Deal with  bigint first. Assumed to be Key, unless the @bigint flag is in the comment
+    if (/bigint/i.test(column.Type)) {
+        return /@bigint/i.test(column.Comment)
+            ? shared_server_js_1.SimplifiedDatabaseType.BigInt
+            : shared_server_js_1.SimplifiedDatabaseType.Key;
+    }
+    // Deal with the other int types. Assumed to be Int, unless either @bigint or @boolean flags are present
+    if (/int/i.test(column.Type)) {
+        if (/@bigint/i.test(column.Comment)) {
+            return shared_server_js_1.SimplifiedDatabaseType.BigInt;
+        }
+        return /@boolean/i.test(column.Comment)
+            ? shared_server_js_1.SimplifiedDatabaseType.Boolean
+            : shared_server_js_1.SimplifiedDatabaseType.Int;
+    }
+    // floats...
+    if (/float|double|decimal/i.test(column.Type)) {
+        return shared_server_js_1.SimplifiedDatabaseType.Float;
+    }
+    // enum...
+    if (/enum/i.test(column.Type)) {
+        return shared_server_js_1.SimplifiedDatabaseType.Enum;
+    }
+    // datetime...
+    if (/datetime/i.test(column.Type)) {
+        return shared_server_js_1.SimplifiedDatabaseType.Date;
+    }
+    // datetime...
+    if (/json/i.test(column.Type)) {
+        return shared_server_js_1.SimplifiedDatabaseType.Json;
+    }
+    // all the string types...
+    if (/text|char/i.test(column.Type)) {
+        return shared_server_js_1.SimplifiedDatabaseType.String;
+    }
+    // Out of luck for now. If we need to support other database types, add them later.
+    throw new Error("Unsupported database type ".concat(column.Type, " for ").concat(tableName, ".").concat(column.Field));
+};
+var getJavascriptType = function (column, simpleType, tableName) {
+    if (simpleType === shared_server_js_1.SimplifiedDatabaseType.Enum) {
+        var result = column.Type.match(/enum\s*\(\s*([^)]+)\s*\)/i);
+        if (!result) {
+            throw new Error("Unsupported enum type ".concat(column.Type, " for ").concat(tableName, ".").concat(column.Field));
+        }
+        return result[1].split(',').join('|');
+    }
+    if (simpleType === shared_server_js_1.SimplifiedDatabaseType.Json) {
+        var result = column.Comment.match(/@jsontype\s*\(\s*([^)]+)\s*\)/i);
+        return result ? result[1] : 'unknown';
+    }
+    switch (simpleType) {
+        case shared_server_js_1.SimplifiedDatabaseType.BigInt:
+            return 'bigint';
+        case shared_server_js_1.SimplifiedDatabaseType.Int:
+        case shared_server_js_1.SimplifiedDatabaseType.Float:
+            return 'number';
+        case shared_server_js_1.SimplifiedDatabaseType.Boolean:
+            return 'boolean';
+        case shared_server_js_1.SimplifiedDatabaseType.Date:
+            return 'Date';
+        case shared_server_js_1.SimplifiedDatabaseType.Key:
+        case shared_server_js_1.SimplifiedDatabaseType.String:
+            return 'string';
+        default:
+            throw Error("Could not calculate the javascript type for ".concat(tableName, ".").concat(column.Field));
+    }
+};
+var getTableFullTextSearchIndexes = function (table) {
+    var indexes = [];
+    table.indexes.forEach(function (rawIndex) {
+        if (!/FULLTEXT/i.test(rawIndex.Index_type)) {
+            return;
+        }
+        var key = rawIndex.Key_name;
+        var indexDef = indexes.find(function (i) { return i.indexKey === key; });
+        if (indexDef) {
+            indexDef.indexedFields.push(rawIndex.Column_name);
+        }
+        else {
+            indexDef = {
+                indexKey: key,
+                indexedFields: [rawIndex.Column_name],
+                tableName: table.name
+            };
+            indexes.push(indexDef);
+        }
+    });
+    return indexes;
+};
+var writeFile = function (key, code, settings) { return __awaiter(void 0, void 0, void 0, function () {
+    var fullPath, prettified;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                fullPath = (0, path_1.join)(settings.generatedCodeDirectoryFullPath, "".concat(key, ".ts"));
+                return [4 /*yield*/, (0, utils_js_1.prettify)(code, fullPath)];
+            case 1:
+                prettified = _a.sent();
+                return [4 /*yield*/, fs_extra_1.default.writeFile(fullPath, prettified)];
+            case 2:
+                _a.sent();
+                return [2 /*return*/, fullPath];
+        }
+    });
+}); };

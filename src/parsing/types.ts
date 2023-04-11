@@ -1,22 +1,6 @@
-
-export type RcSettings = {
-  schemaDirectory: string;
-  generatedCodeDirectory: string;
-  envFile: string;
-  externalTypeImports: string[];
-};
-
-export type ResolvedSettings = Partial<RcSettings> & {
-  generatedCodeDirectoryFullPath: string;
-  schemaDirectoryFullPath: string;
-  currentMigrationFullPath: string;
-  currentSchemaFullPath: string;
-  databaseUrl: string;
-};
-
-
-
-
+/**
+ * A row from `SHOW FULL COLUMNS FROM TableName`
+ */
 export type RawTableColumnInfo = {
   Field: string;
   Type: string;
@@ -57,11 +41,3 @@ export type RawSchema = {
   tableNames: string[];
   tables: RawTableInfo[];
 };
-
-export type GeneratedCode = {
-  constants: string;
-  database: string;
-  models: string;
-}
-
-

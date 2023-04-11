@@ -36,11 +36,23 @@ export const getSettings = async (): Promise<ResolvedSettings> => {
   const codeResult = await getGeneratedCodeDirectoryFullPath(rcSettings);
   rcSettings = codeResult.rcSettings;
   const generatedCodeDirectoryFullPath = codeResult.generatedCodeDirectoryFullPath;
+  log.success([
+    colors.bold('Database URL:'),
+      maskDatabaseURLPassword(databaseUrl),
+      colors.dim(
+        `Source: ${colors.cyan(dbResult.sourceFile)} ${colors.magenta(dbResult.sourceKey)}`
+      ),
+    
+    `${colors.bold('Schema directory:')} ${formatFilePath(schemaDirectoryFullPath)}`, 
+    `${colors.bold('Generated code directory:')} ${formatFilePath(generatedCodeDirectoryFullPath)}`, 
+  ].join('\n'))
   return {
     ...rcSettings,
     databaseUrl,
     generatedCodeDirectoryFullPath,
-    schemaDirectoryFullPath
+    schemaDirectoryFullPath,
+    currentMigrationFullPath: join(schemaDirectoryFullPath, CURRENT_MIGRATION_FILE_NAME),
+    currentSchemaFullPath: join(schemaDirectoryFullPath, CURRENT_SCHEMA_FILE_NAME)
   }
 }
 
@@ -184,7 +196,6 @@ const getGeneratedCodeDirectoryFullPath = async (
     rcSettings = await writeRcSettings({ generatedCodeDirectory });
   }
   const fullPath = join(process.cwd(), generatedCodeDirectory);
-  log.success([`Generated code directory:`, formatFilePath(fullPath)].join(' '));
   return {rcSettings, generatedCodeDirectoryFullPath: fullPath};
 };
 
@@ -237,7 +248,6 @@ const getSchemaDirectoryFullPath = async (
     rcSettings = await writeRcSettings({ schemaDirectory });
   }
   const fullPath = join(process.cwd(), schemaDirectory);
-  log.success([`Schema directory:`, formatFilePath(fullPath)].join(' '));
   return {rcSettings, schemaDirectoryFullPath: fullPath};
 };
 
@@ -245,6 +255,8 @@ const getSchemaDirectoryFullPath = async (
 type GetDatabaseUrlResult = {
   rcSettings: Partial<RcSettings>;
   databaseUrl: string;
+  sourceFile: string;
+  sourceKey:string;
 };
 const getDatabaseUrl = async (
   rcSettings: Partial<RcSettings>
@@ -362,14 +374,6 @@ const getDatabaseUrl = async (
       envFile
     });
   }
-  log.success(
-    [
-      'Database URL:',
-      maskDatabaseURLPassword(result.databaseUrl),
-      colors.dim(
-        `Source: ${colors.cyan(envFile)} ${colors.magenta(result.envFileKey)}`
-      )
-    ].join('\n')
-  );
-  return { rcSettings, databaseUrl: result.databaseUrl };
+  
+  return { rcSettings, databaseUrl: result.databaseUrl, sourceFile: envFile, sourceKey: result.envFileKey };
 };

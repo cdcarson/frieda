@@ -7,7 +7,7 @@ export type Option = {
   description: string;
 };
 
-export type CommandId = 'migrate' | 'fetch' | 'generate';
+export type CommandId = 'migrate' | 'fetch' | 'generate' | 'show';
 export type Command<Id extends CommandId> = {
   id: Id;
   description: string;
@@ -17,16 +17,21 @@ export type Commands = {
   [Id in CommandId & string]: Command<Id>;
 };
 
+export type GetCommandResult = {
+  command?: Command<CommandId>;
+  restArgs: string[]
+}
+
 export const GLOBAL_OPTIONS: Option[] = [
   {
     long: 'help',
     short: 'h',
-    description: 'Show this help'
+    description: 'Show help'
   },
   {
     long: 'version',
     short: 'v',
-    description: 'Show the version'
+    description: 'Show version'
   }
 ];
 
@@ -39,28 +44,33 @@ export const COMMANDS: Commands = {
     id: 'generate',
     description: `Generate code.`
   },
+  show: {
+    id: 'show',
+    description: 'Show model details.'
+  },
   fetch: {
     id: 'fetch',
-    description: `Fetch the database schema.`,
-    options: [
-      {
-        long: 'skip-generate',
-        short: 's',
-        description: 'Skip generating code'
-      }
-    ]
+    description: `Fetch the database schema.`
   }
 };
 
-export const getCommand = (args: string[]): Command<CommandId> | undefined => {
+export const getCommand = (args: string[]): GetCommandResult => {
   if (args.length === 0) {
-    return undefined;
+    return {
+      restArgs: args
+    };
   }
   for (const command of Object.values(COMMANDS)) {
     if (args[0] === command.id || args[0] === command.id[0]) {
-      return command;
+      return {
+        command,
+        restArgs: args.slice(1)
+      };
     }
   }
+  return {
+    restArgs: args
+  };
 };
 
 export const getOptionFlag = (
@@ -104,21 +114,35 @@ export const showHelp = () => {
   const ordered: CommandId[] = [
     'fetch',
     'generate',
+    'show',
     'migrate',
   ]
-  console.log( `${colors.dim('Usage:')} frieda ${colors.magenta('<command> [options]')}`);
+  console.log( `${colors.dim('Usage:')} frieda ${colors.magenta('[command]')} ${colors.blue('[options]')}`);
   console.log()
   console.log(colors.dim('Commands:'));
-  const colSize = Math.max(...Object.values(COMMANDS).map((c) => c.id.length));
+  let colSize = Math.max(...Object.values(COMMANDS).map((c) => c.id.length));
   ordered.forEach(id => {
     const c = COMMANDS[id];
     const addedSpaces = ' '.repeat(colSize - c.id.length);
     console.log(
-      `   ${colors.magenta(c.id[0])}${colors.dim('|')}${colors.magenta(
+      `${colors.magenta(c.id[0])}${colors.dim('|')}${colors.magenta(
         c.id
       )}   ${addedSpaces}${colors.gray(c.description)}`
     );
   })
   
   console.log();
+
+  console.log(colors.dim('Global options:'));
+  colSize = Math.max(...GLOBAL_OPTIONS.map(o => o.long.length))
+  GLOBAL_OPTIONS.forEach(o => {
+    const addedSpaces = ' '.repeat(colSize - o.long.length);
+    const short = o.short ? colors.blue(`-${o.short}`) + colors.dim('|') : '  ';
+    const long = colors.blue(`--${o.long}`)
+    console.log(`${short}${long}  ${addedSpaces}${colors.gray(o.description)}`)
+  })
+
+  console.log();
+
+
 };

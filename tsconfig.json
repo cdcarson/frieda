@@ -17,10 +17,9 @@
     "target": "esnext",
     "ignoreDeprecations": "5.0",
     "outDir": "dist",
-    "declaration": true
+    "declaration": true,
+    "useDefineForClassFields": true
   },
-  "include": [
-		"src/**/*.ts"
-	],
-  
+  "include": ["src/**/*.ts"],
+  "exclude": ["**/*.test.ts"]
 }
