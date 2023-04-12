@@ -80,6 +80,7 @@ In the latter case, add the import to `externalTypeImports` in .friedarc...
     "import type { FabulousPricing } from '../../api'"
   ]
 }
+```
 
 
 
