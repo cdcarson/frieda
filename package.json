@@ -25,6 +25,7 @@
 		"!dist/**/*.test.*",
 		"!dist/**/*.spec.*"
 	],
+	"bin": "dist/cli.js",
 	"devDependencies": {
 		"@sveltejs/adapter-static": "^2.0.2",
 		"@sveltejs/kit": "^1.15.4",
@@ -51,6 +52,7 @@
 	"type": "module",
 	"dependencies": {
 		"@planetscale/database": "^1.7.0",
+		"dotenv": "^16.0.3",
 		"lodash": "^4.17.21",
 		"sql-template-tag": "^5.0.3"
 	}

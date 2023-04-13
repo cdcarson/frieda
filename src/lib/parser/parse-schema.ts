@@ -188,6 +188,19 @@ export const isFieldColumnPrimaryKey = (column: DatabaseTableColumnInfo): boolea
 };
 
 /**
+ * Returns true if Key exactly equals 'UNI'
+ * See https://dev.mysql.com/doc/refman/8.0/en/show-columns.html
+ * 
+ * Used to create the <ModelName>FindUniqueParams type for the model.
+ * 
+ * Note that this will be false for primary key(s).
+ * They are automatically included in  <ModelName>FindUniqueParams.
+ */
+export const isFieldColumnUnique = (column: DatabaseTableColumnInfo): boolean => {
+  return column.Key === 'UNI';
+};
+
+/**
  * Whether the column is auto_increment.
  * See https://dev.mysql.com/doc/refman/8.0/en/show-columns.html
  * The docs there on Extra are not completely reliable, so just test that Extra contains 'auto_increment', case-insenitively.
@@ -255,6 +268,7 @@ export const parseFieldDefinition = <Name extends string>(
     isColumnAlwaysGenerated: isFieldColumnAlwaysGenerated(column),
     isColumnDefaultGenerated: isFieldColumnDefaultGenerated(column),
     isColumnInvisible: isFieldColumnInvisible(column),
-    isColumnNullable: isFieldColumnNullable(column)
+    isColumnNullable: isFieldColumnNullable(column),
+    isColumnUnique: isFieldColumnUnique(column)
   };
 };

@@ -11,7 +11,8 @@ import {
   isFieldColumnAlwaysGenerated,
   isFieldColumnDefaultGenerated,
   isFieldColumnInvisible,
-  isFieldColumnNullable
+  isFieldColumnNullable,
+  isFieldColumnUnique
 } from './parse-schema.js';
 import type { DatabaseTableColumnInfo } from '$lib/types.js';
 import { KNOWN_MYSQL_TYPES } from '$lib/constants.js';
@@ -145,6 +146,26 @@ describe('isFieldColumnPrimaryKey', () => {
     col.Key = '';
     expect(isFieldColumnPrimaryKey(col)).toBe(false);
   });
+});
+
+describe('isFieldColumnUnique', () => {
+  let col: DatabaseTableColumnInfo;
+  beforeEach(() => {
+    col = { ...colInfoTemplate };
+  });
+  it('is true if the Key is exactly "UNI"', () => {
+    col.Key = 'UNI';
+    expect(isFieldColumnUnique(col)).toBe(true);
+  });
+  it('is true if the Key is not exactly "UNI"', () => {
+    col.Key = 'MUL';
+    expect(isFieldColumnUnique(col)).toBe(false);
+    col.Key = 'PRI';
+    expect(isFieldColumnUnique(col)).toBe(false);
+    col.Key = '';
+    expect(isFieldColumnUnique(col)).toBe(false);
+  });
+
 });
 
 describe('getFieldJavascriptType', () => {
