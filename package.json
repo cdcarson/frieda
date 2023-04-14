@@ -4,6 +4,7 @@
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build && npm run package",
+		"build:w": "svelte-package --watch",
 		"preview": "vite preview",
 		"package": "svelte-kit sync && svelte-package && publint",
 		"prepublishOnly": "npm run package",
@@ -30,7 +31,9 @@
 		"@sveltejs/adapter-static": "^2.0.2",
 		"@sveltejs/kit": "^1.15.4",
 		"@sveltejs/package": "^2.0.2",
+		"@types/fs-extra": "^11.0.1",
 		"@types/lodash": "^4.14.192",
+		"@types/prettier": "^2.7.2",
 		"@typescript-eslint/eslint-plugin": "^5.58.0",
 		"@typescript-eslint/parser": "^5.58.0",
 		"@vitest/coverage-c8": "^0.30.1",
@@ -51,9 +54,13 @@
 	"types": "./dist/index.d.ts",
 	"type": "module",
 	"dependencies": {
+		"@clack/prompts": "^0.6.3",
 		"@planetscale/database": "^1.7.0",
 		"dotenv": "^16.0.3",
+		"fs-extra": "^11.1.1",
 		"lodash": "^4.17.21",
+		"mysql2": "^3.2.0",
+		"picocolors": "^1.0.0",
 		"sql-template-tag": "^5.0.3"
 	}
 }

@@ -27,6 +27,7 @@ export type CastType =
 
 
 
+
 export type FieldDefinition<Name extends string> = {
   /**
    * The javascript field name (camelCase'd columnName)
@@ -114,10 +115,9 @@ export type FieldDefinition<Name extends string> = {
    */
   isColumnNullable: boolean;
 
-
   /**
    * Whether the model can be uniquely selected by this field.
-   * 
+   *
    * Derived from column.Key === 'UNI'
    */
   isColumnUnique: boolean;
@@ -172,19 +172,19 @@ export type DatabaseTableColumnInfo = {
    *
    * If `Key` === 'PRI` the field is a primary key.
    * If `Key` === 'UNI` the field is uniquely indexed.
-   * 
-   * If the field is a primary key, it will be included in 
+   *
+   * If the field is a primary key, it will be included in
    * primary key map returned by create.
-   * 
-   * If the field is unique, then we infer that you can 
+   *
+   * If the field is unique, then we infer that you can
    * select unique by it.
-   * 
+   *
    * @todo this documentation needs work.
    */
   Key: string;
 
   /**
-   * We ignore this. All we need to know abot whether a column 
+   * We ignore this. All we need to know abot whether a column
    * has a default comes from `Extra` (see below) and `Null`
    */
   Default: string | null;
@@ -251,7 +251,7 @@ export type DatabaseSchema = {
   tables: DatabaseTableInfo[];
 };
 
-export type CastSettings = {
+export type FieldTypeSettings = {
   /**
    * Whether to automatically cast `tinyint(1)` columns to boolean.
    * Default: true

@@ -2,12 +2,15 @@ import { KNOWN_MYSQL_TYPES } from '$lib/constants';
 import type {
   DatabaseSchema,
   DatabaseTableColumnInfo,
-  CastSettings,
+  DatabaseTableInfo,
+  FieldTypeSettings,
   FieldDefinition,
-  CastType
+  CastType,
+  ModelDefinition,
+  Model
 } from '$lib/types';
 import { getMatchAmong, getParenthesizedArgs } from '$lib/utils/rx-utils';
-import { fieldName } from './naming';
+import { fieldName, modelName } from './naming';
 
 /**
  * Returns the javascript (typescript) type as a string,
@@ -71,7 +74,7 @@ export const hasColumnCommentAnnotation = (
 export const getFieldCastType = (
   col: DatabaseTableColumnInfo,
   knownMySQLType: (typeof KNOWN_MYSQL_TYPES)[number] | null,
-  settings: CastSettings
+  settings: FieldTypeSettings
 ): CastType => {
   if (!knownMySQLType) {
     return 'string';
@@ -183,20 +186,24 @@ export const getFieldKnownMySQLType = (
  * Returns true if Key exactly equals 'PRI'
  * See https://dev.mysql.com/doc/refman/8.0/en/show-columns.html
  */
-export const isFieldColumnPrimaryKey = (column: DatabaseTableColumnInfo): boolean => {
+export const isFieldColumnPrimaryKey = (
+  column: DatabaseTableColumnInfo
+): boolean => {
   return column.Key === 'PRI';
 };
 
 /**
  * Returns true if Key exactly equals 'UNI'
  * See https://dev.mysql.com/doc/refman/8.0/en/show-columns.html
- * 
+ *
  * Used to create the <ModelName>FindUniqueParams type for the model.
- * 
+ *
  * Note that this will be false for primary key(s).
  * They are automatically included in  <ModelName>FindUniqueParams.
  */
-export const isFieldColumnUnique = (column: DatabaseTableColumnInfo): boolean => {
+export const isFieldColumnUnique = (
+  column: DatabaseTableColumnInfo
+): boolean => {
   return column.Key === 'UNI';
 };
 
@@ -251,7 +258,7 @@ export const isFieldColumnNullable = (
 
 export const parseFieldDefinition = <Name extends string>(
   column: DatabaseTableColumnInfo,
-  settings: CastSettings
+  settings: FieldTypeSettings
 ): FieldDefinition<Name> => {
   const knownMySQLType = getFieldKnownMySQLType(column);
   const castType = getFieldCastType(column, knownMySQLType, settings);
@@ -271,4 +278,39 @@ export const parseFieldDefinition = <Name extends string>(
     isColumnNullable: isFieldColumnNullable(column),
     isColumnUnique: isFieldColumnUnique(column)
   };
+};
+
+/**
+ * The type definition string for inclusion in the base type of a model.
+ * including whether it is possibly undefined and/or null.
+ *
+ * The resulting string is:
+ *
+ * `<field.fieldName>[?]: <field.javscriptType>[|null]`
+ *
+ * A question mark after the name means that field.isInvisible is true,
+ * so the field will be `undefined` unless specifically selected.
+ *
+ * `|null` after the javascript type means that the field can be null: field.isColumnNullable.
+ */
+export const getModelFieldTypeDef = (
+  fieldName: string,
+  javscriptType: string,
+  isColumnInvisible: boolean,
+  isColumnNullable: boolean
+) => {
+  return `${fieldName}${isColumnInvisible ? '?' : ''}:${javscriptType}${
+    isColumnNullable ? '|null' : ''
+  }`;
+};
+export const parseModelDefinition = <Name extends string>(
+  table: DatabaseTableInfo
+): ModelDefinition<Model, Name> => {
+  const def: ModelDefinition<Model, Name> = {
+    name: modelName(table.name) as Name,
+    tableName: table.name,
+    fields: {}
+  };
+
+  return def;
 };
