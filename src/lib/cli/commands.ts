@@ -18,6 +18,10 @@ export const cliCommands: CliCommand[] = [
     alias: 'f'
   },
   {
+    name: 'generate',
+    alias: 'g'
+  },
+  {
     name: 'init',
     alias: 'i'
   }

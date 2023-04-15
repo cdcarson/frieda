@@ -1,6 +1,6 @@
 import type { DatabaseSchema } from '$lib/types.js';
 import { CURRENT_SCHEMA_SQL_FILE_NAME } from './constants.js';
-import type { FullSettings } from './types.js';
+import type { FullSettings } from '$lib/types.js';
 import { join, dirname } from 'path';
 import fs from 'fs-extra';
 import { formatFilePath, wait } from './utils.js';

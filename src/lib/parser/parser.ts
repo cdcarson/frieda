@@ -1,16 +1,24 @@
-import { KNOWN_MYSQL_TYPES } from '$lib/constants';
+import { KNOWN_MYSQL_TYPES } from '$lib/constants.js';
 import type {
-  DatabaseSchema,
   DatabaseTableColumnInfo,
   DatabaseTableInfo,
-  FieldTypeSettings,
   FieldDefinition,
   CastType,
   ModelDefinition,
-  Model
-} from '$lib/types';
-import { getMatchAmong, getParenthesizedArgs } from '$lib/utils/rx-utils';
-import { fieldName, modelName } from './naming';
+  Model,
+  FullSettings,
+} from '$lib/types.js';
+import { getMatchAmong, getParenthesizedArgs } from '$lib/utils/rx-utils.js';
+import _ from 'lodash';
+import {
+  getFieldName,
+  getModelCreateDataTypeName,
+  getModelFindUniqueParamsTypeName,
+  getModelName,
+  getModelPrimaryKeyTypeName,
+  getModelRepoTypeName,
+  getModelUpdateDataTypeName
+} from './naming.js';
 
 /**
  * Returns the javascript (typescript) type as a string,
@@ -74,7 +82,7 @@ export const hasColumnCommentAnnotation = (
 export const getFieldCastType = (
   col: DatabaseTableColumnInfo,
   knownMySQLType: (typeof KNOWN_MYSQL_TYPES)[number] | null,
-  settings: FieldTypeSettings
+  settings: Partial<FullSettings>
 ): CastType => {
   if (!knownMySQLType) {
     return 'string';
@@ -256,15 +264,15 @@ export const isFieldColumnNullable = (
   return column.Null === 'YES';
 };
 
-export const parseFieldDefinition = <Name extends string>(
+export const parseFieldDefinition = (
   column: DatabaseTableColumnInfo,
-  settings: FieldTypeSettings
-): FieldDefinition<Name> => {
+  settings: Partial<FullSettings>
+): FieldDefinition=> {
   const knownMySQLType = getFieldKnownMySQLType(column);
   const castType = getFieldCastType(column, knownMySQLType, settings);
   const javascriptType = getFieldJavascriptType(column, castType);
   return {
-    fieldName: fieldName(column.Field) as Name,
+    fieldName: getFieldName(column.Field),
     columnName: column.Field,
     columnType: column.Type,
     knownMySQLType,
@@ -299,18 +307,29 @@ export const getModelFieldTypeDef = (
   isColumnInvisible: boolean,
   isColumnNullable: boolean
 ) => {
+  // Don't add any whitespace; it'll break tests; prettier will format.
   return `${fieldName}${isColumnInvisible ? '?' : ''}:${javscriptType}${
     isColumnNullable ? '|null' : ''
   }`;
 };
-export const parseModelDefinition = <Name extends string>(
-  table: DatabaseTableInfo
-): ModelDefinition<Model, Name> => {
-  const def: ModelDefinition<Model, Name> = {
-    name: modelName(table.name) as Name,
+export const parseModelDefinition = (
+  table: DatabaseTableInfo,
+  settings: Partial<FullSettings>
+): ModelDefinition => {
+  const def: ModelDefinition = {
+    modelName: getModelName(table.name),
     tableName: table.name,
-    fields: {}
+    modelPrimaryKeyTypeName: getModelPrimaryKeyTypeName(table.name),
+    modelCreateDataTypeName: getModelCreateDataTypeName(table.name),
+    modelUpdateDataTypeName: getModelUpdateDataTypeName(table.name),
+    modelFindUniqueParamsTypeName: getModelFindUniqueParamsTypeName(table.name),
+    modelRepoTypeName: getModelRepoTypeName(table.name),
+    classRepoName: _.camelCase(table.name),
+    modelDefinitionConstName: _.camelCase(table.name) + 'ModelDefinition',
+    fields: table.columns.map(col => parseFieldDefinition(col, settings))
   };
 
   return def;
 };
+
+

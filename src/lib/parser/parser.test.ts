@@ -12,8 +12,9 @@ import {
   isFieldColumnDefaultGenerated,
   isFieldColumnInvisible,
   isFieldColumnNullable,
-  isFieldColumnUnique
-} from './parse-schema.js';
+  isFieldColumnUnique,
+  getModelFieldTypeDef
+} from './parser.js';
 import type { DatabaseTableColumnInfo } from '$lib/types.js';
 import { KNOWN_MYSQL_TYPES } from '$lib/constants.js';
 import { getParenthesizedArgs } from '$lib/utils/rx-utils.js';
@@ -420,3 +421,18 @@ describe('hasColumnCommentAnnotation', () => {
     );
   });
 });
+
+describe('getModelFieldTypeDef', () => {
+  it('both isColumnInvisible and isColumnNullable are false', () => {
+    expect(getModelFieldTypeDef('foo', 'string', false, false)).toBe('foo:string')
+  })
+  it('both isColumnInvisible and isColumnNullable are true', () => {
+    expect(getModelFieldTypeDef('foo', 'string', true, true)).toBe('foo?:string|null')
+  })
+  it('isColumnInvisible is true', () => {
+    expect(getModelFieldTypeDef('foo', 'string', true, false)).toBe('foo?:string')
+  })
+  it('isColumnNullable is true', () => {
+    expect(getModelFieldTypeDef('foo', 'string', false, true)).toBe('foo:string|null')
+  })
+})

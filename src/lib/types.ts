@@ -1,4 +1,6 @@
+import type { Sql } from 'sql-template-tag';
 import type { KNOWN_MYSQL_TYPES } from './constants';
+import type { ExecutedQuery } from '@planetscale/database';
 
 /**
  * The base type for models
@@ -14,25 +16,32 @@ export type Model = Record<string, unknown>;
  * In addition, this is used to provide one-off cast overrides to db.executeSelect
  * in the case where columns returned from a query do not map to the schema.
  */
-export type CastType =
-  | 'string'
-  | 'bigint'
-  | 'int'
-  | 'float'
-  | 'json'
-  | 'date'
-  | 'boolean'
-  | 'set'
-  | 'enum';
+export const CAST_TYPES = [
+  'string',
+  'bigint',
+  'int',
+  'float',
+  'json',
+  'date',
+  'boolean',
+  'set',
+  'enum'
+] as const;
+export type CastType = typeof CAST_TYPES[number];
+ 
 
+export type CustomModelCast<M extends Model> = {
+  [K in keyof M]?: CastType;
+};
+export type SchemaCast = {
+  [orgTableOrgCol: string]: CastType;
+};
 
-
-
-export type FieldDefinition<Name extends string> = {
+export type FieldDefinition = {
   /**
    * The javascript field name (camelCase'd columnName)
    */
-  fieldName: Name;
+  fieldName: string;
 
   /**
    * The actual database column name. Can be any reasonable thing.
@@ -123,14 +132,58 @@ export type FieldDefinition<Name extends string> = {
   isColumnUnique: boolean;
 };
 
-export type ModelDefinition<M extends Model, Name extends string> = {
-  // The javascript model name (PascalCase'd columnName)
-  name: Name;
+export type ModelDefinition = {
   tableName: string;
-  fields: {
-    [N in keyof M & string]: FieldDefinition<N>;
-  };
+
+  /**
+   * The javascript model name (PascalCase'd columnName)
+   */
+  modelName: string;
+
+  // Other model names...
+  modelPrimaryKeyTypeName: string;
+  modelCreateDataTypeName: string;
+  modelUpdateDataTypeName: string;
+  modelFindUniqueParamsTypeName: string;
+  modelRepoTypeName: string;
+  classRepoName: string;
+  modelDefinitionConstName: string;
+
+
+  // the model's fields
+  fields: FieldDefinition[]
 };
+
+
+
+export type DbLoggingOptions = {
+  performanceLogger?: (
+    executedQuery: ExecutedQuery,
+    roundTripMs: number
+  ) => void;
+  errorLogger?: (error: Error) => void;
+};
+
+export type ModelSelectColumnsInput<M extends Model> = (keyof M & string)[]|undefined;
+
+export type ModelWhereInput<M extends Model> = Partial<M>|Sql|undefined;
+
+export type ModelOrderByInput<M extends Model> =
+  | {
+      col: keyof M & string;
+      dir: 'asc' | 'desc';
+    }
+  | {
+      col: keyof M & string;
+      dir: 'asc' | 'desc';
+    }[]
+  | Sql
+  | undefined;
+
+export type OneBasedPagingInput = {
+  page: number;
+  rpp: number;
+} | undefined;
 
 /**
  * A row from a `SHOW FULL COLUMNS FROM TableName` query.
@@ -251,16 +304,53 @@ export type DatabaseSchema = {
   tables: DatabaseTableInfo[];
 };
 
-export type FieldTypeSettings = {
+export type RcSettings = {
+  /**
+   * The path to the directory where we keep
+   * the current schema, the current migration,
+   * and migration history.
+   */
+  schemaDirectory: string;
+
+  /**
+   * The path to where we place generated code.
+   */
+  generatedCodeDirectory: string;
+
+  /**
+   * An array of userland import statements
+   * providing types relied upon by the models.
+   *
+   * Default: []
+   */
+  externalTypeImports?: string[];
+
+  /**
+   * The path to the environment variables
+   * file where we can find the database URL.
+   *
+   * Default: .env
+   */
+  envFilePath?: string;
+
   /**
    * Whether to automatically cast `tinyint(1)` columns to boolean.
+   *
    * Default: true
    */
   typeTinyIntOneAsBoolean?: boolean;
 
   /**
    * Whether to automatically cast `bigint` columns to string.
+   *
    * Default: true
    */
   typeBigIntAsString?: boolean;
+};
+
+export type FullSettings = RcSettings & {
+  /**
+   * Derived from a variable in envFilePath
+   */
+  databaseUrl: string;
 };

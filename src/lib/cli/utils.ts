@@ -18,10 +18,10 @@ export const wait = (msg: string): {done: () => void, error: ()=> void} => {
   s.start(`${msg}...`)
   return {
     done: () => {
-      s.stop(`${msg}...${colors.green('done')}`)
+      s.stop(`${msg}... ${colors.green('done.')}`)
     },
     error: () => {
-      s.stop(`${msg}...${colors.red('error')}`)
+      s.stop(`${msg}... ${colors.red('error.')}`)
     }
   }
 }

@@ -1,4 +1,4 @@
-import type { RcSettings, FullSettings } from './types.js';
+import type { RcSettings, FullSettings } from '$lib/types.js';
 import {
   cancelAndExit,
   fmtPath,
