@@ -9,7 +9,7 @@ import { fmtPath, prettify, wait } from '$lib/cli/utils.js';
 
 
 const GENERATED_CODE_FILENAMES = {
-  modelTypes: 'types.ts',
+  modelTypes: 'types.d.ts',
   database: 'database.ts',
   schemaCast: 'schema-cast.ts',
   modelDefinitions: 'model-definitions.ts'
@@ -142,7 +142,7 @@ const writeDatabaseTs = async (
     ${
       models.map(m => m.modelRepoTypeName).join(',\n')
     }
-  } from './${basename(GENERATED_CODE_FILENAMES.modelTypes, extname(GENERATED_CODE_FILENAMES.modelTypes))}.js'
+  } from './types'
   import {
     ${
       models.map(m => m.modelDefinitionConstName).join(',\n')
