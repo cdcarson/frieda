@@ -57,9 +57,19 @@ Example `.friedarc`:
 _Required._ The relative path to a dedicated directory meant to contain the current schema, the current migration, and the migration history. 
 
 #### generatedCodeDirectory
-_Required._ The relative path to a directory meant to contain the
-code Frieda generates. It should be a dedicated folder,
-not containing your own code.
+_Required._ The relative path to a directory meant to contain the code Frieda generates. It should be a dedicated folder, conveniently near, but not containing your own source code. For example, `src/db/_generated` in the structure below:
+
+```
+src
+├── db
+│   ├── _generated
+│   │   ├── database.ts
+│   │   ├── model-definitions.ts
+│   │   ├── schema-cast.ts
+│   │   └── types.ts
+│   └── your-db-code.ts
+└── index.ts
+```
 
 
 - `externalImports`: Optional. An array of full import statements corresponding to the types you have defined for JSON columns. These import statements will be added as is to the generated code files. Import paths should be relative to `generatedCodeDirectory` (path aliases are fine.)
