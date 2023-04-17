@@ -80,9 +80,14 @@ The relative path to an environment variables file where the database URL can be
  
  The environment variable should be in the format `mysql://user:password@host`.
 
-This file should be added to .gitignore, since the URL contains the password.
+This file should be added to `.gitignore`, since the URL contains the password.
 
-- `externalImports`: Optional. An array of full import statements corresponding to the types you have defined for JSON columns. These import statements will be added as is to the generated code files. Import paths should be relative to `generatedCodeDirectory` (path aliases are fine.)
+
+#### externalTypeImports
+An  array of import statements that correspond to the types you have assigned to `json` columns. Frieda includes these _as is_ at in  `<generatedCodeDirectory>/types.ts`. Note that the import paths are not validated, so it's up to you to provide paths that resolve correctly from `generatedCodeDirectory`, according to your project setup. (E.g., type aliases you have defined will work.)
+
+
+
 
 Running `frieda init` will ask you for `schemaDirectory` and `generatedCodeDirectory`, and create or modify  `.friedarc`. You must edit `externalImports` by hand.
 
