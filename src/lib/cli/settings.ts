@@ -378,15 +378,10 @@ export const promptSchemaDirectory = async (
   const varName = fmtVarName('schemaDirectory');
 
   log.message(
-    `${header} (${varName})\n` +
-      squishWords(
-        `The relative path to a dedicated directory meant 
-          to contain the current schema, the current migration, 
-          and the migration history.`
-      ) +
-      `\n\nCurrent Value: ${fmtPath(schemaDirectory)}`
+    `${header} (${varName})\nHelp: ${fmtPath(
+      'https://github.com/nowzoo/frieda#schemadirectory'
+    )}\nCurrent Value: ${fmtPath(schemaDirectory)}`
   );
-
   if (!error) {
     const change = await confirm({
       message: `Change schema directory?`,
@@ -413,14 +408,9 @@ export const promptGeneratedCodeDirectory = async (
   const varName = fmtVarName('generatedCodeDirectory');
 
   log.message(
-    `${header} (${varName})\n` +
-      squishWords(
-        `The relative path to a directory meant 
-          to contain the code Frieda generates. 
-          It should be a dedicated folder, 
-          not containing your own code.`
-      ) +
-      `\n\nCurrent Value: ${fmtPath(generatedCodeDirectory)}`
+    `${header} (${varName})\nHelp: ${fmtPath(
+      'https://github.com/nowzoo/frieda#generatedcodedirectory'
+    )}\nCurrent Value: ${fmtPath(generatedCodeDirectory)}`
   );
 
   if (!error) {

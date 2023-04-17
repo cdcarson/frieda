@@ -31,8 +31,9 @@ export const cmdInit = async (commandResult: ParseCommandResult) => {
   s.done();
   const schemaDirectory = await promptSchemaDirectory(rcSettings)
   const generatedCodeDirectory = await promptGeneratedCodeDirectory(rcSettings);
-  const flags = await promptTypeSettings(rcSettings)
   dbResult = await promptDatabaseUrl(dbResult)
+  const flags = await promptTypeSettings(rcSettings)
+  
   const externalTypeImports = await promptExternalTypeImports(rcSettings);
   
   

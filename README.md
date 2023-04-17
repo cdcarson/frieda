@@ -71,6 +71,12 @@ src
 └── index.ts
 ```
 
+### envFilePath
+_Optional._ Default: `.env`
+
+The relative path to an environment variables file where the database URL can be found as either `FRIEDA_DATABASE_URL` or `DATABASE_URL`. The environment variable should be in the format `mysql://user:password@host`.
+
+This file should be added to .gitignore, since the URL contains the password.
 
 - `externalImports`: Optional. An array of full import statements corresponding to the types you have defined for JSON columns. These import statements will be added as is to the generated code files. Import paths should be relative to `generatedCodeDirectory` (path aliases are fine.)
 
