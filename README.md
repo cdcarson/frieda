@@ -35,7 +35,7 @@ Fetch the current database schema. The output is a series of `CREATE TABLE`
 
 
 
-### CLI Settings
+### Settings
 
 Most settings reside in a `.friedarc` JSON file in the project root directory. The exception is the database URL, which needs to be provided as an environment variable, since `.friedarc` can and should be committed to git. 
 
@@ -52,8 +52,16 @@ Example `.friedarc`:
 }
 ```
 
-- `schemaDirectory`: Required. Relative path to a folder containing the current schema, the current migration, and the migration history.
-- `generatedCodeDirectory`: Required. Relative path to the folder where you want Frieda to place generated typescript code.
+#### schemaDirectory
+
+_Required._ The relative path to a dedicated directory meant to contain the current schema, the current migration, and the migration history. 
+
+#### generatedCodeDirectory
+_Required._ The relative path to a directory meant to contain the
+code Frieda generates. It should be a dedicated folder,
+not containing your own code.
+
+
 - `externalImports`: Optional. An array of full import statements corresponding to the types you have defined for JSON columns. These import statements will be added as is to the generated code files. Import paths should be relative to `generatedCodeDirectory` (path aliases are fine.)
 
 Running `frieda init` will ask you for `schemaDirectory` and `generatedCodeDirectory`, and create or modify  `.friedarc`. You must edit `externalImports` by hand.

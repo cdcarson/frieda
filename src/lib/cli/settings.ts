@@ -11,6 +11,7 @@ import {
   maskDatabaseURLPassword,
   prettify,
   promptValidateFilePath,
+  squishWords,
   wait
 } from './utils.js';
 import fs from 'fs-extra';
@@ -26,7 +27,12 @@ import {
 } from '@clack/prompts';
 import colors from 'picocolors';
 import { parse, type DotenvParseOutput } from 'dotenv';
-import { typeBigIntAsStringDesc, typeBigIntAsStringPrompt, typeTinyIntOneAsBooleanPrompt, typeTinyIntOneAsDesc } from './strings.js';
+import {
+  typeBigIntAsStringDesc,
+  typeBigIntAsStringPrompt,
+  typeTinyIntOneAsBooleanPrompt,
+  typeTinyIntOneAsDesc
+} from './strings.js';
 
 export const getSettings = async (): Promise<[FullSettings, string[]]> => {
   const fullSettings: FullSettings = {
@@ -370,20 +376,20 @@ export const promptSchemaDirectory = async (
   );
   let header = colors.bold(`Schema directory`);
   const varName = fmtVarName('schemaDirectory');
-  const message = [
-    `${header} (${varName})`,
-    `The schema directory is where we keep the current schema, the current`,
-    `migration and the migration history. This should be a dedicated directory,`,
-    `for example, ${fmtPath('schema')}.`
-  ];
 
-  log.message(message.join('\n'));
+  log.message(
+    `${header} (${varName})\n` +
+      squishWords(
+        `The relative path to a dedicated directory meant 
+          to contain the current schema, the current migration, 
+          and the migration history.`
+      ) +
+      `\n\nCurrent Value: ${fmtPath(schemaDirectory)}`
+  );
 
   if (!error) {
     const change = await confirm({
-      message: `Change schema directory? Currently: ${fmtPath(
-        schemaDirectory
-      )}`,
+      message: `Change schema directory?`,
       initialValue: false
     });
     if (isCancel(change)) {
@@ -406,20 +412,20 @@ export const promptGeneratedCodeDirectory = async (
   let header = colors.bold(`Generated code directory`);
   const varName = fmtVarName('generatedCodeDirectory');
 
-  const message = [
-    `${header} (${varName})`,
-    `The generated code directory is where we place generated typescript code.`,
-    `This should be in your source directory. It's a good idea to specify a`,
-    `a dedicated directory, without any of your own code, for example,`,
-    `${fmtPath('src/database/_generated')}.`
-  ];
-  log.message(message.join('\n'));
+  log.message(
+    `${header} (${varName})\n` +
+      squishWords(
+        `The relative path to a directory meant 
+          to contain the code Frieda generates. 
+          It should be a dedicated folder, 
+          not containing your own code.`
+      ) +
+      `\n\nCurrent Value: ${fmtPath(generatedCodeDirectory)}`
+  );
 
   if (!error) {
     const change = await confirm({
-      message: `Change generated code directory? Currently: ${fmtPath(
-        generatedCodeDirectory
-      )}`,
+      message: `Change generated code directory?`,
       initialValue: false
     });
     if (isCancel(change)) {
@@ -535,7 +541,7 @@ const promptDirPath = async (
   }
   if (!isEmptyDirOrNonExistent(value)) {
     const okWithIt = await confirm({
-      message: `${fmtPath(value)} isn't empty. Continue?`,
+      message: `The directory ${fmtPath(value)} isn't empty. Continue?`,
       initialValue: false
     });
     if (isCancel(okWithIt)) {
@@ -713,8 +719,11 @@ export type PromptTypeSettingsResult = {
 export const promptTypeSettings = async (
   rcSettings: Partial<RcSettings>
 ): Promise<PromptTypeSettingsResult> => {
- 
-  log.message(`${typeTinyIntOneAsDesc}\n\nCurrent value: ${fmtValue(rcSettings.typeTinyIntOneAsBoolean !== false ? 'true' : 'false')}`);
+  log.message(
+    `${typeTinyIntOneAsDesc}\n\nCurrent value: ${fmtValue(
+      rcSettings.typeTinyIntOneAsBoolean !== false ? 'true' : 'false'
+    )}`
+  );
 
   const typeTinyIntOneAsBoolean = await confirm({
     message: `${typeTinyIntOneAsBooleanPrompt}?`,
@@ -724,7 +733,11 @@ export const promptTypeSettings = async (
     return cancelAndExit();
   }
 
-  log.message(`${typeBigIntAsStringDesc}\n\nCurrent value: ${fmtValue(rcSettings.typeBigIntAsString !== false ? 'true' : 'false')}`);
+  log.message(
+    `${typeBigIntAsStringDesc}\n\nCurrent value: ${fmtValue(
+      rcSettings.typeBigIntAsString !== false ? 'true' : 'false'
+    )}`
+  );
   const typeBigIntAsString = await confirm({
     message: `${typeBigIntAsStringPrompt}?`,
     initialValue: rcSettings.typeBigIntAsString !== false

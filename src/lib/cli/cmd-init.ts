@@ -29,11 +29,12 @@ export const cmdInit = async (commandResult: ParseCommandResult) => {
   const { rcSettings, friedaRcExists } = await readFriedaRc();
   let dbResult = await validateDatabaseUrl(rcSettings.envFilePath || '.env')
   s.done();
+  const schemaDirectory = await promptSchemaDirectory(rcSettings)
+  const generatedCodeDirectory = await promptGeneratedCodeDirectory(rcSettings);
   const flags = await promptTypeSettings(rcSettings)
   dbResult = await promptDatabaseUrl(dbResult)
   const externalTypeImports = await promptExternalTypeImports(rcSettings);
-  const schemaDirectory = await promptSchemaDirectory(rcSettings)
-  const generatedCodeDirectory = await promptGeneratedCodeDirectory(rcSettings);
+  
   
   const newRcSettings: RcSettings = {
     ...rcSettings,
