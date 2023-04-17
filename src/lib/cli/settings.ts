@@ -455,24 +455,14 @@ export const promptDatabaseUrl = async (
   const header = colors.bold(`Environment variables file`);
   const fmtedKeys = ENV_DB_URL_KEYS.map((s) => fmtVarName(s)).join(' or ');
   const varName = fmtVarName('envFilePath');
-  const message = [
-    `${header} (${varName})`,
-    `This file must contain either ${fmtedKeys}.`,
-    `It should be added to ${fmtPath(
-      '.gitignore'
-    )}, since the URL contains the password.`,
-    `URL format: ${VALID_DB_URL_FORMAT}`
-  ];
-  log.message(message.join('\n'));
+  
+  log.message(
+    `${header} (${varName})\nHelp: ${fmtPath(
+      'https://github.com/nowzoo/frieda#envfilepath'
+    )}\nCurrent environment file: ${fmtPath(result.envFilePath)}\nDatabase URL variable: ${fmtVarName(result.databaseUrlKey)}\nDatabase URL: ${maskDatabaseURLPassword(result.databaseUrl)}`
+  );
 
   if (!result.error) {
-    log.message(
-      [
-        `Current environment file: ${fmtPath(result.envFilePath)}`,
-        `Database URL key: ${fmtVarName(result.databaseUrlKey)}`,
-        `Database URL: ${maskDatabaseURLPassword(result.databaseUrl)}`
-      ].join('\n')
-    );
     const change = await confirm({
       message: `Change environment file?`,
       initialValue: false

@@ -71,10 +71,14 @@ src
 └── index.ts
 ```
 
-### envFilePath
+#### envFilePath
 _Optional._ Default: `.env`
 
-The relative path to an environment variables file where the database URL can be found as either `FRIEDA_DATABASE_URL` or `DATABASE_URL`. The environment variable should be in the format `mysql://user:password@host`.
+The relative path to an environment variables file where the database URL can be found as either
+ - `FRIEDA_DATABASE_URL` or 
+ - `DATABASE_URL`. 
+ 
+ The environment variable should be in the format `mysql://user:password@host`.
 
 This file should be added to .gitignore, since the URL contains the password.
 
