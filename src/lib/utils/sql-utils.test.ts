@@ -9,6 +9,9 @@ describe('bt', () => {
   it('should handle a string with a dot', () => {
     expect(bt('a.b').sql).toBe('`a`.`b`')
   });
+  it('should handle two strings', () => {
+    expect(bt('a', 'b').sql).toBe('`a`.`b`')
+  });
 })
 
 

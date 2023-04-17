@@ -1,7 +1,7 @@
 import type { Connection } from '@planetscale/database';
 import type {
   DatabaseSchema,
-  DatabaseTableColumnInfo,
+  DatabaseColumnRow,
   DatabaseTableIndexInfo,
   DatabaseTableInfo
 } from '../types.js';
@@ -45,10 +45,10 @@ export const fetchDatabaseSchema = async (
 
   const fetchTableColumnsInfo = async (
     tableName: string
-  ): Promise<DatabaseTableColumnInfo[]> => {
+  ): Promise<DatabaseColumnRow[]> => {
     const query = sql`SHOW FULL COLUMNS FROM ${bt(tableName)};`;
     const result = await connection.execute(query.sql);
-    return result.rows as DatabaseTableColumnInfo[];
+    return result.rows as DatabaseColumnRow[];
   };
   const fetchTableCreateSql = async (tableName: string): Promise<string> => {
     const query = sql`SHOW CREATE TABLE ${bt(tableName)};`;

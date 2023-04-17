@@ -1,5 +1,6 @@
 import { cmdFetch } from './cmd-fetch.js';
 import { cmdGenerate } from './cmd-generate.js';
+import { cmdInit } from './cmd-init.js';
 import { parseCommand } from './commands.js';
 
 export const main = async (
@@ -15,6 +16,8 @@ export const main = async (
         return await cmdFetch(commandResult);
       case 'generate':
         return await cmdGenerate(commandResult);
+      case 'init':
+        return await cmdInit(commandResult);
     }
   }
 };

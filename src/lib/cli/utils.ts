@@ -9,22 +9,23 @@ import {
   type Connection as Mysql2Connection
 } from 'mysql2/promise';
 import { connect, type Connection } from '@planetscale/database';
+import stripAnsi from 'strip-ansi'
 export const formatFilePath = (p: string): string => {
   return colors.underline(colors.cyan(relative(process.cwd(), p)));
 };
 
-export const wait = (msg: string): {done: () => void, error: ()=> void} => {
+export const wait = (msg: string): { done: () => void; error: () => void } => {
   const s = spinner();
-  s.start(`${msg}...`)
+  s.start(`${msg}...`);
   return {
     done: () => {
-      s.stop(`${msg}... ${colors.green('done.')}`)
+      s.stop(`${msg}... ${colors.green('done.')}`);
     },
     error: () => {
-      s.stop(`${msg}... ${colors.red('error.')}`)
+      s.stop(`${msg}... ${colors.red('error.')}`);
     }
-  }
-}
+  };
+};
 
 export const prettify = async (
   contents: string,
@@ -120,7 +121,29 @@ export const maskDatabaseURLPassword = (urlStr: string): string => {
   url.protocol = 'http:';
   const { username, hostname } = url;
   url.password = '<PASSWORD>';
-  return colors.cyan(`${protocol}//${username}:${colors.gray('<PASSWORD>')}@${hostname}`)
+  return colors.cyan(
+    `${protocol}//${username}:${colors.gray('<PASSWORD>')}@${hostname}`
+  );
 };
-export const fmtVarName = (name: string) => colors.magenta(name);
-export const fmtPath = (p: string) => colors.cyan(colors.underline(p))
+export const fmtVarName = (name: string) => colors.italic(name);
+export const fmtValue = (s: string) => colors.bold(colors.italic(s));
+export const fmtPath = (p: string) => colors.underline(p);
+export const fmtEx = (p: string) => colors.bold(p);
+
+export const squishWords = (s: string, lineWidth = 50): string => {
+  const paras = s.trim().split(/\n\s*\n/).map(s => s.trim()).filter(s => s.length > 0).map(para => {
+    const lines: string[] = [''];
+    const words = para.split(/\s+/);
+    while(words.length > 0) {
+      if (stripAnsi(lines[lines.length -1]).length > lineWidth) {
+        lines.push('')
+      }
+      const word = words.shift();
+      lines[lines.length -1] = lines[lines.length -1] + ' ' + word;
+    }
+    return lines.map(l => l.trim()).join('\n')
+  })
+  return paras.join('\n\n')
+ 
+
+}

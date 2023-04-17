@@ -6,15 +6,18 @@ import sql, { raw, join, Sql, empty } from 'sql-template-tag';
  * the string refers to a table and column, separated with a dot.
  * bt('a') => `a`
  * bt('a','b') => `a`.`b`
+ * bt('a.b') => `a`.`b`
  */
 export const bt = (first: string, second?: string): Sql => {
+  const parts = typeof second === 'string' ? [first, second] : first.split('.');
   return join(
-    [first, second]
-      .filter((s) => typeof s === 'string')
+    parts
+      .filter((s) => s.length > 0 )
       .map((s) => raw(`\`${s}\``)),
     '.'
   );
 };
+
 
 /**
  * Returns a WHERE phrase as an instance of Sql, or if the input is undefined, empty.
