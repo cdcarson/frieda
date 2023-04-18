@@ -57,7 +57,6 @@ export const fetchDatabaseSchema = async (
     return row['Create Table'] + ';';
   };
   const fetchTableInfo = async (name: string): Promise<DatabaseTableInfo> => {
-    
     const [indexes, columns, tableCreateStatement] = await Promise.all([
       fetchTableIndexesInfo(name),
       fetchTableColumnsInfo(name),

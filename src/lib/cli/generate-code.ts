@@ -1,7 +1,4 @@
-import type {
-  ModelDefinition,
-  FullSettings
-} from '$lib/types.js';
+import type { ModelDefinition, FullSettings } from '$lib/types.js';
 import { join, relative, extname, basename } from 'path';
 import fs from 'fs-extra';
 import { fmtPath, prettify } from '$lib/cli/utils.js';
@@ -14,7 +11,6 @@ const GENERATED_CODE_FILENAMES = {
 };
 
 const SCHEMA_CAST_CONST_NAME = 'schemaCast';
-
 
 export const generateCode = async (
   models: ModelDefinition[],
@@ -31,8 +27,7 @@ export const generateCode = async (
     generateTypesTs(models, settings, bannerComment),
     generateSchemaCastsTs(models, settings, bannerComment),
     generateDatabaseTs(models, settings, bannerComment)
-  ])
-  
+  ]);
 };
 
 const generateModelDefinitionsTs = async (
@@ -61,7 +56,7 @@ const generateModelDefinitionsTs = async (
   const prettified = await prettify(ts, filePath);
   await fs.ensureFile(filePath);
   await fs.writeFile(filePath, prettified);
-  return relative(process.cwd(), filePath)
+  return relative(process.cwd(), filePath);
 };
 
 const generateSchemaCastsTs = async (
@@ -92,7 +87,7 @@ const generateSchemaCastsTs = async (
   const prettified = await prettify(ts, filePath);
   await fs.ensureFile(filePath);
   await fs.writeFile(filePath, prettified);
-  return relative(process.cwd(), filePath)
+  return relative(process.cwd(), filePath);
 };
 
 /**
@@ -138,7 +133,8 @@ const generateTypesTs = async (
           return `${f.fieldName}${f.isOptionalInCreateData ? '?' : ''}: ${
             f.javascriptType
           }${f.isNullable ? '|null' : ''};`;
-        }).join('\n')}
+        })
+        .join('\n')}
     }`;
       const modelUpdateDataTypeDecl = `export type ${
         m.modelUpdateDataTypeName
@@ -149,7 +145,8 @@ const generateTypesTs = async (
           return `${f.fieldName}?: ${f.javascriptType}${
             f.isNullable ? '|null' : ''
           };`;
-        }).join('\n')}
+        })
+        .join('\n')}
     }`;
       const modelFindUniqueTypeDecl = `export type ${
         m.modelFindUniqueParamsTypeName
@@ -193,7 +190,7 @@ const generateTypesTs = async (
   const prettified = await prettify(ts, filePath);
   await fs.ensureFile(filePath);
   await fs.writeFile(filePath, prettified);
-  return relative(process.cwd(), filePath)
+  return relative(process.cwd(), filePath);
 };
 
 const generateDatabaseTs = async (
@@ -290,5 +287,5 @@ const generateDatabaseTs = async (
   const prettified = await prettify(ts, filePath);
   await fs.ensureFile(filePath);
   await fs.writeFile(filePath, prettified);
-  return relative(process.cwd(), filePath)
+  return relative(process.cwd(), filePath);
 };

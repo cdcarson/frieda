@@ -11,7 +11,6 @@ import type {
 import { getMatchAmong, getParenthesizedArgs } from '$lib/utils/rx-utils.js';
 import _ from 'lodash';
 
-
 /**
  * Returns the javascript (typescript) type as a string,
  * based on the raw column definition and the previously
@@ -182,10 +181,6 @@ export const getFieldKnownMySQLType = (
   return null;
 };
 
-
-
-
-
 /**
  * See https://dev.mysql.com/doc/refman/8.0/en/show-columns.html
  */
@@ -193,18 +188,22 @@ export const parseFieldDefinition = (
   column: DatabaseColumnRow,
   settings: Partial<FullSettings>
 ): FieldDefinition => {
-  const fieldName = _.camelCase(column.Field)
+  const fieldName = _.camelCase(column.Field);
   const knownMySQLType = getFieldKnownMySQLType(column);
   const castType = getFieldCastType(column, knownMySQLType, settings);
   const javascriptType = getFieldJavascriptType(column, castType);
   const isPrimaryKey = column.Key === 'PRI';
   const isAutoIncrement = /\bauto_increment\b/i.test(column.Extra);
-  const isUnique =  column.Key === 'UNI';
-  const isAlwaysGenerated =  /\b(VIRTUAL|STORED) GENERATED\b/i.test(column.Extra);
+  const isUnique = column.Key === 'UNI';
+  const isAlwaysGenerated = /\b(VIRTUAL|STORED) GENERATED\b/i.test(
+    column.Extra
+  );
   const isDefaultGenerated = /\bDEFAULT_GENERATED\b/i.test(column.Extra);
-  const isInvisible =  /\bINVISIBLE\b/i.test(column.Extra);
-  const isNullable  = column.Null === 'YES';
-  const hasDefault = typeof column.Default === 'string' || (isNullable && column.Default === null)
+  const isInvisible = /\bINVISIBLE\b/i.test(column.Extra);
+  const isNullable = column.Null === 'YES';
+  const hasDefault =
+    typeof column.Default === 'string' ||
+    (isNullable && column.Default === null);
   return {
     fieldName,
     columnName: column.Field,
@@ -229,10 +228,8 @@ export const parseFieldDefinition = (
     isOmittedFromCreateData: isAlwaysGenerated,
     isOptionalInCreateData: isAutoIncrement || hasDefault,
     isOmittedFromUpdateData: isPrimaryKey || isAlwaysGenerated
-    
   };
 };
-
 
 export const parseModelDefinition = (
   table: DatabaseTableInfo,
@@ -254,5 +251,3 @@ export const parseModelDefinition = (
 
   return def;
 };
-
-

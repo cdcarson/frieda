@@ -34,6 +34,3 @@ export const KNOWN_MYSQL_TYPES = [
   'longblob',
   'longtext'
 ] as const;
-
-
-

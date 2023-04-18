@@ -1,68 +1,68 @@
 {
-	"name": "@nowzoo/frieda",
-	"version": "0.0.25",
-	"scripts": {
-		"dev": "vite dev",
-		"build": "vite build && npm run package",
-		"build:w": "svelte-package --watch",
-		"preview": "vite preview",
-		"package": "svelte-kit sync && svelte-package && publint",
-		"prepublishOnly": "npm run package",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"test:unit": "vitest",
-		"coverage": "vitest run --coverage",
-		"lint": "prettier --plugin-search-dir . --check . && eslint .",
-		"format": "prettier --plugin-search-dir . --write ."
-	},
-	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"default": "./dist/index.js"
-		}
-	},
-	"files": [
-		"dist",
-		"!dist/**/*.test.*",
-		"!dist/**/*.spec.*"
-	],
-	"bin": "dist/cli.js",
-	"devDependencies": {
-		"@sveltejs/adapter-static": "^2.0.2",
-		"@sveltejs/kit": "^1.15.4",
-		"@sveltejs/package": "^2.0.2",
-		"@types/fs-extra": "^11.0.1",
-		"@types/lodash": "^4.14.192",
-		"@types/prettier": "^2.7.2",
-		"@typescript-eslint/eslint-plugin": "^5.58.0",
-		"@typescript-eslint/parser": "^5.58.0",
-		"@vitest/coverage-c8": "^0.30.1",
-		"eslint": "^8.38.0",
-		"eslint-config-prettier": "^8.8.0",
-		"eslint-plugin-svelte3": "^4.0.0",
-		"prettier": "^2.8.7",
-		"prettier-plugin-svelte": "^2.10.0",
-		"publint": "^0.1.11",
-		"svelte": "^3.58.0",
-		"svelte-check": "^3.2.0",
-		"tslib": "^2.5.0",
-		"typescript": "^5.0.4",
-		"vite": "^4.2.1",
-		"vitest": "^0.30.1"
-	},
-	"svelte": "./dist/index.js",
-	"types": "./dist/index.d.ts",
-	"type": "module",
-	"dependencies": {
-		"@clack/prompts": "^0.6.3",
-		"@planetscale/database": "^1.7.0",
-		"dotenv": "^16.0.3",
-		"fs-extra": "^11.1.1",
-		"lodash": "^4.17.21",
-		"mysql2": "^3.2.0",
-		"picocolors": "^1.0.0",
-		"sql-template-tag": "^5.0.3",
-		"strip-ansi": "^7.0.1",
-		"tiny-glob": "^0.2.9"
-	}
+  "name": "@nowzoo/frieda",
+  "version": "0.0.25",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build && npm run package",
+    "build:w": "svelte-package --watch",
+    "preview": "vite preview",
+    "package": "svelte-kit sync && svelte-package && publint",
+    "prepublishOnly": "npm run package",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "test:unit": "vitest",
+    "coverage": "vitest run --coverage",
+    "lint": "prettier --plugin-search-dir . --check . && eslint .",
+    "format": "prettier --plugin-search-dir . --write ."
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.test.*",
+    "!dist/**/*.spec.*"
+  ],
+  "bin": "dist/cli.js",
+  "devDependencies": {
+    "@sveltejs/adapter-static": "^2.0.2",
+    "@sveltejs/kit": "^1.15.4",
+    "@sveltejs/package": "^2.0.2",
+    "@types/fs-extra": "^11.0.1",
+    "@types/lodash": "^4.14.192",
+    "@types/prettier": "^2.7.2",
+    "@typescript-eslint/eslint-plugin": "^5.58.0",
+    "@typescript-eslint/parser": "^5.58.0",
+    "@vitest/coverage-c8": "^0.30.1",
+    "eslint": "^8.38.0",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-svelte3": "^4.0.0",
+    "prettier": "^2.8.7",
+    "prettier-plugin-svelte": "^2.10.0",
+    "publint": "^0.1.11",
+    "svelte": "^3.58.0",
+    "svelte-check": "^3.2.0",
+    "tslib": "^2.5.0",
+    "typescript": "^5.0.4",
+    "vite": "^4.2.1",
+    "vitest": "^0.30.1"
+  },
+  "svelte": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "dependencies": {
+    "@clack/prompts": "^0.6.3",
+    "@planetscale/database": "^1.7.0",
+    "dotenv": "^16.0.3",
+    "fs-extra": "^11.1.1",
+    "lodash": "^4.17.21",
+    "mysql2": "^3.2.0",
+    "picocolors": "^1.0.0",
+    "sql-template-tag": "^5.0.3",
+    "strip-ansi": "^7.0.1",
+    "tiny-glob": "^0.2.9"
+  }
 }

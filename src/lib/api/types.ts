@@ -61,4 +61,4 @@ const triangleDef: ModelDefinition<Triangle, 'Triangle'> = {
 
 const schema: SchemaDefinition<[typeof userDef]> = {
   User: userDef
-}
+};

@@ -27,7 +27,7 @@ const tableInfoTemplate: DatabaseTableInfo = {
   indexes: [],
   name: '',
   tableCreateStatement: ''
-}
+};
 
 describe('parseFieldDefinition', () => {
   let col: DatabaseColumnRow;
@@ -36,25 +36,24 @@ describe('parseFieldDefinition', () => {
   });
   describe('fieldName', () => {
     it('should handle snake case', () => {
-      col.Field = 'email_verified'
+      col.Field = 'email_verified';
       expect(parseFieldDefinition(col, {}).fieldName).toBe('emailVerified');
     });
     it('should handle pascal case', () => {
-      col.Field = 'EmailVerified'
+      col.Field = 'EmailVerified';
       expect(parseFieldDefinition(col, {}).fieldName).toBe('emailVerified');
     });
     it('should not change camel case', () => {
-      col.Field = 'emailVerified'
+      col.Field = 'emailVerified';
       expect(parseFieldDefinition(col, {}).fieldName).toBe('emailVerified');
     });
     it('should get rid of extra snake case underscores', () => {
-      col.Field = 'email__verified'
+      col.Field = 'email__verified';
       expect(parseFieldDefinition(col, {}).fieldName).toBe('emailVerified');
-      col.Field = '_email_verified'
+      col.Field = '_email_verified';
       expect(parseFieldDefinition(col, {}).fieldName).toBe('emailVerified');
-      col.Field = 'email_verified____'
+      col.Field = 'email_verified____';
       expect(parseFieldDefinition(col, {}).fieldName).toBe('emailVerified');
-      
     });
   });
   describe('isPrimaryKey', () => {
@@ -70,7 +69,7 @@ describe('parseFieldDefinition', () => {
       col.Key = '';
       expect(parseFieldDefinition(col, {}).isPrimaryKey).toBe(false);
     });
-  })
+  });
   describe('isAutoIncrement', () => {
     it('is true if Extra contains "auto_increment", case insensitively', () => {
       col.Extra = 'auto_increment';
@@ -89,9 +88,8 @@ describe('parseFieldDefinition', () => {
       col.Extra = 'fooauto_increment';
       expect(parseFieldDefinition(col, {}).isAutoIncrement).toBe(false);
     });
-  })
+  });
   describe('isUnique', () => {
-    
     it('is true if the Key is exactly "UNI"', () => {
       col.Key = 'UNI';
       expect(parseFieldDefinition(col, {}).isUnique).toBe(true);
@@ -104,10 +102,8 @@ describe('parseFieldDefinition', () => {
       col.Key = '';
       expect(parseFieldDefinition(col, {}).isUnique).toBe(false);
     });
-  
   });
   describe('isAlwaysGenerated', () => {
-    
     it('is true if col.Extra contains "VIRTUAL GENERATED" case insensitvely', () => {
       col.Extra = 'VIRTUAL GENERATED';
       expect(parseFieldDefinition(col, {}).isAlwaysGenerated).toBe(true);
@@ -126,7 +122,6 @@ describe('parseFieldDefinition', () => {
     });
   });
   describe('isDefaultGenerated', () => {
-    
     it('is true for these col.Extra strings', () => {
       [
         'DEFAULT_GENERATED',
@@ -142,7 +137,6 @@ describe('parseFieldDefinition', () => {
     });
   });
   describe('isInvisible', () => {
-    
     it('is true if col.Extra contains "INVISIBLE"', () => {
       ['INVISIBLE', 'INVISIBLE foo', 'INVISIBLe'].forEach((s) => {
         col.Extra = s;
@@ -157,7 +151,6 @@ describe('parseFieldDefinition', () => {
     });
   });
   describe('isNullable', () => {
-    
     it('is true if col.Null === "YES"', () => {
       col.Null = 'YES';
       expect(parseFieldDefinition(col, {}).isNullable).toBe(true);
@@ -168,7 +161,6 @@ describe('parseFieldDefinition', () => {
     });
   });
   describe('hasDefault', () => {
-    
     it('is true if col.Default is a string and col.Null = NO', () => {
       col.Default = '1';
       col.Null = 'NO';
@@ -189,10 +181,8 @@ describe('parseFieldDefinition', () => {
       col.Null = 'NO';
       expect(parseFieldDefinition(col, {}).hasDefault).toBe(false);
     });
-   
-    
   });
-})
+});
 
 describe('getFieldJavascriptType', () => {
   let col: DatabaseColumnRow;
@@ -434,31 +424,40 @@ describe('hasColumnCommentAnnotation', () => {
   });
 });
 
-
 describe('parseModelDefinition', () => {
   let tableInfo: DatabaseTableInfo;
   beforeEach(() => {
-    tableInfo = {...tableInfoTemplate}
-  })
+    tableInfo = { ...tableInfoTemplate };
+  });
   describe('modelName', () => {
     it('is PascalCase', () => {
       tableInfo.name = 'user_account';
-      expect(parseModelDefinition(tableInfo, {}).modelName).toBe('UserAccount')
+      expect(parseModelDefinition(tableInfo, {}).modelName).toBe('UserAccount');
       tableInfo.name = 'UserAccount';
-      expect(parseModelDefinition(tableInfo, {}).modelName).toBe('UserAccount')
-    })
+      expect(parseModelDefinition(tableInfo, {}).modelName).toBe('UserAccount');
+    });
   });
   describe('other names', () => {
     it('all of them should be like this', () => {
       tableInfo.name = 'user_account';
-      expect(parseModelDefinition(tableInfo, {}).modelPrimaryKeyTypeName).toBe('UserAccountPrimaryKey')
-      expect(parseModelDefinition(tableInfo, {}).modelCreateDataTypeName).toBe('UserAccountCreateData')
-      expect(parseModelDefinition(tableInfo, {}).modelUpdateDataTypeName).toBe('UserAccountUpdateData')
-      expect(parseModelDefinition(tableInfo, {}).modelFindUniqueParamsTypeName).toBe('UserAccountFindUniqueParams')
-      expect(parseModelDefinition(tableInfo, {}).modelDefinitionConstName).toBe('userAccountModelDefinition')
-      expect(parseModelDefinition(tableInfo, {}).classRepoName).toBe('userAccount')
-      
-    })
-  })
-})
-
+      expect(parseModelDefinition(tableInfo, {}).modelPrimaryKeyTypeName).toBe(
+        'UserAccountPrimaryKey'
+      );
+      expect(parseModelDefinition(tableInfo, {}).modelCreateDataTypeName).toBe(
+        'UserAccountCreateData'
+      );
+      expect(parseModelDefinition(tableInfo, {}).modelUpdateDataTypeName).toBe(
+        'UserAccountUpdateData'
+      );
+      expect(
+        parseModelDefinition(tableInfo, {}).modelFindUniqueParamsTypeName
+      ).toBe('UserAccountFindUniqueParams');
+      expect(parseModelDefinition(tableInfo, {}).modelDefinitionConstName).toBe(
+        'userAccountModelDefinition'
+      );
+      expect(parseModelDefinition(tableInfo, {}).classRepoName).toBe(
+        'userAccount'
+      );
+    });
+  });
+});

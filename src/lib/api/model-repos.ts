@@ -1,3 +1,1 @@
-export class ModelRepos {
-  
-}
+export class ModelRepos {}

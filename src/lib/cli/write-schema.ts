@@ -22,7 +22,7 @@ export const writeCurrentSchema = async (
     writeSchemaSql(schema, settings, d),
     writeSchemaJSON(schema, settings, d),
     writeModelsJSON(models, settings, d)
-  ])
+  ]);
 };
 
 const writeSchemaSql = async (
@@ -64,8 +64,7 @@ const writeSchemaJSON = async (
       fetched: d,
       databaseName: schema.databaseName,
       tableNames: schema.tableNames,
-      tables: strippedTables,
-      
+      tables: strippedTables
     }),
     filePath
   );
@@ -85,12 +84,11 @@ const writeModelsJSON = async (
     settings.schemaDirectory,
     CURRENT_MODELS_JSON_FILE_NAME
   );
-  
+
   const contents = await prettify(
     JSON.stringify({
       fetched: d,
       models
-      
     }),
     filePath
   );

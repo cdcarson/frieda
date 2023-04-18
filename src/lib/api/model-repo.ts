@@ -55,9 +55,7 @@ export class ModelRepo<
   }
 
   protected get primaryKeys(): (keyof M & string)[] {
-    return this.fields
-      .filter((f) => f.isPrimaryKey)
-      .map((f) => f.fieldName);
+    return this.fields.filter((f) => f.isPrimaryKey).map((f) => f.fieldName);
   }
 
   protected get jsonKeys(): (keyof M & string)[] {
@@ -73,9 +71,7 @@ export class ModelRepo<
   }
 
   protected get autoIncrementingPrimaryKey(): (keyof M & string) | null {
-    const f = this.fields.find(
-      (f) => f.isPrimaryKey && f.isAutoIncrement
-    );
+    const f = this.fields.find((f) => f.isPrimaryKey && f.isAutoIncrement);
     return f ? f.fieldName : null;
   }
 

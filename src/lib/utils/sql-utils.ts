@@ -1,4 +1,9 @@
-import type { Model, ModelOrderByInput, ModelWhereInput, OneBasedPagingInput } from '$lib/types';
+import type {
+  Model,
+  ModelOrderByInput,
+  ModelWhereInput,
+  OneBasedPagingInput
+} from '$lib/types';
 import sql, { raw, join, Sql, empty } from 'sql-template-tag';
 
 /**
@@ -11,13 +16,10 @@ import sql, { raw, join, Sql, empty } from 'sql-template-tag';
 export const bt = (first: string, second?: string): Sql => {
   const parts = typeof second === 'string' ? [first, second] : first.split('.');
   return join(
-    parts
-      .filter((s) => s.length > 0 )
-      .map((s) => raw(`\`${s}\``)),
+    parts.filter((s) => s.length > 0).map((s) => raw(`\`${s}\``)),
     '.'
   );
 };
-
 
 /**
  * Returns a WHERE phrase as an instance of Sql, or if the input is undefined, empty.

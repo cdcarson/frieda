@@ -1,5 +1,14 @@
-import type { CustomModelCast, DbLoggingOptions, Model, SchemaCast } from '$lib/types';
-import type { Connection, ExecutedQuery, Transaction } from '@planetscale/database';
+import type {
+  CustomModelCast,
+  DbLoggingOptions,
+  Model,
+  SchemaCast
+} from '$lib/types';
+import type {
+  Connection,
+  ExecutedQuery,
+  Transaction
+} from '@planetscale/database';
 import type { Sql } from 'sql-template-tag';
 import { createCastFunction } from './casting';
 

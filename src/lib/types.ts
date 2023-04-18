@@ -27,8 +27,7 @@ export const CAST_TYPES = [
   'set',
   'enum'
 ] as const;
-export type CastType = typeof CAST_TYPES[number];
- 
+export type CastType = (typeof CAST_TYPES)[number];
 
 export type CustomModelCast<M extends Model> = {
   [K in keyof M]?: CastType;
@@ -68,7 +67,7 @@ export type FieldDefinition = {
   /**
    * DatabaseColumnRow.Default
    */
-  columnDefault: string|null;
+  columnDefault: string | null;
 
   /**
    * DatabaseColumnRow.Extra
@@ -149,7 +148,7 @@ export type FieldDefinition = {
   isOmittableInModel: boolean;
 
   /**
-   * true if the field is always generated 
+   * true if the field is always generated
    */
   isOmittedFromCreateData: boolean;
 
@@ -159,11 +158,9 @@ export type FieldDefinition = {
   isOptionalInCreateData: boolean;
 
   /**
-   * true if the field is a primary key or is always generated 
+   * true if the field is a primary key or is always generated
    */
   isOmittedFromUpdateData: boolean;
-
-  
 };
 
 export type ModelDefinition = {
@@ -183,12 +180,9 @@ export type ModelDefinition = {
   classRepoName: string;
   modelDefinitionConstName: string;
 
-
   // the model's fields
-  fields: FieldDefinition[]
+  fields: FieldDefinition[];
 };
-
-
 
 export type DbLoggingOptions = {
   performanceLogger?: (
@@ -198,9 +192,11 @@ export type DbLoggingOptions = {
   errorLogger?: (error: Error) => void;
 };
 
-export type ModelSelectColumnsInput<M extends Model> = (keyof M & string)[]|undefined;
+export type ModelSelectColumnsInput<M extends Model> =
+  | (keyof M & string)[]
+  | undefined;
 
-export type ModelWhereInput<M extends Model> = Partial<M>|Sql|undefined;
+export type ModelWhereInput<M extends Model> = Partial<M> | Sql | undefined;
 
 export type ModelOrderByInput<M extends Model> =
   | {
@@ -214,10 +210,12 @@ export type ModelOrderByInput<M extends Model> =
   | Sql
   | undefined;
 
-export type OneBasedPagingInput = {
-  page: number;
-  rpp: number;
-} | undefined;
+export type OneBasedPagingInput =
+  | {
+      page: number;
+      rpp: number;
+    }
+  | undefined;
 
 /**
  * A row from a `SHOW FULL COLUMNS FROM TableName` query.
@@ -315,5 +313,4 @@ export type RcSettings = {
 export type FullSettings = Required<RcSettings> & {
   databaseUrl: string;
   databaseUrlKey: string;
-  
 };

@@ -108,8 +108,8 @@ export const getSettings = async (): Promise<[FullSettings, string[]]> => {
     fullSettings.jsonTypeImports = [];
   } else if (
     !Array.isArray(rcSettings.jsonTypeImports) ||
-    rcSettings.jsonTypeImports.filter((s) => typeof s === 'string')
-      .length !== rcSettings.jsonTypeImports.length
+    rcSettings.jsonTypeImports.filter((s) => typeof s === 'string').length !==
+      rcSettings.jsonTypeImports.length
   ) {
     errors.push(
       `Invalid ${fmtVarName('jsonTypeImports')} in ${fmtPath(
@@ -611,111 +611,12 @@ export const validateJsonTypeImports = (
   return { jsonTypeImports };
 };
 
-// this was a bad idea (too complicated)
-// export const promptJsonTypeImports = async (
-//   rcSettings: Partial<RcSettings>
-// ): Promise<string[]> => {
-//   const promptEdit = async (imps: string[]): Promise<string[]> => {
-//     const newImps = [...imps];
-//     for (let i = 0; i < newImps.length; i++) {
-//       const newImp = await text({
-//         message: `Edit import statement: (clear to delete)`,
-//         placeholder: `import type { Foo } from '../../api`,
-//         initialValue: newImps[i]
-//       });
-//       if (isCancel(newImp)) {
-//         return cancelAndExit();
-//       }
-//       newImps[i] = newImp;
-//     }
-//     return newImps
-//       .filter((s) => typeof s === 'string')
-//       .map((s) => s.trim())
-//       .filter((s) => s.length > 0);
-//   };
-//   const promptAdd = async (imps: string[]): Promise<string[]> => {
-//     const newImps = [...imps];
-//     const newImp = await text({
-//       message: `Add import statement: (leave blank to cancel)`,
-//       placeholder: `import type { Foo } from '../../api`,
-//       initialValue: ''
-//     });
-//     if (isCancel(newImp)) {
-//       return cancelAndExit();
-//     }
-//     newImps.push(newImp);
-//     return newImps
-//       .filter((s) => typeof s === 'string')
-//       .map((s) => s.trim())
-//       .filter((s) => s.length > 0);
-//   };
-//   const { jsonTypeImports: unfiltered, error } =
-//     validateJsonTypeImports(rcSettings.jsonTypeImports);
-
-//   let jsonTypeImports = unfiltered
-//     .filter((s) => typeof s === 'string')
-//     .map((s) => s.trim())
-//     .filter((s) => s.length > 0);
-//   const varName = colors.bold(fmtVarName('jsonTypeImports'));
-
-//   const shortHelp = squishWords(`
-//     An  array of import statements that correspond to the types you have assigned to ${fmtValue('json')} columns. More help:
-//   `)
-//   const helpLink = fmtPath(`https://github.com/nowzoo/frieda#jsonTypeImports`)
-
-//   log.message(
-//     `${varName}\n${shortHelp}\n${helpLink}\n\nCurrent value: \n${fmtValue(JSON.stringify(jsonTypeImports, null, 1))}`
-//   );
-//   let action: 'edit' | 'add' | 'done' | null = null;
-//   while (action === null || action !== 'done') {
-//     if (action !== null) {
-//       log.message(
-//         [
-//           'External type imports:',
-//           JSON.stringify(jsonTypeImports, null, 1)
-//         ].join('\n')
-//       );
-//     }
-//     const newAction = await select({
-//       message: `Add, edit or delete import statements?`,
-//       initialValue: 'done',
-//       options: [
-//         {
-//           label: 'Add',
-//           value: 'add'
-//         },
-//         {
-//           label: 'Edit/Delete',
-//           value: 'edit'
-//         },
-//         {
-//           label: action === null ? 'No, skip' : 'Done',
-//           value: 'done'
-//         }
-//       ]
-//     });
-//     if (isCancel(newAction)) {
-//       return cancelAndExit();
-//     }
-//     action = newAction as 'edit' | 'add' | 'done';
-//     switch (action) {
-//       case 'edit':
-//         jsonTypeImports = await promptEdit(jsonTypeImports);
-//         break;
-//       case 'add':
-//         jsonTypeImports = await promptAdd(jsonTypeImports);
-//         break;
-//     }
-//   }
-//   return jsonTypeImports;
-// };
-
 export const promptJsonTypeImportsSimple = async (
   rcSettings: Partial<RcSettings>
 ): Promise<string[]> => {
-  
-  const { jsonTypeImports: unfiltered, error } =
-    validateJsonTypeImports(rcSettings.jsonTypeImports);
+  const { jsonTypeImports: unfiltered, error } = validateJsonTypeImports(
+    rcSettings.jsonTypeImports
+  );
 
   let jsonTypeImports = unfiltered
     .filter((s) => typeof s === 'string')
@@ -724,24 +625,27 @@ export const promptJsonTypeImportsSimple = async (
   const varName = colors.bold(fmtVarName('jsonTypeImports'));
 
   const shortHelp = squishWords(`
-    An  array of import statements that correspond to the types you have assigned to ${fmtValue('json')} columns. More help:
-  `)
-  const helpLink = fmtPath(`https://github.com/nowzoo/frieda#jsonTypeImports`)
+    An  array of import statements that correspond to the types you have assigned to ${fmtValue(
+      'json'
+    )} columns. More help:
+  `);
+  const helpLink = fmtPath(`https://github.com/nowzoo/frieda#jsonTypeImports`);
 
   log.message(
-    `${varName}\n${shortHelp}\n${helpLink}\n\nCurrent value: \n${fmtValue(JSON.stringify(jsonTypeImports, null, 1))}`
+    `${varName}\n${shortHelp}\n${helpLink}\n\nCurrent value: \n${fmtValue(
+      JSON.stringify(jsonTypeImports, null, 1)
+    )}`
   );
   const ok = await select({
-    message: `You need to edit this array by hand in ${fmtPath(FRIEDA_RC_FILE_NAME)}.`,
-    options: [
-      {label: 'Got it', value: true}
-    ]
-    
-  })
+    message: `You need to edit this array by hand in ${fmtPath(
+      FRIEDA_RC_FILE_NAME
+    )}.`,
+    options: [{ label: 'Got it', value: true }]
+  });
   if (isCancel(ok)) {
     return cancelAndExit();
   }
-  
+
   return jsonTypeImports;
 };
 
@@ -785,7 +689,9 @@ export const promptTypeBigIntAsString = async (
     'true'
   )} (default, recommended) Frieda will type fields with the column type ${fmtValue(
     'bigint'
-  )} as javascript ${fmtValue('string')}. You can opt out of this behavior for individual fields.
+  )} as javascript ${fmtValue(
+    'string'
+  )}. You can opt out of this behavior for individual fields.
   More help:
   `);
   const helpLink = fmtPath(
