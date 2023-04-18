@@ -186,7 +186,7 @@ const generateTypesTs = async (
     ${bannerComment}
     
     import type {ModelRepo} from '@nowzoo/frieda';
-    ${(settings.externalTypeImports || []).join('\n')}
+    ${(settings.jsonTypeImports || []).join('\n')}
 
     ${types}
   `;

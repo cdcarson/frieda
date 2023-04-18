@@ -287,7 +287,7 @@ export type RcSettings = {
    *
    * Default: []
    */
-  externalTypeImports?: string[];
+  jsonTypeImports?: string[];
 
   /**
    * The path to the environment variables

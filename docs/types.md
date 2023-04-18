@@ -72,11 +72,11 @@ ALTER TABLE `FabulousOffer` (
 );
 
 ```
-In the latter case, add the import to `externalTypeImports` in .friedarc...
+In the latter case, add the import to `jsonTypeImports` in .friedarc...
 ```jsonc
 {
   // ...other settings
-  "externalTypeImports": [
+  "jsonTypeImports": [
     "import type { FabulousPricing } from '../../api'"
   ]
 }

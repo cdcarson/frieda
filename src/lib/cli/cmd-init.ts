@@ -10,10 +10,11 @@ import {
 } from './utils.js';
 import {
   promptDatabaseUrl,
-  promptExternalTypeImports,
+  promptJsonTypeImportsSimple,
   promptGeneratedCodeDirectory,
   promptSchemaDirectory,
-  promptTypeSettings,
+  promptTypeBigIntAsString,
+  promptTypeTinyIntOneAsBoolean,
   readFriedaRc,
   validateDatabaseUrl,
   writeFriedaRc,
@@ -31,19 +32,22 @@ export const cmdInit = async (commandResult: ParseCommandResult) => {
   s.done();
   const schemaDirectory = await promptSchemaDirectory(rcSettings)
   const generatedCodeDirectory = await promptGeneratedCodeDirectory(rcSettings);
+  const jsonTypeImports = await promptJsonTypeImportsSimple(rcSettings);
   dbResult = await promptDatabaseUrl(dbResult)
-  const flags = await promptTypeSettings(rcSettings)
+  const typeTinyIntOneAsBoolean = await promptTypeTinyIntOneAsBoolean(rcSettings);
+  const typeBigIntAsString = await promptTypeBigIntAsString(rcSettings);
   
-  const externalTypeImports = await promptExternalTypeImports(rcSettings);
+  
   
   
   const newRcSettings: RcSettings = {
     ...rcSettings,
     schemaDirectory,
     generatedCodeDirectory,
-    externalTypeImports,
+    jsonTypeImports,
     envFilePath: dbResult.envFilePath,
-    ...flags
+    typeTinyIntOneAsBoolean,
+    typeBigIntAsString
   }
   s = wait(`Saving ${fmtPath(FRIEDA_RC_FILE_NAME)}`)
   await writeFriedaRc(newRcSettings);

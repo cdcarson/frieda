@@ -39,7 +39,7 @@ export const getSettings = async (): Promise<[FullSettings, string[]]> => {
     databaseUrl: '',
     databaseUrlKey: '',
     envFilePath: '',
-    externalTypeImports: [],
+    jsonTypeImports: [],
     generatedCodeDirectory: '',
     schemaDirectory: '',
     typeBigIntAsString: true,
@@ -104,20 +104,20 @@ export const getSettings = async (): Promise<[FullSettings, string[]]> => {
     }
   }
 
-  if (!rcKeys.includes('externalTypeImports')) {
-    fullSettings.externalTypeImports = [];
+  if (!rcKeys.includes('jsonTypeImports')) {
+    fullSettings.jsonTypeImports = [];
   } else if (
-    !Array.isArray(rcSettings.externalTypeImports) ||
-    rcSettings.externalTypeImports.filter((s) => typeof s === 'string')
-      .length !== rcSettings.externalTypeImports.length
+    !Array.isArray(rcSettings.jsonTypeImports) ||
+    rcSettings.jsonTypeImports.filter((s) => typeof s === 'string')
+      .length !== rcSettings.jsonTypeImports.length
   ) {
     errors.push(
-      `Invalid ${fmtVarName('externalTypeImports')} in ${fmtPath(
+      `Invalid ${fmtVarName('jsonTypeImports')} in ${fmtPath(
         FRIEDA_RC_FILE_NAME
       )}. It must be an array of strings.`
     );
   } else {
-    fullSettings.externalTypeImports = rcSettings.externalTypeImports;
+    fullSettings.jsonTypeImports = rcSettings.jsonTypeImports;
   }
   if (!rcKeys.includes('typeBigIntAsString')) {
     fullSettings.typeBigIntAsString = true;
@@ -374,14 +374,17 @@ export const promptSchemaDirectory = async (
     rcSettings.schemaDirectory,
     'schemaDirectory'
   );
-  let header = colors.bold(`Schema directory`);
-  const varName = fmtVarName('schemaDirectory');
-
+  const header = colors.bold(fmtVarName('schemaDirectory'));
+  const shortHelp = squishWords(`
+  The relative path to a folder where Frieda will store schema and migration files. More help:
+  `);
+  const helpLink = fmtPath('https://github.com/nowzoo/frieda#schemadirectory');
   log.message(
-    `${header} (${varName})\nHelp: ${fmtPath(
-      'https://github.com/nowzoo/frieda#schemadirectory'
-    )}\nCurrent Value: ${fmtPath(schemaDirectory)}`
+    `${header}\n${shortHelp}\n${helpLink}\n\nCurrent path: ${fmtPath(
+      schemaDirectory
+    )}`
   );
+
   if (!error) {
     const change = await confirm({
       message: `Change schema directory?`,
@@ -404,13 +407,17 @@ export const promptGeneratedCodeDirectory = async (
     rcSettings.generatedCodeDirectory,
     'generatedCodeDirectory'
   );
-  let header = colors.bold(`Generated code directory`);
-  const varName = fmtVarName('generatedCodeDirectory');
-
+  const header = colors.bold(fmtVarName('generatedCodeDirectory'));
+  const shortHelp = squishWords(`
+  The relative path to a folder where Frieda will generate typescript code. More help:
+  `);
+  const helpLink = fmtPath(
+    'https://github.com/nowzoo/frieda#generatedcodedirectory'
+  );
   log.message(
-    `${header} (${varName})\nHelp: ${fmtPath(
-      'https://github.com/nowzoo/frieda#generatedcodedirectory'
-    )}\nCurrent Value: ${fmtPath(generatedCodeDirectory)}`
+    `${header}\n${shortHelp}\n${helpLink}\n\nCurrent path: ${fmtPath(
+      generatedCodeDirectory
+    )}`
   );
 
   if (!error) {
@@ -452,13 +459,18 @@ export const promptDatabaseUrl = async (
     s.done();
     return newResult;
   };
-  const header = colors.bold(`Environment variables file`);
-  const varName = fmtVarName('envFilePath');
-
+  const header = colors.bold(`${fmtVarName('envFilePath')} (database URL)`);
+  const shortHelp = squishWords(`
+    The relative path to an environment variables file (e.g. ${fmtPath(
+      '.env'
+    )}) where the database URL can be found as either
+    ${ENV_DB_URL_KEYS.map((k) => fmtVarName(k)).join(' or ')}. More help:
+  `);
+  const helpLink = fmtPath(
+    'https://github.com/nowzoo/frieda#envfilepath-database-url'
+  );
   log.message(
-    `${header} (${varName})\nHelp: ${fmtPath(
-      'https://github.com/nowzoo/frieda#envfilepath'
-    )}\nCurrent environment file: ${fmtPath(
+    `${header}\n${shortHelp}\n${helpLink}\n\nCurrent environment file: ${fmtPath(
       result.envFilePath
     )}\nDatabase URL variable: ${fmtVarName(
       result.databaseUrlKey
@@ -566,29 +578,29 @@ const promptFilePath = async (
   return value;
 };
 
-export const validateExternalTypeImports = (
+export const validateJsonTypeImports = (
   value: string[] | undefined
-): { externalTypeImports: string[]; error?: Error } => {
-  const externalTypeImports: string[] = Array.isArray(value) ? [...value] : [];
+): { jsonTypeImports: string[]; error?: Error } => {
+  const jsonTypeImports: string[] = Array.isArray(value) ? [...value] : [];
   if (!Array.isArray(value)) {
     return {
-      externalTypeImports,
+      jsonTypeImports,
       error: new Error(
         [
-          `${fmtVarName('externalTypeImports')} in ${fmtPath(
+          `${fmtVarName('jsonTypeImports')} in ${fmtPath(
             FRIEDA_RC_FILE_NAME
           )} must be an array.`
         ].join('\n')
       )
     };
   }
-  for (const i of externalTypeImports) {
+  for (const i of jsonTypeImports) {
     if (typeof i !== 'string') {
       return {
-        externalTypeImports,
+        jsonTypeImports,
         error: new Error(
           [
-            `${fmtVarName('externalTypeImports')} in ${fmtPath(
+            `${fmtVarName('jsonTypeImports')} in ${fmtPath(
               FRIEDA_RC_FILE_NAME
             )} must be an array of strings.`
           ].join('\n')
@@ -596,140 +608,201 @@ export const validateExternalTypeImports = (
       };
     }
   }
-  return { externalTypeImports };
+  return { jsonTypeImports };
 };
 
-export const promptExternalTypeImports = async (
+// this was a bad idea (too complicated)
+// export const promptJsonTypeImports = async (
+//   rcSettings: Partial<RcSettings>
+// ): Promise<string[]> => {
+//   const promptEdit = async (imps: string[]): Promise<string[]> => {
+//     const newImps = [...imps];
+//     for (let i = 0; i < newImps.length; i++) {
+//       const newImp = await text({
+//         message: `Edit import statement: (clear to delete)`,
+//         placeholder: `import type { Foo } from '../../api`,
+//         initialValue: newImps[i]
+//       });
+//       if (isCancel(newImp)) {
+//         return cancelAndExit();
+//       }
+//       newImps[i] = newImp;
+//     }
+//     return newImps
+//       .filter((s) => typeof s === 'string')
+//       .map((s) => s.trim())
+//       .filter((s) => s.length > 0);
+//   };
+//   const promptAdd = async (imps: string[]): Promise<string[]> => {
+//     const newImps = [...imps];
+//     const newImp = await text({
+//       message: `Add import statement: (leave blank to cancel)`,
+//       placeholder: `import type { Foo } from '../../api`,
+//       initialValue: ''
+//     });
+//     if (isCancel(newImp)) {
+//       return cancelAndExit();
+//     }
+//     newImps.push(newImp);
+//     return newImps
+//       .filter((s) => typeof s === 'string')
+//       .map((s) => s.trim())
+//       .filter((s) => s.length > 0);
+//   };
+//   const { jsonTypeImports: unfiltered, error } =
+//     validateJsonTypeImports(rcSettings.jsonTypeImports);
+
+//   let jsonTypeImports = unfiltered
+//     .filter((s) => typeof s === 'string')
+//     .map((s) => s.trim())
+//     .filter((s) => s.length > 0);
+//   const varName = colors.bold(fmtVarName('jsonTypeImports'));
+
+//   const shortHelp = squishWords(`
+//     An  array of import statements that correspond to the types you have assigned to ${fmtValue('json')} columns. More help:
+//   `)
+//   const helpLink = fmtPath(`https://github.com/nowzoo/frieda#jsonTypeImports`)
+
+//   log.message(
+//     `${varName}\n${shortHelp}\n${helpLink}\n\nCurrent value: \n${fmtValue(JSON.stringify(jsonTypeImports, null, 1))}`
+//   );
+//   let action: 'edit' | 'add' | 'done' | null = null;
+//   while (action === null || action !== 'done') {
+//     if (action !== null) {
+//       log.message(
+//         [
+//           'External type imports:',
+//           JSON.stringify(jsonTypeImports, null, 1)
+//         ].join('\n')
+//       );
+//     }
+//     const newAction = await select({
+//       message: `Add, edit or delete import statements?`,
+//       initialValue: 'done',
+//       options: [
+//         {
+//           label: 'Add',
+//           value: 'add'
+//         },
+//         {
+//           label: 'Edit/Delete',
+//           value: 'edit'
+//         },
+//         {
+//           label: action === null ? 'No, skip' : 'Done',
+//           value: 'done'
+//         }
+//       ]
+//     });
+//     if (isCancel(newAction)) {
+//       return cancelAndExit();
+//     }
+//     action = newAction as 'edit' | 'add' | 'done';
+//     switch (action) {
+//       case 'edit':
+//         jsonTypeImports = await promptEdit(jsonTypeImports);
+//         break;
+//       case 'add':
+//         jsonTypeImports = await promptAdd(jsonTypeImports);
+//         break;
+//     }
+//   }
+//   return jsonTypeImports;
+// };
+
+export const promptJsonTypeImportsSimple = async (
   rcSettings: Partial<RcSettings>
 ): Promise<string[]> => {
-  const promptEdit = async (imps: string[]): Promise<string[]> => {
-    const newImps = [...imps];
-    for (let i = 0; i < newImps.length; i++) {
-      const newImp = await text({
-        message: `Edit import statement: (clear to delete)`,
-        placeholder: `import type { Foo } from '../../api`,
-        initialValue: newImps[i]
-      });
-      if (isCancel(newImp)) {
-        return cancelAndExit();
-      }
-      newImps[i] = newImp;
-    }
-    return newImps
-      .filter((s) => typeof s === 'string')
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
-  };
-  const promptAdd = async (imps: string[]): Promise<string[]> => {
-    const newImps = [...imps];
-    const newImp = await text({
-      message: `Add import statement: (leave blank to cancel)`,
-      placeholder: `import type { Foo } from '../../api`,
-      initialValue: ''
-    });
-    if (isCancel(newImp)) {
-      return cancelAndExit();
-    }
-    newImps.push(newImp);
-    return newImps
-      .filter((s) => typeof s === 'string')
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
-  };
-  const { externalTypeImports: unfiltered, error } =
-    validateExternalTypeImports(rcSettings.externalTypeImports);
+  
+  const { jsonTypeImports: unfiltered, error } =
+    validateJsonTypeImports(rcSettings.jsonTypeImports);
 
-  let externalTypeImports = unfiltered
+  let jsonTypeImports = unfiltered
     .filter((s) => typeof s === 'string')
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
-  let header = colors.bold(`External type imports`);
-  const varName = fmtVarName('externalTypeImports');
+  const varName = colors.bold(fmtVarName('jsonTypeImports'));
+
+  const shortHelp = squishWords(`
+    An  array of import statements that correspond to the types you have assigned to ${fmtValue('json')} columns. More help:
+  `)
+  const helpLink = fmtPath(`https://github.com/nowzoo/frieda#jsonTypeImports`)
 
   log.message(
-    `${header} (${varName})\nHelp: ${fmtPath(
-      'https://github.com/nowzoo/frieda#externalTypeImports'
-    )}\nCurrent value: \n${JSON.stringify(externalTypeImports, null, 1)}`
+    `${varName}\n${shortHelp}\n${helpLink}\n\nCurrent value: \n${fmtValue(JSON.stringify(jsonTypeImports, null, 1))}`
   );
-  let action: 'edit' | 'add' | 'done' | null = null;
-  while (action === null || action !== 'done') {
-    if (action !== null) {
-      log.message(
-        [
-          'External type imports:',
-          JSON.stringify(externalTypeImports, null, 1)
-        ].join('\n')
-      );
-    }
-    const newAction = await select({
-      message: `Add, edit or delete import statements?`,
-      initialValue: 'done',
-      options: [
-        {
-          label: 'Add',
-          value: 'add'
-        },
-        {
-          label: 'Edit/Delete',
-          value: 'edit'
-        },
-        {
-          label: action === null ? 'No, skip' : 'Done',
-          value: 'done'
-        }
-      ]
-    });
-    if (isCancel(newAction)) {
-      return cancelAndExit();
-    }
-    action = newAction as 'edit' | 'add' | 'done';
-    switch (action) {
-      case 'edit':
-        externalTypeImports = await promptEdit(externalTypeImports);
-        break;
-      case 'add':
-        externalTypeImports = await promptAdd(externalTypeImports);
-        break;
-    }
+  const ok = await select({
+    message: `You need to edit this array by hand in ${fmtPath(FRIEDA_RC_FILE_NAME)}.`,
+    options: [
+      {label: 'Got it', value: true}
+    ]
+    
+  })
+  if (isCancel(ok)) {
+    return cancelAndExit();
   }
-  return externalTypeImports;
+  
+  return jsonTypeImports;
 };
-export type PromptTypeSettingsResult = {
-  typeTinyIntOneAsBoolean: boolean;
-  typeBigIntAsString: boolean;
-};
-export const promptTypeSettings = async (
+
+export const promptTypeTinyIntOneAsBoolean = async (
   rcSettings: Partial<RcSettings>
-): Promise<PromptTypeSettingsResult> => {
+): Promise<boolean> => {
+  const header = colors.bold(`${fmtVarName('typeTinyIntOneAsBoolean')}`);
+  const shortHelp = squishWords(`
+  If ${fmtValue(
+    'true'
+  )} (default) Frieda will type fields with the column type ${fmtValue(
+    'tinyint(1)'
+  )} as javascript ${fmtValue('boolean')}. 
+  More help:
+  `);
+  const helpLink = fmtPath(
+    'https://github.com/nowzoo/frieda#typeTinyIntOneAsBoolean'
+  );
   log.message(
-    `${typeTinyIntOneAsDesc}\n\nCurrent value: ${fmtValue(
+    `${header}\n${shortHelp}\n${helpLink}\n\nCurrent value: ${fmtValue(
       rcSettings.typeTinyIntOneAsBoolean !== false ? 'true' : 'false'
     )}`
   );
 
   const typeTinyIntOneAsBoolean = await confirm({
-    message: `${typeTinyIntOneAsBooleanPrompt}?`,
+    message: `Type ${fmtValue('tinyint(1)')} as ${fmtValue('boolean')}?`,
     initialValue: rcSettings.typeTinyIntOneAsBoolean !== false
   });
   if (isCancel(typeTinyIntOneAsBoolean)) {
     return cancelAndExit();
   }
+  return typeTinyIntOneAsBoolean;
+};
 
+export const promptTypeBigIntAsString = async (
+  rcSettings: Partial<RcSettings>
+): Promise<boolean> => {
+  const header = colors.bold(`${fmtVarName('typeBigIntAsString')}`);
+  const shortHelp = squishWords(`
+  If ${fmtValue(
+    'true'
+  )} (default, recommended) Frieda will type fields with the column type ${fmtValue(
+    'bigint'
+  )} as javascript ${fmtValue('string')}. You can opt out of this behavior for individual fields.
+  More help:
+  `);
+  const helpLink = fmtPath(
+    'https://github.com/nowzoo/frieda#typeBigIntAsString'
+  );
   log.message(
-    `${typeBigIntAsStringDesc}\n\nCurrent value: ${fmtValue(
+    `${header}\n${shortHelp}\n${helpLink}\n\nCurrent value: ${fmtValue(
       rcSettings.typeBigIntAsString !== false ? 'true' : 'false'
     )}`
   );
+
   const typeBigIntAsString = await confirm({
-    message: `${typeBigIntAsStringPrompt}?`,
+    message: `Type ${fmtValue('bigint')} as ${fmtValue('string')}?`,
     initialValue: rcSettings.typeBigIntAsString !== false
   });
   if (isCancel(typeBigIntAsString)) {
     return cancelAndExit();
   }
-
-  return {
-    typeBigIntAsString,
-    typeTinyIntOneAsBoolean
-  };
+  return typeBigIntAsString;
 };

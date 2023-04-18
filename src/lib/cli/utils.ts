@@ -125,7 +125,7 @@ export const maskDatabaseURLPassword = (urlStr: string): string => {
     `${protocol}//${username}:${colors.gray('<PASSWORD>')}@${hostname}`
   );
 };
-export const fmtVarName = (name: string) => colors.italic(name);
+export const fmtVarName = (name: string) => colors.bold(name);
 export const fmtValue = (s: string) => colors.bold(colors.italic(s));
 export const fmtPath = (p: string) => colors.underline(p);
 export const fmtEx = (p: string) => colors.bold(p);

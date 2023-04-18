@@ -142,11 +142,11 @@ CREATE TABLE `PlatformUser` (
 );
 ```
 
-...remembering to add the import to `externalTypeImports` in `.friedarc`.
+...remembering to add the import to `jsonTypeImports` in `.friedarc`.
 
 ### `json` Fields
 
-By default Frieda will type `json` columns as `unknown`. You can get around this by providing an explicit type using the `@json(<type>)` annotation, where `<type>` is either a one-off type or a symbol you've imported via  `externalTypeImports` in `.friedarc`. Examples:
+By default Frieda will type `json` columns as `unknown`. You can get around this by providing an explicit type using the `@json(<type>)` annotation, where `<type>` is either a one-off type or a symbol you've imported via  `jsonTypeImports` in `.friedarc`. Examples:
 
 ```sql
 CREATE TABLE `FabulousOffer` (
