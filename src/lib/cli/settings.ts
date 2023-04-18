@@ -453,13 +453,16 @@ export const promptDatabaseUrl = async (
     return newResult;
   };
   const header = colors.bold(`Environment variables file`);
-  const fmtedKeys = ENV_DB_URL_KEYS.map((s) => fmtVarName(s)).join(' or ');
   const varName = fmtVarName('envFilePath');
-  
+
   log.message(
     `${header} (${varName})\nHelp: ${fmtPath(
       'https://github.com/nowzoo/frieda#envfilepath'
-    )}\nCurrent environment file: ${fmtPath(result.envFilePath)}\nDatabase URL variable: ${fmtVarName(result.databaseUrlKey)}\nDatabase URL: ${maskDatabaseURLPassword(result.databaseUrl)}`
+    )}\nCurrent environment file: ${fmtPath(
+      result.envFilePath
+    )}\nDatabase URL variable: ${fmtVarName(
+      result.databaseUrlKey
+    )}\nDatabase URL: ${maskDatabaseURLPassword(result.databaseUrl)}`
   );
 
   if (!result.error) {
@@ -612,7 +615,10 @@ export const promptExternalTypeImports = async (
       }
       newImps[i] = newImp;
     }
-    return newImps.map((s) => s.trim()).filter((s) => s.length > 0);
+    return newImps
+      .filter((s) => typeof s === 'string')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
   };
   const promptAdd = async (imps: string[]): Promise<string[]> => {
     const newImps = [...imps];
@@ -625,7 +631,10 @@ export const promptExternalTypeImports = async (
       return cancelAndExit();
     }
     newImps.push(newImp);
-    return newImps.map((s) => s.trim()).filter((s) => s.length > 0);
+    return newImps
+      .filter((s) => typeof s === 'string')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
   };
   const { externalTypeImports: unfiltered, error } =
     validateExternalTypeImports(rcSettings.externalTypeImports);
@@ -637,28 +646,21 @@ export const promptExternalTypeImports = async (
   let header = colors.bold(`External type imports`);
   const varName = fmtVarName('externalTypeImports');
 
-  const message = [
-    `${header} (${varName})`,
-    `An  array of import statements that correspond to the types you`,
-    `have assigned to json columns. Frieda includes these as is at the`,
-    `top of ${fmtPath(
-      `<${fmtVarName('generatedCodeDirectory')}>/types.ts`
-    )}. Note that the import paths`,
-    `are not validated, so it's up to you to provide paths that resolve from`,
-    `${fmtVarName(
-      'generatedCodeDirectory'
-    )} (but any type aliases you have defined will work.)`
-  ];
-  log.message(message.join('\n'));
+  log.message(
+    `${header} (${varName})\nHelp: ${fmtPath(
+      'https://github.com/nowzoo/frieda#externalTypeImports'
+    )}\nCurrent value: \n${JSON.stringify(externalTypeImports, null, 1)}`
+  );
   let action: 'edit' | 'add' | 'done' | null = null;
   while (action === null || action !== 'done') {
-    log.message(
-      [
-        'External type imports:',
-        JSON.stringify(externalTypeImports, null, 1)
-      ].join('\n')
-    );
-
+    if (action !== null) {
+      log.message(
+        [
+          'External type imports:',
+          JSON.stringify(externalTypeImports, null, 1)
+        ].join('\n')
+      );
+    }
     const newAction = await select({
       message: `Add, edit or delete import statements?`,
       initialValue: 'done',

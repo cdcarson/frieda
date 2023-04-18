@@ -71,7 +71,7 @@ src
 └── index.ts
 ```
 
-#### envFilePath
+#### envFilePath (Database URL)
 _Optional._ Default: `.env`
 
 The relative path to an environment variables file where the database URL can be found as either
