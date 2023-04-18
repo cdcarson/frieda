@@ -1,4 +1,4 @@
-export const FRIEDA_RC_FILE_NAME = 'friedarc.json';
+export const FRIEDA_RC_FILE_NAME = '.friedarc';
 export const CURRENT_MIGRATION_SQL_FILE_NAME = 'current-migration.sql';
 export const CURRENT_SCHEMA_SQL_FILE_NAME = 'current-schema.sql';
 export const CURRENT_SCHEMA_JSON_FILE_NAME = 'current-schema.json';
