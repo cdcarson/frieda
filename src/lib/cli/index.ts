@@ -6,7 +6,7 @@ import { intro, outro } from '@clack/prompts';
 import colors from 'picocolors'
 import { FRIEDA_VERSION } from '$lib/version.js';
 import { wait } from './utils.js';
-import { readSettings, logSettingsErrors } from './settings.js';
+import { getSettings } from './settings.js';
 
 type CliCommand = {
   name: string;
@@ -57,13 +57,7 @@ export const main = async (
   args: string[]
 ) => {
   intro(`${colors.bold('frieda')} 🐕 ${colors.dim(`v${FRIEDA_VERSION}`)}`)
-  let s = wait('Reading settings');
-  const {settings, errors} = await readSettings();
-  if (errors.length > 0) {
-    s.error();
-    logSettingsErrors(errors)
-  }
-
+  const settings = await getSettings();
   outro(colors.bold('frieda is done'))
 };
 

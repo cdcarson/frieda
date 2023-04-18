@@ -20,7 +20,7 @@ import { text, isCancel, log, select, confirm } from '@clack/prompts';
 import colors from 'picocolors';
 import { parse } from 'dotenv';
 
-export class SettingsError extends Error {
+class SettingsError extends Error {
   public readonly key: keyof RcSettings | undefined;
   constructor(message: string, key?: keyof RcSettings) {
     super(message);
@@ -28,7 +28,7 @@ export class SettingsError extends Error {
   }
 }
 
-export type ReadSettingsResult = {
+type ReadSettingsResult = {
   settings: FullSettings;
   errors: SettingsError[];
 };
@@ -46,7 +46,23 @@ export const getSettings = async(): Promise<FullSettings> => {
 }
 
 export const promptSettings = async (fullSettings: FullSettings, errors?: SettingsError[]): Promise<FullSettings> => {
-  
+  if (errors && errors.length > 0) {
+    const msg = [
+      colors.red(`Invalid settings`),
+      ...errors.map((e) => {
+        return `- ${e.message}`;
+      }),
+    ];
+    log.error(msg.join('\n'));
+  }
+  const initSettings = await confirm({
+    message: '(Re)initialize settings?',
+  });
+
+  if (isCancel(initSettings) || ! initSettings) {
+
+    return cancelAndExit()
+  }
   
   const dbResult = await promptDatabaseUrl(fullSettings);
   const schemaDirectory = await promptSchemaDirectory(fullSettings);
@@ -67,14 +83,23 @@ export const promptSettings = async (fullSettings: FullSettings, errors?: Settin
     typeTinyIntOneAsBoolean,
     typeBigIntAsString
   };
-  s = wait(`Saving ${fmtPath(FRIEDA_RC_FILE_NAME)}`);
+  const s = wait(`Saving ${fmtPath(FRIEDA_RC_FILE_NAME)}`);
   await writeFriedaRc(newRcSettings);
   s.done();
+  return {
+    databaseUrl: dbResult.databaseUrl,
+    databaseUrlKey: dbResult.databaseUrlKey,
+    envFilePath: dbResult.envFilePath,
+    generatedCodeDirectory,
+    schemaDirectory,
+    jsonTypeImports,
+    typeBigIntAsString,
+    typeTinyIntOneAsBoolean
+  }
   
 };
 
-
-export const readSettings = async (): Promise<ReadSettingsResult> => {
+const readSettings = async (): Promise<ReadSettingsResult> => {
   const errors: SettingsError[] = [];
   const { rcSettings, friedaRcExists } = await readFriedaRc();
   if (! friedaRcExists) {
@@ -166,25 +191,11 @@ export const readSettings = async (): Promise<ReadSettingsResult> => {
   };
 };
 
-export const logSettingsErrors = (errors: SettingsError[]) => {
-  const msg = [
-    colors.red(`Invalid settings`),
-    ...errors.flatMap((e) => {
-      return ['', fmtVarName(e.key), e.message];
-    }),
-    '',
-    `Run ${colors.inverse(' frieda init ')} to fix or read the docs at:`,
-    fmtPath('https://github.com/nowzoo/frieda#settings'),
-    ''
-  ];
-  log.error(msg.join('\n'));
-};
-
 const getRcFullPath = () => {
   return join(process.cwd(), FRIEDA_RC_FILE_NAME);
 };
 
-export const readFriedaRc = async (): Promise<{
+const readFriedaRc = async (): Promise<{
   rcSettings: Partial<RcSettings>;
   friedaRcExists: boolean;
 }> => {
@@ -202,12 +213,12 @@ export const readFriedaRc = async (): Promise<{
   return { friedaRcExists: friedaRcExists, rcSettings };
 };
 
-export const writeFriedaRc = async (settings: RcSettings): Promise<void> => {
+const writeFriedaRc = async (settings: RcSettings): Promise<void> => {
   const p = getRcFullPath();
   await fs.writeFile(p, await prettify(JSON.stringify(settings), p));
 };
 
-export const validateDirectory = (
+const validateDirectory = (
   value: string | undefined,
   key: keyof RcSettings
 ): { d: string; error?: SettingsError } => {
@@ -250,18 +261,18 @@ export const validateDirectory = (
   return { d };
 };
 
-export type ValidateDatabaseResult = {
+type ValidateDatabaseResult = {
   databaseUrl: string;
   databaseUrlKey: string;
   envFilePath: string;
   error?: SettingsError;
 };
-export const VALID_DB_URL_FORMAT = colors.gray(
+const VALID_DB_URL_FORMAT = colors.gray(
   `mysql://${colors.magenta('user')}:${colors.magenta(
     'password'
   )}@${colors.magenta('host')}`
 );
-export const validateDatabaseUrl = async (
+const validateDatabaseUrl = async (
   envFilePath: string
 ): Promise<ValidateDatabaseResult> => {
   const result: ValidateDatabaseResult = {
@@ -342,7 +353,7 @@ export const validateDatabaseUrl = async (
   };
 };
 
-export const promptSchemaDirectory = async (
+const promptSchemaDirectory = async (
   rcSettings: Partial<RcSettings>
 ): Promise<string> => {
   const { d: schemaDirectory, error } = validateDirectory(
@@ -378,7 +389,7 @@ export const promptSchemaDirectory = async (
   return await promptDirPath('Enter schema directory:', schemaDirectory);
 };
 
-export const promptGeneratedCodeDirectory = async (
+const promptGeneratedCodeDirectory = async (
   rcSettings: Partial<RcSettings>
 ): Promise<string> => {
   const { d: generatedCodeDirectory, error } = validateDirectory(
@@ -419,7 +430,8 @@ export const promptGeneratedCodeDirectory = async (
   );
 };
 
-export const promptDatabaseUrl = async (
+
+const promptDatabaseUrl = async (
   result: ValidateDatabaseResult
 ): Promise<ValidateDatabaseResult> => {
   const prompt = async (
@@ -479,7 +491,7 @@ export const promptDatabaseUrl = async (
   return prompt(result.envFilePath);
 };
 
-export const isDirOrNonExistent = (relPath: string): boolean => {
+const isDirOrNonExistent = (relPath: string): boolean => {
   const p = join(process.cwd(), relPath);
   if (!fs.existsSync(p)) {
     return true;
@@ -488,7 +500,7 @@ export const isDirOrNonExistent = (relPath: string): boolean => {
   return x.isDirectory();
 };
 
-export const isEmptyDirOrNonExistent = (relPath: string): boolean => {
+const isEmptyDirOrNonExistent = (relPath: string): boolean => {
   const p = join(process.cwd(), relPath);
   if (!fs.existsSync(p)) {
     return true;
@@ -565,7 +577,7 @@ const promptFilePath = async (
   return value;
 };
 
-export const validateJsonTypeImports = (
+const validateJsonTypeImports = (
   value: string[] | undefined
 ): { jsonTypeImports: string[]; error?: SettingsError } => {
   const jsonTypeImports: string[] = Array.isArray(value) ? [...value] : [];
@@ -600,7 +612,7 @@ export const validateJsonTypeImports = (
   return { jsonTypeImports };
 };
 
-export const promptJsonTypeImportsSimple = async (
+const promptJsonTypeImportsSimple = async (
   rcSettings: Partial<RcSettings>
 ): Promise<string[]> => {
   const { jsonTypeImports: unfiltered, error } = validateJsonTypeImports(
@@ -638,7 +650,7 @@ export const promptJsonTypeImportsSimple = async (
   return jsonTypeImports;
 };
 
-export const promptTypeTinyIntOneAsBoolean = async (
+const promptTypeTinyIntOneAsBoolean = async (
   rcSettings: Partial<RcSettings>
 ): Promise<boolean> => {
   const header = colors.bold(`${fmtVarName('typeTinyIntOneAsBoolean')}`);
@@ -669,7 +681,7 @@ export const promptTypeTinyIntOneAsBoolean = async (
   return typeTinyIntOneAsBoolean;
 };
 
-export const promptTypeBigIntAsString = async (
+const promptTypeBigIntAsString = async (
   rcSettings: Partial<RcSettings>
 ): Promise<boolean> => {
   const header = colors.bold(`${fmtVarName('typeBigIntAsString')}`);
