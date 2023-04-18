@@ -5,9 +5,7 @@ import { intro, outro, log, confirm, isCancel } from '@clack/prompts';
 import {
   cancelAndExit,
   fmtPath,
-  formatFilePath,
   getServerlessConnection,
-  prettify,
   wait
 } from './utils.js';
 import { writeCurrentSchema } from './write-schema.js';

@@ -4,7 +4,6 @@ import {
   fmtPath,
   fmtValue,
   fmtVarName,
-  formatFilePath,
   getServerlessConnection,
   isValidDatabaseURL,
   isValidFilePathInCwd,
@@ -17,200 +16,108 @@ import {
 import fs from 'fs-extra';
 import { join } from 'path';
 import { FRIEDA_RC_FILE_NAME, ENV_DB_URL_KEYS } from './constants.js';
-import {
-  text,
-  isCancel,
-  log,
-  select,
-  confirm,
-  multiselect
-} from '@clack/prompts';
+import { text, isCancel, log, select, confirm } from '@clack/prompts';
 import colors from 'picocolors';
-import { parse, type DotenvParseOutput } from 'dotenv';
-import {
-  typeBigIntAsStringDesc,
-  typeBigIntAsStringPrompt,
-  typeTinyIntOneAsBooleanPrompt,
-  typeTinyIntOneAsDesc
-} from './strings.js';
+import { parse } from 'dotenv';
 
-export const getSettings = async (): Promise<[FullSettings, string[]]> => {
-  const fullSettings: FullSettings = {
-    databaseUrl: '',
-    databaseUrlKey: '',
-    envFilePath: '',
-    jsonTypeImports: [],
-    generatedCodeDirectory: '',
-    schemaDirectory: '',
-    typeBigIntAsString: true,
-    typeTinyIntOneAsBoolean: true
-  };
-  const errors: string[] = [];
-  const { rcSettings } = await readFriedaRc();
-  const rcKeys = Object.keys(rcSettings);
-  if (typeof rcSettings.schemaDirectory !== 'string') {
-    errors.push(
-      `Missing ${fmtVarName('schemaDirectory')} in ${fmtPath(
-        FRIEDA_RC_FILE_NAME
-      )}.`
-    );
-  } else if (!isValidFilePathInCwd(rcSettings.schemaDirectory)) {
-    errors.push(
-      `Invalid ${fmtVarName('schemaDirectory')} in ${fmtPath(
-        FRIEDA_RC_FILE_NAME
-      )}. It must resolve to a path in the current working directory.`
-    );
-  } else {
-    fullSettings.schemaDirectory = rcSettings.schemaDirectory;
+export class SettingsError extends Error {
+  public readonly key: keyof RcSettings;
+  constructor(message: string, key: keyof RcSettings) {
+    super(message);
+    this.key = key;
   }
+}
 
-  if (typeof rcSettings.generatedCodeDirectory !== 'string') {
-    errors.push(
-      `Missing ${fmtVarName('generatedCodeDirectory')} in ${fmtPath(
-        FRIEDA_RC_FILE_NAME
-      )}.`
-    );
-  } else if (!isValidFilePathInCwd(rcSettings.generatedCodeDirectory)) {
-    errors.push(
-      `Invalid ${fmtVarName('generatedCodeDirectory')} in ${fmtPath(
-        FRIEDA_RC_FILE_NAME
-      )}. It must resolve to a path in the current working directory.`
-    );
-  } else {
-    fullSettings.generatedCodeDirectory = rcSettings.generatedCodeDirectory;
-  }
-
-  fullSettings.envFilePath = rcSettings.envFilePath
-    ? rcSettings.envFilePath
-    : '.env';
-
-  if (!isValidFilePathInCwd(fullSettings.envFilePath)) {
-    errors.push(
-      `Invalid ${fmtVarName('envFilePath')} in ${fmtPath(
-        FRIEDA_RC_FILE_NAME
-      )}. It must resolve to a path in the current working directory.`
-    );
-  } else {
-    try {
-      const result = await getDatabaseUrl(fullSettings.envFilePath);
-      fullSettings.databaseUrl = result.databaseUrl;
-      fullSettings.databaseUrlKey = result.databaseUrlKey;
-    } catch (error) {
-      if (error instanceof Error) {
-        errors.push(error.message);
-      } else {
-        throw error;
-      }
-    }
-  }
-
-  if (!rcKeys.includes('jsonTypeImports')) {
-    fullSettings.jsonTypeImports = [];
-  } else if (
-    !Array.isArray(rcSettings.jsonTypeImports) ||
-    rcSettings.jsonTypeImports.filter((s) => typeof s === 'string').length !==
-      rcSettings.jsonTypeImports.length
-  ) {
-    errors.push(
-      `Invalid ${fmtVarName('jsonTypeImports')} in ${fmtPath(
-        FRIEDA_RC_FILE_NAME
-      )}. It must be an array of strings.`
-    );
-  } else {
-    fullSettings.jsonTypeImports = rcSettings.jsonTypeImports;
-  }
-  if (!rcKeys.includes('typeBigIntAsString')) {
-    fullSettings.typeBigIntAsString = true;
-  } else if (typeof fullSettings.typeBigIntAsString !== 'boolean') {
-    errors.push(
-      `Invalid ${fmtVarName('typeBigIntAsString')} in ${fmtPath(
-        FRIEDA_RC_FILE_NAME
-      )}. It must be boolean.`
-    );
-  } else {
-    fullSettings.typeBigIntAsString === rcSettings.typeBigIntAsString;
-  }
-  if (!rcKeys.includes('typeTinyIntOneAsBoolean')) {
-    fullSettings.typeTinyIntOneAsBoolean = true;
-  } else if (typeof fullSettings.typeTinyIntOneAsBoolean !== 'boolean') {
-    errors.push(
-      `Invalid ${fmtVarName('typeTinyIntOneAsBoolean')} in ${fmtPath(
-        FRIEDA_RC_FILE_NAME
-      )}. It must be boolean.`
-    );
-  } else {
-    fullSettings.typeTinyIntOneAsBoolean === rcSettings.typeTinyIntOneAsBoolean;
-  }
-  return [fullSettings, errors];
+export type GetSettingsResult = {
+  settings: FullSettings;
+  errors: SettingsError[];
 };
 
-export const getDatabaseUrl = async (
-  envFilePath: string
-): Promise<{
-  databaseUrl: string;
-  databaseUrlKey: string;
-  envFilePath: string;
-}> => {
-  const validFormat = colors.gray(
-    `mysql://${colors.magenta('user')}:${colors.magenta(
-      'password'
-    )}@${colors.magenta('host')}`
+export const getSettings = async (): Promise<[FullSettings, Error[]]> => {
+  const errors: SettingsError[] = [];
+  const { rcSettings, friedaRcExists } = await readFriedaRc();
+  const dbResult = await validateDatabaseUrl(rcSettings.envFilePath || '.env');
+  if (dbResult.error) {
+    errors.push(dbResult.error);
+  }
+  const databaseUrl = dbResult.databaseUrl;
+  const databaseUrlKey = dbResult.databaseUrlKey;
+  const envFilePath = dbResult.envFilePath;
+
+  const schemaDirectoryResult = validateDirectory(
+    rcSettings.schemaDirectory,
+    'schemaDirectory'
   );
-  const fmtedKeys = ENV_DB_URL_KEYS.map((s) => fmtVarName(s)).join(' or ');
-  const p = join(process.cwd(), envFilePath);
-  const exists = await fs.exists(p);
-  if (!exists) {
-    throw new Error(
-      [
-        `The environment file at ${fmtPath(envFilePath)} does not exist.`,
-        `Make sure it exists and contains either ${fmtedKeys} as a valid database URL.`,
-        `URL format: ${validFormat}`
-      ].join('\n')
+  if (schemaDirectoryResult.error) {
+    errors.push(schemaDirectoryResult.error);
+  }
+  const schemaDirectory = schemaDirectoryResult.d;
+
+  const generatedCodeDirectoryResult = validateDirectory(
+    rcSettings.generatedCodeDirectory,
+    'generatedCodeDirectory'
+  );
+  if (generatedCodeDirectoryResult.error) {
+    errors.push(generatedCodeDirectoryResult.error);
+  }
+  const generatedCodeDirectory = generatedCodeDirectoryResult.d;
+
+  const jsonTypeImportsResult = validateJsonTypeImports(
+    rcSettings.jsonTypeImports
+  );
+  if (jsonTypeImportsResult.error) {
+    errors.push(jsonTypeImportsResult.error);
+  }
+  const jsonTypeImports = jsonTypeImportsResult.jsonTypeImports;
+
+  if (
+    Object.keys(rcSettings).includes('typeTinyIntOneAsBoolean') &&
+    typeof rcSettings.typeTinyIntOneAsBoolean !== 'boolean'
+  ) {
+    errors.push(
+      new SettingsError(
+        squishWords(
+          `${fmtVarName('typeTinyIntOneAsBoolean')} must be ${fmtValue(
+            'true'
+          )} or ${fmtValue('false')}.`
+        ),
+        'typeTinyIntOneAsBoolean'
+      )
     );
   }
-  const env = parse(await fs.readFile(p));
-  for (const databaseUrlKey of ENV_DB_URL_KEYS) {
-    if (typeof env[databaseUrlKey] === 'string') {
-      if (!isValidDatabaseURL(env[databaseUrlKey])) {
-        throw new Error(
-          [
-            `The variable ${fmtVarName(databaseUrlKey)} in ${fmtPath(
-              envFilePath
-            )} is not a valid database URL.`,
-            `URL format: ${validFormat}`
-          ].join('\n')
-        );
-      }
-      try {
-        const conn = getServerlessConnection(env[databaseUrlKey]);
-        await conn.execute('SELECT 1 as `foo`');
-        return {
-          databaseUrl: env[databaseUrlKey],
-          databaseUrlKey,
-          envFilePath
-        };
-      } catch (error) {
-        throw new Error(
-          [
-            `Could not connect with the URL ${maskDatabaseURLPassword(
-              env[databaseUrlKey]
-            )}`,
-            `(${fmtVarName(databaseUrlKey)} in ${fmtPath(envFilePath)}.)`,
-            error instanceof Error
-              ? `The server said: ${colors.red(error.message)}`
-              : 'An unknown error occurred.'
-          ].join('\n')
-        );
-      }
-    }
+
+  const typeTinyIntOneAsBoolean = rcSettings.typeTinyIntOneAsBoolean !== false;
+
+  if (
+    Object.keys(rcSettings).includes('typeBigIntAsString') &&
+    typeof rcSettings.typeBigIntAsString !== 'boolean'
+  ) {
+    errors.push(
+      new SettingsError(
+        squishWords(
+          `${fmtVarName('typeBigIntAsString')} must be ${fmtValue(
+            'true'
+          )} or ${fmtValue('false')}.`
+        ),
+        'typeBigIntAsString'
+      )
+    );
   }
-  throw new Error(
-    [
-      `Could not find either ${fmtedKeys} in ${fmtPath(envFilePath)}.`,
-      `Make sure one of those keys exists and is a valid URL.`,
-      `URL format: ${validFormat}`
-    ].join('\n')
-  );
+  const typeBigIntAsString = rcSettings.typeBigIntAsString !== false;
+
+  return [
+    {
+      databaseUrl,
+      envFilePath,
+      databaseUrlKey,
+      schemaDirectory,
+      generatedCodeDirectory,
+      jsonTypeImports,
+      typeTinyIntOneAsBoolean,
+      typeBigIntAsString
+    },
+    errors
+  ];
 };
 
 const getRcFullPath = () => {
@@ -242,36 +149,41 @@ export const writeFriedaRc = async (settings: RcSettings): Promise<void> => {
 
 export const validateDirectory = (
   value: string | undefined,
-  key: string
-): { d: string; error?: Error } => {
+  key: keyof RcSettings
+): { d: string; error?: SettingsError } => {
   const d = typeof value === 'string' ? value.trim() : '';
   if (typeof value !== 'string') {
     return {
       d,
-      error: new Error(
-        `Missing ${fmtVarName(key)} in ${fmtPath(FRIEDA_RC_FILE_NAME)}.`
+      error: new SettingsError(
+        squishWords(
+          `Missing ${fmtVarName(key)} in ${fmtPath(FRIEDA_RC_FILE_NAME)}.`
+        ),
+        key
       )
     };
   }
   if (!isValidFilePathInCwd(d)) {
     return {
       d,
-      error: new Error(
-        [
-          `Invalid ${fmtVarName(key)} in ${fmtPath(FRIEDA_RC_FILE_NAME)}.`,
-          `It must resolve to a path in the current working directory.`
-        ].join('\n')
+      error: new SettingsError(
+        squishWords(`
+        Invalid ${fmtVarName(key)} in ${fmtPath(FRIEDA_RC_FILE_NAME)}.
+        It must resolve to a path in the current working directory.
+        `),
+        key
       )
     };
   }
   if (!isDirOrNonExistent(d)) {
     return {
       d,
-      error: new Error(
-        [
-          `Invalid ${fmtVarName(key)} in ${fmtPath(FRIEDA_RC_FILE_NAME)}.`,
-          `The path is a file, not a directory.`
-        ].join('\n')
+      error: new SettingsError(
+        squishWords(`
+        Invalid ${fmtVarName(key)} in ${fmtPath(FRIEDA_RC_FILE_NAME)}.
+        The path is a file, not a directory.
+        `),
+        key
       )
     };
   }
@@ -282,7 +194,7 @@ export type ValidateDatabaseResult = {
   databaseUrl: string;
   databaseUrlKey: string;
   envFilePath: string;
-  error?: Error;
+  error?: SettingsError;
 };
 export const VALID_DB_URL_FORMAT = colors.gray(
   `mysql://${colors.magenta('user')}:${colors.magenta(
@@ -304,12 +216,13 @@ export const validateDatabaseUrl = async (
   if (!exists) {
     return {
       ...result,
-      error: new Error(
-        [
-          `The environment file at ${fmtPath(envFilePath)} does not exist.`,
-          `Make sure it exists and contains either ${fmtedKeys} as a valid database URL.`,
-          `URL format: ${VALID_DB_URL_FORMAT}`
-        ].join('\n')
+      error: new SettingsError(
+        squishWords(`
+        The environment file at ${fmtPath(envFilePath)} does not exist.
+        Make sure it exists and contains either ${fmtedKeys} as a valid database URL.
+        URL format: ${VALID_DB_URL_FORMAT}
+        `),
+        'envFilePath'
       )
     };
   }
@@ -319,13 +232,13 @@ export const validateDatabaseUrl = async (
       if (!isValidDatabaseURL(env[databaseUrlKey])) {
         return {
           ...result,
-          error: new Error(
-            [
-              `The variable ${fmtVarName(databaseUrlKey)} in ${fmtPath(
-                envFilePath
-              )} is not a valid database URL.`,
-              `URL format: ${VALID_DB_URL_FORMAT}`
-            ].join('\n')
+          error: new SettingsError(
+            squishWords(`
+            The variable ${fmtVarName(databaseUrlKey)} in
+            in ${fmtPath(envFilePath)} is not a valid database URL.
+            URL format: ${VALID_DB_URL_FORMAT}
+            `),
+            'envFilePath'
           )
         };
       }
@@ -340,16 +253,17 @@ export const validateDatabaseUrl = async (
       } catch (error) {
         return {
           ...result,
-          error: new Error(
-            [
-              `Could not connect with the URL ${maskDatabaseURLPassword(
-                env[databaseUrlKey]
-              )}`,
-              `(${fmtVarName(databaseUrlKey)} in ${fmtPath(envFilePath)}.)`,
-              error instanceof Error
-                ? `The server said: ${colors.red(error.message)}`
-                : 'An unknown error occurred.'
-            ].join('\n')
+          error: new SettingsError(
+            squishWords(`
+            Could not connect with the URL
+            ${maskDatabaseURLPassword(env[databaseUrlKey])}.
+             ${
+               error instanceof Error
+                 ? `The server said: ${fmtValue(error.message)}`
+                 : 'An unknown error occurred.'
+             }
+            `),
+            'envFilePath'
           )
         };
       }
@@ -357,12 +271,13 @@ export const validateDatabaseUrl = async (
   }
   return {
     ...result,
-    error: new Error(
-      [
-        `Could not find either ${fmtedKeys} in ${fmtPath(envFilePath)}.`,
-        `Make sure one of those keys exists and is a valid URL.`,
-        `URL format: ${VALID_DB_URL_FORMAT}`
-      ].join('\n')
+    error: new SettingsError(
+      squishWords(`
+      Could not find either ${fmtedKeys} in ${fmtPath(envFilePath)}.
+      Make sure one of those keys exists and is a valid URL.
+      URL format: ${VALID_DB_URL_FORMAT}
+      `),
+      'envFilePath'
     )
   };
 };
@@ -580,17 +495,18 @@ const promptFilePath = async (
 
 export const validateJsonTypeImports = (
   value: string[] | undefined
-): { jsonTypeImports: string[]; error?: Error } => {
+): { jsonTypeImports: string[]; error?: SettingsError } => {
   const jsonTypeImports: string[] = Array.isArray(value) ? [...value] : [];
   if (!Array.isArray(value)) {
     return {
       jsonTypeImports,
-      error: new Error(
-        [
-          `${fmtVarName('jsonTypeImports')} in ${fmtPath(
-            FRIEDA_RC_FILE_NAME
-          )} must be an array.`
-        ].join('\n')
+      error: new SettingsError(
+        squishWords(`
+        ${fmtVarName('jsonTypeImports')} in ${fmtPath(
+          FRIEDA_RC_FILE_NAME
+        )} must be an array.
+        `),
+        'jsonTypeImports'
       )
     };
   }
@@ -598,12 +514,13 @@ export const validateJsonTypeImports = (
     if (typeof i !== 'string') {
       return {
         jsonTypeImports,
-        error: new Error(
-          [
+        error: new SettingsError(
+          squishWords(
             `${fmtVarName('jsonTypeImports')} in ${fmtPath(
               FRIEDA_RC_FILE_NAME
             )} must be an array of strings.`
-          ].join('\n')
+          ),
+          'jsonTypeImports'
         )
       };
     }

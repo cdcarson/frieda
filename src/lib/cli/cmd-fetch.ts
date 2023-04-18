@@ -5,7 +5,6 @@ import { intro, outro, log } from '@clack/prompts';
 import {
   cancelAndExit,
   fmtPath,
-  formatFilePath,
   getServerlessConnection,
   wait
 } from './utils.js';

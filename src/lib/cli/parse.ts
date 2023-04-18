@@ -5,7 +5,6 @@ import type {
   FieldDefinition,
   CastType,
   ModelDefinition,
-  Model,
   FullSettings
 } from '$lib/types.js';
 import { getMatchAmong, getParenthesizedArgs } from '$lib/utils/rx-utils.js';

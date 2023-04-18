@@ -10,9 +10,6 @@ import {
 } from 'mysql2/promise';
 import { connect, type Connection } from '@planetscale/database';
 import stripAnsi from 'strip-ansi';
-export const formatFilePath = (p: string): string => {
-  return colors.underline(colors.cyan(relative(process.cwd(), p)));
-};
 
 export const wait = (msg: string): { done: () => void; error: () => void } => {
   const s = spinner();
