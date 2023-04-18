@@ -1,6 +1,6 @@
 import { fetchDatabaseSchema } from './fetch-schema.js';
 import type { ParseCommandResult } from './commands.js';
-import { getSettings } from './settings.js';
+import { getSettings, logSettingsErrors } from './settings.js';
 import { intro, outro, log, confirm, isCancel } from '@clack/prompts';
 import {
   cancelAndExit,
@@ -16,11 +16,11 @@ import { parseModelDefinition } from './parse.js';
 export const cmdGenerate = async (commandResult: ParseCommandResult) => {
   intro(`${colors.bold(`generate`)} ${colors.dim('Generate code')}`);
   let s = wait('Reading settings');
-  const [settings, errors] = await getSettings();
+  const {settings, errors} = await getSettings();
   if (errors.length > 0) {
-    s.error();
-    log.error([colors.red('Invalid settings:'), ...errors].join('\n'));
-    cancelAndExit();
+    s.error()
+    logSettingsErrors(errors)
+    return cancelAndExit();
   }
   s.done();
   s = wait('Fetching schema');

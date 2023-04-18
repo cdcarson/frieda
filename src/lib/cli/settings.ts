@@ -33,7 +33,7 @@ export type GetSettingsResult = {
   errors: SettingsError[];
 };
 
-export const getSettings = async (): Promise<[FullSettings, Error[]]> => {
+export const getSettings = async (): Promise<GetSettingsResult> => {
   const errors: SettingsError[] = [];
   const { rcSettings, friedaRcExists } = await readFriedaRc();
   const dbResult = await validateDatabaseUrl(rcSettings.envFilePath || '.env');
@@ -105,8 +105,8 @@ export const getSettings = async (): Promise<[FullSettings, Error[]]> => {
   }
   const typeBigIntAsString = rcSettings.typeBigIntAsString !== false;
 
-  return [
-    {
+  return {
+    settings:  {
       databaseUrl,
       envFilePath,
       databaseUrlKey,
@@ -117,8 +117,23 @@ export const getSettings = async (): Promise<[FullSettings, Error[]]> => {
       typeBigIntAsString
     },
     errors
-  ];
+  }
+   
 };
+
+export const logSettingsErrors = (errors: SettingsError[]) => {
+  const msg = [
+    colors.red(`Invalid settings in ${fmtPath(FRIEDA_RC_FILE_NAME)}`),
+    ...errors.flatMap(e => {
+      return [
+        '',
+        fmtVarName(e.key),
+        e.message
+      ]
+    })
+  ];
+  log.error(msg.join('\n'))
+}
 
 const getRcFullPath = () => {
   return join(process.cwd(), FRIEDA_RC_FILE_NAME);

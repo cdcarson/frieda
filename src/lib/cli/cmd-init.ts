@@ -1,7 +1,5 @@
-import { intro, outro, confirm, log, isCancel, text } from '@clack/prompts';
-import fs, { write } from 'fs-extra';
-import glob from 'tiny-glob';
-import { join } from 'path';
+import { intro, outro } from '@clack/prompts';
+
 import colors from 'picocolors';
 import type { ParseCommandResult } from './commands.js';
 import { fmtPath, wait } from './utils.js';
@@ -24,7 +22,7 @@ export const cmdInit = async (commandResult: ParseCommandResult) => {
     `${colors.bold(`init`)} ${colors.dim('(Re)initialize Frieda settings')}`
   );
   let s = wait('Reading current settings');
-  const { rcSettings, friedaRcExists } = await readFriedaRc();
+  const { rcSettings } = await readFriedaRc();
   let dbResult = await validateDatabaseUrl(rcSettings.envFilePath || '.env');
   s.done();
   const schemaDirectory = await promptSchemaDirectory(rcSettings);
