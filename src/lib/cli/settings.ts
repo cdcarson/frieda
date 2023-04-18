@@ -130,7 +130,9 @@ export const logSettingsErrors = (errors: SettingsError[]) => {
         fmtVarName(e.key),
         e.message
       ]
-    })
+    }),
+    '',
+    `Help: ${fmtPath('https://github.com/nowzoo/frieda#settings')}`
   ];
   log.error(msg.join('\n'))
 }
