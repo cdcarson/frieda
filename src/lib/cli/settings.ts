@@ -21,21 +21,67 @@ import colors from 'picocolors';
 import { parse } from 'dotenv';
 
 export class SettingsError extends Error {
-  public readonly key: keyof RcSettings;
-  constructor(message: string, key: keyof RcSettings) {
+  public readonly key: keyof RcSettings | undefined;
+  constructor(message: string, key?: keyof RcSettings) {
     super(message);
     this.key = key;
   }
 }
 
-export type GetSettingsResult = {
+export type ReadSettingsResult = {
   settings: FullSettings;
   errors: SettingsError[];
 };
 
-export const getSettings = async (): Promise<GetSettingsResult> => {
+
+export const getSettings = async(): Promise<FullSettings> => {
+  const s = wait('Reading settings');
+  const {settings, errors} = await readSettings();
+  if (errors.length === 0) {
+    s.done();
+    return settings;
+  }
+  s.error();
+  return await promptSettings(settings, errors)
+}
+
+export const promptSettings = async (fullSettings: FullSettings, errors?: SettingsError[]): Promise<FullSettings> => {
+  
+  
+  const dbResult = await promptDatabaseUrl(fullSettings);
+  const schemaDirectory = await promptSchemaDirectory(fullSettings);
+  const generatedCodeDirectory = await promptGeneratedCodeDirectory(fullSettings);
+  const jsonTypeImports = await promptJsonTypeImportsSimple(fullSettings);
+  
+  const typeTinyIntOneAsBoolean = await promptTypeTinyIntOneAsBoolean(
+    fullSettings
+  );
+  const typeBigIntAsString = await promptTypeBigIntAsString(fullSettings);
+
+  const newRcSettings: RcSettings = {
+    
+    schemaDirectory,
+    generatedCodeDirectory,
+    jsonTypeImports,
+    envFilePath: dbResult.envFilePath,
+    typeTinyIntOneAsBoolean,
+    typeBigIntAsString
+  };
+  s = wait(`Saving ${fmtPath(FRIEDA_RC_FILE_NAME)}`);
+  await writeFriedaRc(newRcSettings);
+  s.done();
+  
+};
+
+
+export const readSettings = async (): Promise<ReadSettingsResult> => {
   const errors: SettingsError[] = [];
   const { rcSettings, friedaRcExists } = await readFriedaRc();
+  if (! friedaRcExists) {
+    errors.push(new SettingsError(squishWords(`
+      The config file at ${fmtPath(FRIEDA_RC_FILE_NAME)} doesn't exist. It looks like this may be the first time you've  used frieda.
+    `)))
+  }
   const dbResult = await validateDatabaseUrl(rcSettings.envFilePath || '.env');
   if (dbResult.error) {
     errors.push(dbResult.error);
@@ -106,7 +152,7 @@ export const getSettings = async (): Promise<GetSettingsResult> => {
   const typeBigIntAsString = rcSettings.typeBigIntAsString !== false;
 
   return {
-    settings:  {
+    settings: {
       databaseUrl,
       envFilePath,
       databaseUrlKey,
@@ -117,25 +163,22 @@ export const getSettings = async (): Promise<GetSettingsResult> => {
       typeBigIntAsString
     },
     errors
-  }
-   
+  };
 };
 
 export const logSettingsErrors = (errors: SettingsError[]) => {
   const msg = [
-    colors.red(`Invalid settings in ${fmtPath(FRIEDA_RC_FILE_NAME)}`),
-    ...errors.flatMap(e => {
-      return [
-        '',
-        fmtVarName(e.key),
-        e.message
-      ]
+    colors.red(`Invalid settings`),
+    ...errors.flatMap((e) => {
+      return ['', fmtVarName(e.key), e.message];
     }),
     '',
-    `Help: ${fmtPath('https://github.com/nowzoo/frieda#settings')}`
+    `Run ${colors.inverse(' frieda init ')} to fix or read the docs at:`,
+    fmtPath('https://github.com/nowzoo/frieda#settings'),
+    ''
   ];
-  log.error(msg.join('\n'))
-}
+  log.error(msg.join('\n'));
+};
 
 const getRcFullPath = () => {
   return join(process.cwd(), FRIEDA_RC_FILE_NAME);
@@ -311,10 +354,13 @@ export const promptSchemaDirectory = async (
   The relative path to a folder where Frieda will store schema and migration files. More help:
   `);
   const helpLink = fmtPath('https://github.com/nowzoo/frieda#schemadirectory');
+  const currentPath =
+    typeof rcSettings.schemaDirectory === 'string' &&
+    rcSettings.schemaDirectory.length > 0
+      ? fmtPath(rcSettings.schemaDirectory)
+      : colors.gray('[not set]');
   log.message(
-    `${header}\n${shortHelp}\n${helpLink}\n\nCurrent path: ${fmtPath(
-      schemaDirectory
-    )}`
+    `${header}\n${shortHelp}\n${helpLink}\n\nCurrent path: ${currentPath}`
   );
 
   if (!error) {
@@ -346,10 +392,13 @@ export const promptGeneratedCodeDirectory = async (
   const helpLink = fmtPath(
     'https://github.com/nowzoo/frieda#generatedcodedirectory'
   );
+  const currentPath =
+    typeof rcSettings.generatedCodeDirectory === 'string' &&
+    rcSettings.generatedCodeDirectory.length > 0
+      ? fmtPath(rcSettings.generatedCodeDirectory)
+      : colors.gray('[not set]');
   log.message(
-    `${header}\n${shortHelp}\n${helpLink}\n\nCurrent path: ${fmtPath(
-      generatedCodeDirectory
-    )}`
+    `${header}\n${shortHelp}\n${helpLink}\n\nCurrent path: ${currentPath}`
   );
 
   if (!error) {
@@ -401,12 +450,18 @@ export const promptDatabaseUrl = async (
   const helpLink = fmtPath(
     'https://github.com/nowzoo/frieda#envfilepath-database-url'
   );
+  const currentEnvFile =
+    typeof result.envFilePath === 'string' && result.envFilePath !== '.env'
+      ? fmtPath(result.envFilePath)
+      : fmtPath(result.envFilePath) + colors.gray(' (default)');
+  const databaseUrlKey =
+    result.databaseUrlKey.length === 0
+      ? colors.gray('[unknown]')
+      : fmtVarName(result.databaseUrlKey);
+  const databaseUrl = result.databaseUrl.length > 0 ? maskDatabaseURLPassword(result.databaseUrl) : colors.gray('[unknown]');
+
   log.message(
-    `${header}\n${shortHelp}\n${helpLink}\n\nCurrent environment file: ${fmtPath(
-      result.envFilePath
-    )}\nDatabase URL variable: ${fmtVarName(
-      result.databaseUrlKey
-    )}\nDatabase URL: ${maskDatabaseURLPassword(result.databaseUrl)}`
+    `${header}\n${shortHelp}\n${helpLink}\n\nCurrent environment file: ${currentEnvFile}\nDatabase URL variable: ${databaseUrlKey}\nDatabase URL: ${databaseUrl}`
   );
 
   if (!result.error) {
@@ -514,7 +569,7 @@ export const validateJsonTypeImports = (
   value: string[] | undefined
 ): { jsonTypeImports: string[]; error?: SettingsError } => {
   const jsonTypeImports: string[] = Array.isArray(value) ? [...value] : [];
-  if (!Array.isArray(value)) {
+  if (value !== undefined && !Array.isArray(value)) {
     return {
       jsonTypeImports,
       error: new SettingsError(

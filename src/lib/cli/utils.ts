@@ -112,6 +112,9 @@ export const isValidDatabaseURL = (urlStr: unknown): boolean => {
 };
 
 export const maskDatabaseURLPassword = (urlStr: string): string => {
+  if (! isValidDatabaseURL(urlStr)) {
+    return '';
+  }
   const url = new URL(urlStr);
 
   const protocol = url.protocol;
@@ -137,13 +140,17 @@ export const squishWords = (s: string, lineWidth = 50): string => {
       const lines: string[] = [''];
       const words = para.split(/\s+/);
       while (words.length > 0) {
-        if (stripAnsi(lines[lines.length - 1]).length > lineWidth) {
-          lines.push('');
-        }
+        // if (stripAnsi(lines[lines.length - 1]).length > lineWidth) {
+        //   lines.push('');
+        // }
         const word = words.shift();
         lines[lines.length - 1] = lines[lines.length - 1] + ' ' + word;
+        const nextWord = words[0] || '';
+        if (stripAnsi(lines[lines.length - 1]).length + 1 + stripAnsi(nextWord).length > lineWidth) {
+          lines.push('');
+        }
       }
-      return lines.map((l) => l.trim()).join('\n');
+      return lines.map((l) => l.trim()).filter(l => l.length > 0).join('\n');
     });
   return paras.join('\n\n');
 };

@@ -5,3 +5,5 @@ export const CURRENT_SCHEMA_JSON_FILE_NAME = 'current-schema.json';
 export const CURRENT_MODELS_JSON_FILE_NAME = 'current-models.json';
 
 export const ENV_DB_URL_KEYS = ['FRIEDA_DATABASE_URL', 'DATABASE_URL'];
+
+

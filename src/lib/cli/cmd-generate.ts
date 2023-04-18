@@ -1,7 +1,6 @@
 import { fetchDatabaseSchema } from './fetch-schema.js';
-import type { ParseCommandResult } from './commands.js';
-import { getSettings, logSettingsErrors } from './settings.js';
-import { intro, outro, log, confirm, isCancel } from '@clack/prompts';
+import { readSettings, logSettingsErrors } from './settings.js';
+import { log } from '@clack/prompts';
 import {
   cancelAndExit,
   fmtPath,
@@ -13,10 +12,9 @@ import colors from 'picocolors';
 import { generateCode } from './generate-code.js';
 import { parseModelDefinition } from './parse.js';
 
-export const cmdGenerate = async (commandResult: ParseCommandResult) => {
-  intro(`${colors.bold(`generate`)} ${colors.dim('Generate code')}`);
+export const cmdGenerate = async () => {
   let s = wait('Reading settings');
-  const {settings, errors} = await getSettings();
+  const {settings, errors} = await readSettings();
   if (errors.length > 0) {
     s.error()
     logSettingsErrors(errors)
@@ -37,5 +35,4 @@ export const cmdGenerate = async (commandResult: ParseCommandResult) => {
   const files = await generateCode(parsedModels, settings);
   s.done();
   log.success([...files.map((f) => `- ${fmtPath(f)}`)].join('\n'));
-  outro(colors.bold('Done'));
 };

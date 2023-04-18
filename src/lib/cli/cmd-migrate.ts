@@ -1,6 +1,6 @@
 import { fetchDatabaseSchema } from './fetch-schema.js';
 import { readSettings, logSettingsErrors } from './settings.js';
-import { log } from '@clack/prompts';
+import {  log } from '@clack/prompts';
 import {
   cancelAndExit,
   fmtPath,
@@ -11,8 +11,8 @@ import { writeCurrentSchema } from './write-schema.js';
 import colors from 'picocolors';
 import { parseModelDefinition } from './parse.js';
 
-export const cmdFetch = async () => {
-  
+export const cmdMigrate = async () => {
+ 
   let s = wait('Reading settings');
   const {settings, errors} = await readSettings();
   if (errors.length > 0) {
