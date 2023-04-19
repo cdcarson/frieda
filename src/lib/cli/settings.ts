@@ -33,49 +33,52 @@ type ReadSettingsResult = {
   errors: SettingsError[];
 };
 
-
-export const getSettings = async(): Promise<FullSettings> => {
+export const getSettings = async (): Promise<FullSettings> => {
   const s = wait('Reading settings');
-  const {settings, errors} = await readSettings();
+  const { settings, errors } = await readSettings();
   if (errors.length === 0) {
     s.done();
     return settings;
   }
   s.error();
-  return await promptSettings(settings, errors)
-}
+  return await promptSettings(settings, errors);
+};
 
-export const promptSettings = async (fullSettings: FullSettings, errors?: SettingsError[]): Promise<FullSettings> => {
+export const promptSettings = async (
+  fullSettings: FullSettings,
+  errors?: SettingsError[]
+): Promise<FullSettings> => {
   if (errors && errors.length > 0) {
     const msg = [
       colors.red(`Invalid settings`),
       ...errors.map((e) => {
         return `- ${e.message}`;
-      }),
+      })
     ];
     log.error(msg.join('\n'));
   }
   const initSettings = await confirm({
     message: '(Re)initialize settings?',
+    initialValue: true
   });
 
-  if (isCancel(initSettings) || ! initSettings) {
-
-    return cancelAndExit()
+  if (isCancel(initSettings) || !initSettings) {
+    return cancelAndExit();
   }
-  
+
   const dbResult = await promptDatabaseUrl(fullSettings);
   const schemaDirectory = await promptSchemaDirectory(fullSettings);
-  const generatedCodeDirectory = await promptGeneratedCodeDirectory(fullSettings);
+  const generatedCodeDirectory = await promptGeneratedCodeDirectory(
+    fullSettings
+  );
   const jsonTypeImports = await promptJsonTypeImportsSimple(fullSettings);
-  
+
   const typeTinyIntOneAsBoolean = await promptTypeTinyIntOneAsBoolean(
     fullSettings
   );
   const typeBigIntAsString = await promptTypeBigIntAsString(fullSettings);
 
   const newRcSettings: RcSettings = {
-    
     schemaDirectory,
     generatedCodeDirectory,
     jsonTypeImports,
@@ -95,17 +98,35 @@ export const promptSettings = async (fullSettings: FullSettings, errors?: Settin
     jsonTypeImports,
     typeBigIntAsString,
     typeTinyIntOneAsBoolean
-  }
-  
+  };
 };
 
 const readSettings = async (): Promise<ReadSettingsResult> => {
   const errors: SettingsError[] = [];
   const { rcSettings, friedaRcExists } = await readFriedaRc();
-  if (! friedaRcExists) {
-    errors.push(new SettingsError(squishWords(`
-      The config file at ${fmtPath(FRIEDA_RC_FILE_NAME)} doesn't exist. It looks like this may be the first time you've  used frieda.
-    `)))
+  if (!friedaRcExists) {
+    errors.push(
+      new SettingsError(
+        squishWords(`
+      The config file at ${fmtPath(
+        FRIEDA_RC_FILE_NAME
+      )} doesn't exist. It looks like this may be the first time you've  used frieda.
+    `)
+      )
+    );
+    return {
+      errors,
+      settings: {
+        databaseUrl: '',
+        databaseUrlKey: '',
+        envFilePath: '.env',
+        generatedCodeDirectory: '',
+        jsonTypeImports: [],
+        schemaDirectory: '',
+        typeBigIntAsString: true,
+        typeTinyIntOneAsBoolean: true
+      }
+    };
   }
   const dbResult = await validateDatabaseUrl(rcSettings.envFilePath || '.env');
   if (dbResult.error) {
@@ -215,7 +236,7 @@ const readFriedaRc = async (): Promise<{
 
 const writeFriedaRc = async (settings: RcSettings): Promise<void> => {
   const p = getRcFullPath();
-  await fs.writeFile(p, await prettify(JSON.stringify(settings), p));
+  await fs.writeFile(p, await prettify(JSON.stringify(settings), `${p}.json`));
 };
 
 const validateDirectory = (
@@ -230,9 +251,8 @@ const validateDirectory = (
         squishWords(
           `Missing ${fmtVarName(key)} in ${fmtPath(FRIEDA_RC_FILE_NAME)}.`
         ),
-        key
-      )
-    };
+        key)
+    }
   }
   if (!isValidFilePathInCwd(d)) {
     return {
@@ -430,7 +450,6 @@ const promptGeneratedCodeDirectory = async (
   );
 };
 
-
 const promptDatabaseUrl = async (
   result: ValidateDatabaseResult
 ): Promise<ValidateDatabaseResult> => {
@@ -470,24 +489,16 @@ const promptDatabaseUrl = async (
     result.databaseUrlKey.length === 0
       ? colors.gray('[unknown]')
       : fmtVarName(result.databaseUrlKey);
-  const databaseUrl = result.databaseUrl.length > 0 ? maskDatabaseURLPassword(result.databaseUrl) : colors.gray('[unknown]');
+  const databaseUrl =
+    result.databaseUrl.length > 0
+      ? maskDatabaseURLPassword(result.databaseUrl)
+      : colors.gray('[unknown]');
 
   log.message(
-    `${header}\n${shortHelp}\n${helpLink}\n\nCurrent environment file: ${currentEnvFile}\nDatabase URL variable: ${databaseUrlKey}\nDatabase URL: ${databaseUrl}`
+    `${header}\n${shortHelp}\n${helpLink}\n\nCurrent environment file path: ${currentEnvFile}\nDatabase URL variable: ${databaseUrlKey}\nDatabase URL: ${databaseUrl}`
   );
 
-  if (!result.error) {
-    const change = await confirm({
-      message: `Change environment file?`,
-      initialValue: false
-    });
-    if (isCancel(change)) {
-      return cancelAndExit();
-    }
-    if (!change) {
-      return result;
-    }
-  }
+  
   return prompt(result.envFilePath);
 };
 

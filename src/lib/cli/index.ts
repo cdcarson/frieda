@@ -1,12 +1,10 @@
-import { cmdFetch } from './cmd-fetch.js';
-import { cmdGenerate } from './cmd-generate.js';
-import { cmdInit } from './cmd-init.js';
-import { cmdMigrate } from './cmd-migrate.js';
 import { intro, outro } from '@clack/prompts';
 import colors from 'picocolors'
 import { FRIEDA_VERSION } from '$lib/version.js';
 import { wait } from './utils.js';
 import { getSettings } from './settings.js';
+import inquirer from 'inquirer';
+
 
 type CliCommand = {
   name: string;
@@ -56,9 +54,26 @@ export const matchCommand = (args: string[]): CliCommand|null => {
 export const main = async (
   args: string[]
 ) => {
-  intro(`${colors.bold('frieda')} 🐕 ${colors.dim(`v${FRIEDA_VERSION}`)}`)
-  const settings = await getSettings();
-  outro(colors.bold('frieda is done'))
+  // intro(`${colors.bold('frieda')} 🐕 ${colors.dim(`v${FRIEDA_VERSION}`)}`)
+  // const settings = await getSettings();
+  // outro(colors.bold('frieda is done'))
+  const questions = [
+    {
+      type: 'editor',
+      name: 'bio',
+      message: 'Please write a short bio of at least 3 lines.',
+      validate(text: string) {
+        // if (text.split('\n').length < 3) {
+        //   return 'Must be at least 3 lines.';
+        // }
+  
+        return true;
+      },
+      waitUserInput: true,
+    },
+  ];
+  const foo = await inquirer.prompt(questions);
+  console.dir(foo, {depth: null})
 };
 
 
