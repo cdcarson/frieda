@@ -6,7 +6,6 @@ import { cancelAndExit, fmtPath, squishWords, wait } from './utils.js';
 import { fetchSchema, readSchemaJson } from './schema.js';
 import { parseModelDefinition } from './parse.js';
 import {
-  CURRENT_MODELS_JSON_FILE_NAME,
   CURRENT_SCHEMA_JSON_FILE_NAME
 } from './constants.js';
 import { generateCode } from './generate-code.js';
@@ -16,7 +15,7 @@ type Args = {
   skipFetch?: boolean;
 };
 export const generateCommandModule: CommandModule = {
-  command: 'generate',
+  command: 'generate [options]',
   handler: async (args) => {
     await cmd(args as Args);
   },
