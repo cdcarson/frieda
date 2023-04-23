@@ -3,7 +3,7 @@ import type {
   DbLoggingOptions,
   Model,
   SchemaCast
-} from '$lib/types';
+} from './types';
 import type {
   Connection,
   ExecutedQuery,

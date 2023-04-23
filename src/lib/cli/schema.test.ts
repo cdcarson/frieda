@@ -1,8 +1,9 @@
-import { fetchDatabaseSchema } from './fetch-schema.js';
+import { __testable } from './schema.js';
 import type { Connection, ExecutedQuery } from '@planetscale/database';
 import { describe, it, expect, beforeEach, type SpyInstance, vi } from 'vitest';
 
-describe('fetchSchema', () => {
+const { fetchFromDatabase } = __testable;
+describe('fetchFromDatabase', () => {
   let connection: { execute: (query: string) => Promise<ExecutedQuery> };
   let showTablesExecutedQuery: ExecutedQuery;
   let tableCreateExecutedQuery: ExecutedQuery;
@@ -41,19 +42,15 @@ describe('fetchSchema', () => {
   });
 
   it('should query the table names', async () => {
-    await fetchDatabaseSchema(connection as unknown as Connection);
+    await fetchFromDatabase(connection as unknown as Connection);
     expect(executeSpy).toHaveBeenNthCalledWith(1, 'SHOW FULL TABLES;');
   });
   it('should populate the database name', async () => {
-    const result = await fetchDatabaseSchema(
-      connection as unknown as Connection
-    );
+    const result = await fetchFromDatabase(connection as unknown as Connection);
     expect(result.databaseName).toBe('foo');
   });
   it('should populate the table names', async () => {
-    const result = await fetchDatabaseSchema(
-      connection as unknown as Connection
-    );
+    const result = await fetchFromDatabase(connection as unknown as Connection);
     expect(result.tableNames).toEqual(['a', 'b']);
   });
   it('should ignore views', async () => {
@@ -61,24 +58,22 @@ describe('fetchSchema', () => {
       Tables_in_foo: 'SomeView',
       Table_type: 'VIEW'
     });
-    const result = await fetchDatabaseSchema(
-      connection as unknown as Connection
-    );
+    const result = await fetchFromDatabase(connection as unknown as Connection);
     expect(result.tableNames).toEqual(['a', 'b']);
   });
 
   it('should fetch the create table for each table', async () => {
-    await fetchDatabaseSchema(connection as unknown as Connection);
+    await fetchFromDatabase(connection as unknown as Connection);
     expect(executeSpy).toBeCalledWith('SHOW CREATE TABLE `a`;');
     expect(executeSpy).toBeCalledWith('SHOW CREATE TABLE `b`;');
   });
   it('should fetch the columns for each table', async () => {
-    await fetchDatabaseSchema(connection as unknown as Connection);
+    await fetchFromDatabase(connection as unknown as Connection);
     expect(executeSpy).toBeCalledWith('SHOW FULL COLUMNS FROM `a`;');
     expect(executeSpy).toBeCalledWith('SHOW FULL COLUMNS FROM `b`;');
   });
   it('should fetch the indexes for each table', async () => {
-    await fetchDatabaseSchema(connection as unknown as Connection);
+    await fetchFromDatabase(connection as unknown as Connection);
     expect(executeSpy).toBeCalledWith('SHOW INDEXES FROM `a`;');
     expect(executeSpy).toBeCalledWith('SHOW INDEXES FROM `b`;');
   });

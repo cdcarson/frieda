@@ -14,13 +14,8 @@ import type {
   ModelWhereInput,
   OneBasedPagingInput,
   SchemaCast
-} from '$lib/types.js';
-import {
-  bt,
-  getLimitOffset,
-  getOrderBy,
-  getWhere
-} from '$lib/utils/sql-utils.js';
+} from './types.js';
+import { bt, getLimitOffset, getOrderBy, getWhere } from './sql-utils.js';
 import { AbstractDb } from './abstract-db.js';
 
 export class ModelRepo<

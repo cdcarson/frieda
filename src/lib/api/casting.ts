@@ -5,7 +5,7 @@ import {
   type CustomModelCast,
   type Model,
   type SchemaCast
-} from '$lib/types.js';
+} from './types.js';
 
 export const createCastFunction = <M extends Model>(
   schemaCast: SchemaCast,

@@ -8,9 +8,9 @@ import {
   getFieldJavascriptType,
   parseModelDefinition
 } from './parse.js';
-import type { DatabaseColumnRow, DatabaseTableInfo } from '$lib/types.js';
-import { KNOWN_MYSQL_TYPES } from '$lib/constants.js';
-import { getParenthesizedArgs } from '$lib/utils/rx-utils.js';
+import type { DatabaseColumnRow, DatabaseTableInfo } from '$lib/api/types.js';
+import { KNOWN_MYSQL_TYPES } from '$lib/api/constants.js';
+import { getParenthesizedArgs } from './utils.js';
 const colInfoTemplate: DatabaseColumnRow = {
   Comment: '',
   Default: '',

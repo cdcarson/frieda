@@ -4,7 +4,7 @@ import {
   getStringLiterals,
   getParenthesizedArgs,
   getMatchAmong
-} from './rx-utils.js';
+} from './utils.js';
 
 describe('getStringLiterals', () => {
   it('should match single quotes', () => {

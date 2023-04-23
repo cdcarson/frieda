@@ -1,17 +1,23 @@
 import colors from 'picocolors';
 import prettier from 'prettier';
-import { relative } from 'path';
-import { cancel, spinner } from '@clack/prompts';
+import { cancel } from '@clack/prompts';
 import fs from 'fs-extra';
-import { join } from 'path';
 import {
   createConnection,
   type Connection as Mysql2Connection
 } from 'mysql2/promise';
 import { connect, type Connection } from '@planetscale/database';
 import stripAnsi from 'strip-ansi';
+import { spinner } from '@clack/prompts';
 
-export const wait = (msg: string): { done: () => void; error: () => void } => {
+export type WaitSpinner = { done: () => void; error: () => void };
+export const wait = (msg: string, show = true): WaitSpinner => {
+  if (!show) {
+    return {
+      done: () => {},
+      error: () => {}
+    };
+  }
   const s = spinner();
   s.start(`${msg}...`);
   return {
@@ -22,6 +28,19 @@ export const wait = (msg: string): { done: () => void; error: () => void } => {
       s.stop(`${msg}... ${colors.red('error.')}`);
     }
   };
+
+  // const s = ora({
+  //   spinner: cliSpinners.arc
+  // })
+  // s.start(`${msg}...`);
+  // return {
+  //   done: () => {
+  //     s.succeed(`${msg}... ${colors.green('done.')}`)
+  //   },
+  //   error: () => {
+  //     s.fail(`${msg}... ${colors.red('error.')}`)
+  //   }
+  // };
 };
 
 export const prettify = async (
@@ -69,65 +88,9 @@ export const getServerlessConnection = (databaseUrl: string): Connection => {
   });
 };
 
-export const isValidFilePathInCwd = (value: unknown): boolean => {
-  if (typeof value !== 'string') {
-    return false;
-  }
-  const fp = stripTrailingSlash(join(process.cwd(), value.trim()));
-  return fp.startsWith(process.cwd()) && fp !== process.cwd();
-};
-
-export const promptValidateFilePath = (value: unknown): string | undefined => {
-  if (!isValidFilePathInCwd(value as string)) {
-    return `Path must resolve to a directory in the current project root.`;
-  }
-};
-
-export const stripTrailingSlash = (p: string): string => {
-  return p.replace(/\/$/, '');
-};
-
-export const isValidDatabaseURL = (urlStr: unknown): boolean => {
-  if (typeof urlStr !== 'string') {
-    return false;
-  }
-  try {
-    const url = new URL(urlStr);
-    // won't work without this
-    url.protocol = 'http:';
-    const { username, hostname, password } = url;
-    if (username.length === 0) {
-      return false;
-    }
-    if (password.length === 0) {
-      return false;
-    }
-    if (hostname.length === 0) {
-      return false;
-    }
-    return true;
-  } catch (error) {
-    return false;
-  }
-};
-
-export const maskDatabaseURLPassword = (urlStr: string): string => {
-  if (! isValidDatabaseURL(urlStr)) {
-    return '';
-  }
-  const url = new URL(urlStr);
-
-  const protocol = url.protocol;
-  url.protocol = 'http:';
-  const { username, hostname } = url;
-  url.password = '<PASSWORD>';
-  return colors.cyan(
-    `${protocol}//${username}:${colors.gray('<PASSWORD>')}@${hostname}`
-  );
-};
-export const fmtVarName = (name: string) => colors.bold(name);
-export const fmtValue = (s: string) => colors.bold(colors.italic(s));
-export const fmtPath = (p: string) => colors.underline(p);
+export const fmtVarName = (name: string) => colors.magenta(name);
+export const fmtValue = (s: string) => colors.blue(s);
+export const fmtPath = (p: string) => colors.cyan(colors.underline(p));
 export const fmtEx = (p: string) => colors.bold(p);
 
 export const squishWords = (s: string, lineWidth = 50): string => {
@@ -146,11 +109,62 @@ export const squishWords = (s: string, lineWidth = 50): string => {
         const word = words.shift();
         lines[lines.length - 1] = lines[lines.length - 1] + ' ' + word;
         const nextWord = words[0] || '';
-        if (stripAnsi(lines[lines.length - 1]).length + 1 + stripAnsi(nextWord).length > lineWidth) {
+        if (
+          stripAnsi(lines[lines.length - 1]).length +
+            1 +
+            stripAnsi(nextWord).length >
+          lineWidth
+        ) {
           lines.push('');
         }
       }
-      return lines.map((l) => l.trim()).filter(l => l.length > 0).join('\n');
+      return lines
+        .map((l) => l.trim())
+        .filter((l) => l.length > 0)
+        .join('\n');
     });
   return paras.join('\n\n');
+};
+
+export const isPlainObject = (obj: unknown) => {
+  return Object.prototype.toString.call(obj) === '[object Object]';
+};
+
+/** Regexes for parsing schema*/
+
+/**
+ * Extracts quoted substrings from a source string.
+ * Note that the original quotes are included in the results.
+ */
+export const getStringLiterals = (source: string): string[] => {
+  // see https://stackoverflow.com/questions/171480/regex-grabbing-values-between-quotation-marks/29452781#29452781
+  const rx =
+    /(?=["'])(?:"[^"\\]*(?:\\[\s\S][^"\\]*)*"|'[^'\\]*(?:\\[\s\S][^'\\]*)*')/g;
+  const matches = source.matchAll(rx);
+  return Array.from(matches).map((m) => m[0]);
+};
+
+/**
+ * Given a string like "prefix(anything whatever)" returns 'anything whatever'
+ */
+export const getParenthesizedArgs = (
+  source: string,
+  prefix: string
+): string => {
+  const rx = new RegExp(`(\\s|^)${prefix}\\s*\\((.*)\\)(\\s|$)`, 'i');
+  const match = source.match(rx);
+  return match ? match[2] : '';
+};
+
+export const getMatchAmong = (
+  source: string,
+  choices: string[],
+  ignoreCase = true
+): string[] => {
+  const rx = new RegExp(
+    `\\b(${choices.join('|')})\\b`,
+    ignoreCase ? 'gi' : 'g'
+  );
+  const matches = source.matchAll(rx);
+  return Array.from(matches).map((m) => m[1]);
 };

@@ -1,7 +1,8 @@
-import type { ModelDefinition, FullSettings } from '$lib/types.js';
+import type { ModelDefinition } from '$lib/api/types.js';
 import { join, relative, extname, basename } from 'path';
 import fs from 'fs-extra';
-import { fmtPath, prettify } from '$lib/cli/utils.js';
+import { prettify } from '$lib/cli/utils.js';
+import type { FullSettings } from './types.js';
 
 const GENERATED_CODE_FILENAMES = {
   types: 'types.ts',
