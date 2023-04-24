@@ -1,14 +1,13 @@
 import type { CommandModule } from 'yargs';
 import { intro, log, outro, confirm, isCancel } from '@clack/prompts';
 import colors from 'picocolors';
-import { getSettings } from './settings.js';
 import {
   cancelAndExit,
   fmtPath,
   getServerlessConnection,
   wait
 } from './utils.js';
-import { fetchSchema, fetchSchemaFromDatabase } from './schema.js';
+import { fetchSchemaFromDatabase } from './schema.js';
 import { parseModelDefinition } from './parse.js';
 import { CURRENT_MODELS_JSON_FILE_NAME } from './constants.js';
 import { generateCode } from './generate-code.js';
@@ -18,6 +17,7 @@ import {
   archiveMigration
 } from './migrate.js';
 import { getCurrentMigrationSqlPath } from './paths.js';
+import { cliFetchSchema, cliGetSettings } from './shared-cli.js';
 
 type Args = {
   skipFetch?: boolean;
@@ -42,7 +42,7 @@ export const migrateCommandModule: CommandModule = {
 
 const cmd = async (args: Args) => {
   intro(colors.bold(`Run current migration`));
-  const settings = await getSettings();
+  const settings = await cliGetSettings();
   const sql = await readCurrentMigration(settings);
   if (sql.length === 0) {
     const { relativePath } = getCurrentMigrationSqlPath(settings);
@@ -89,7 +89,7 @@ const cmd = async (args: Args) => {
     true
   );
 
-  const schema = await fetchSchema(settings);
+  const schema = await cliFetchSchema(settings);
   const models = schema.tables.map((t) => parseModelDefinition(t, settings));
 
   const s = wait(`Generating code`);

@@ -7,7 +7,7 @@ import type {
 } from '$lib/api/types.js';
 import sql from 'sql-template-tag';
 import { bt } from '$lib/api/sql-utils.js';
-import { getServerlessConnection, wait, prettify, fmtPath } from './utils.js';
+import {  prettify, fmtPath } from './utils.js';
 
 import {
   CURRENT_SCHEMA_SQL_FILE_NAME,
@@ -15,26 +15,9 @@ import {
 } from './constants.js';
 import { join, dirname, relative } from 'path';
 import fs from 'fs-extra';
-import { log } from '@clack/prompts';
 import type { FullSettings } from './types.js';
 
-export const fetchSchema = async (
-  settings: FullSettings
-): Promise<DatabaseSchema> => {
-  let s = wait('Fetching schema');
-  const schema = await fetchSchemaFromDatabase(
-    getServerlessConnection(settings.databaseUrl)
-  );
-  s.done();
-  s = wait('Saving schema');
-  const files = await writeCurrentSchema(schema, settings);
-  s.done();
-  log.success(
-    ['Saved schema:', ...files.map((f) => ` - ${fmtPath(f)}`)].join('\n')
-  );
 
-  return schema;
-};
 
 export const fetchSchemaFromDatabase = async (
   connection: Connection
@@ -110,7 +93,7 @@ export const fetchSchemaFromDatabase = async (
   };
 };
 
-const writeCurrentSchema = async (
+export const writeCurrentSchema = async (
   schema: DatabaseSchema,
   settings: FullSettings
 ): Promise<string[]> => {
@@ -179,15 +162,12 @@ export const readSchemaJson = async (
     CURRENT_SCHEMA_JSON_FILE_NAME
   );
   const relPath = fmtPath(relative(process.cwd(), filePath));
-  const s = wait(`Reading ${relPath}`);
   const exists = await fs.exists(filePath);
   if (!exists) {
-    s.error();
     throw new Error(`${relPath} does not exist.`);
   }
   try {
     const schema = await fs.readJSON(filePath, { throws: true });
-    s.done();
     return schema;
   } catch (error) {
     throw new Error(`${relPath} could not be read as JSON.`);

@@ -14,11 +14,9 @@ import {
   getServerlessConnection,
   prettify,
   squishWords,
-  fmtValue,
-  cancelAndExit
+  fmtValue
 } from './utils.js';
 import colors from 'picocolors';
-import { log } from '@clack/prompts';
 
 export type SettingDescription = {
   header: string;
@@ -316,8 +314,7 @@ export const saveFriedaRc = async (
 };
 
 export const getSettings = async (): Promise<FullSettings> => {
-  try {
-    const rcSettings = await readFriedaRc();
+  const rcSettings = await readFriedaRc();
     const envFileResult = await validateEnvFilePath(
       rcSettings.envFilePath || '.env'
     );
@@ -342,24 +339,4 @@ export const getSettings = async (): Promise<FullSettings> => {
       typeBigIntAsString: rcSettings.typeBigIntAsString !== false,
       typeTinyIntOneAsBoolean: rcSettings.typeTinyIntOneAsBoolean !== false
     };
-  } catch (error) {
-    if (error instanceof RcSettingsError) {
-      const desc = settingsDescriptions[error.key];
-      log.error(
-        [
-          `${colors.red('Invaild setting:')} ${desc.header} (${fmtVarName(
-            error.key
-          )})`,
-          error.message,
-          '',
-          `Fix: ${colors.inverse(' frieda init ')}`,
-          '',
-          `Docs: ${fmtPath(`https://github.com/nowzoo/frieda#${error.key}`)}`,
-          ''
-        ].join('\n')
-      );
-      return cancelAndExit();
-    }
-    throw error;
-  }
 };

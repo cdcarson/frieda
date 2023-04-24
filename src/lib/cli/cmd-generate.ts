@@ -1,15 +1,15 @@
 import type { CommandModule } from 'yargs';
 import { intro, log, outro, confirm, isCancel } from '@clack/prompts';
 import colors from 'picocolors';
-import { getSettings } from './settings.js';
 import { cancelAndExit, fmtPath, squishWords, wait } from './utils.js';
-import { fetchSchema, readSchemaJson } from './schema.js';
+import {  readSchemaJson } from './schema.js';
 import { parseModelDefinition } from './parse.js';
 import {
   CURRENT_SCHEMA_JSON_FILE_NAME
 } from './constants.js';
 import { generateCode } from './generate-code.js';
 import type { DatabaseSchema } from '$lib/api/types.js';
+import { cliFetchSchema, cliGetSettings } from './shared-cli.js';
 
 type Args = {
   skipFetch?: boolean;
@@ -34,7 +34,7 @@ export const generateCommandModule: CommandModule = {
 
 const cmd = async (args: Args) => {
   intro(colors.bold(`Generate model code`));
-  const settings = await getSettings();
+  const settings = await cliGetSettings();
   let schema: DatabaseSchema;
   if (args.skipFetch) {
     log.warn(
@@ -55,10 +55,10 @@ const cmd = async (args: Args) => {
       if (isCancel(readFromDb) || readFromDb === false) {
         return cancelAndExit();
       }
-      schema = await fetchSchema(settings);
+      schema = await cliFetchSchema(settings);
     }
   } else {
-    schema = await fetchSchema(settings);
+    schema = await cliFetchSchema(settings);
   }
   const models = schema.tables.map((t) => parseModelDefinition(t, settings));
   const s = wait(`Generating code`);

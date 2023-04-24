@@ -1,8 +1,7 @@
 import type { CommandModule } from 'yargs';
 import { intro, outro } from '@clack/prompts';
 import colors from 'picocolors';
-import { getSettings } from './settings.js';
-import { fetchSchema } from './schema.js';
+import { cliFetchSchema, cliGetSettings } from './shared-cli.js';
 
 export const fetchCommandModule: CommandModule = {
   command: 'fetch',
@@ -15,7 +14,7 @@ export const fetchCommandModule: CommandModule = {
 
 const cmd = async () => {
   intro(colors.bold(`Fetch schema`));
-  const settings = await getSettings();
-  await fetchSchema(settings);
+  const settings = await cliGetSettings();
+  await cliFetchSchema(settings);
   outro(colors.bold('Done.'));
 };

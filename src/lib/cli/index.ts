@@ -13,8 +13,10 @@ export const main = async () => {
     `${colors.bold('Frieda')} 🦮 ${colors.dim(`v${FRIEDA_VERSION}`)}\n`
   );
 
+  
   const commands = yargs(hideBin(process.argv))
     .scriptName('frieda')
+    .usage('frieda <command> [options]')
     .help()
     .version(false)
     .command(initCommandModule)
@@ -25,6 +27,7 @@ export const main = async () => {
 
   await commands.parseAsync();
 
+  
   // const options = parseArgs(process.argv.slice(2))
   // if (options.help) {
   //   return showHelp()
