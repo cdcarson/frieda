@@ -1,15 +1,15 @@
 import type { CommandModule } from 'yargs';
 import { intro, log, outro, confirm, isCancel } from '@clack/prompts';
 import colors from 'picocolors';
-import { cancelAndExit, fmtPath, squishWords, wait } from './utils.js';
-import {  readSchemaJson } from './schema.js';
+import {  fmtPath, squishWords, wait } from './utils.js';
 import { parseModelDefinition } from './parse.js';
 import {
   CURRENT_SCHEMA_JSON_FILE_NAME
 } from './constants.js';
-import { generateCode } from './generate-code.js';
+import { getCode } from './get-code.js';
 import type { DatabaseSchema } from '$lib/api/types.js';
-import { cliFetchSchema, cliGetSettings } from './shared-cli.js';
+import { cliFetchSchema, cliGenerateCode, cliGetSettings } from './cli.js';
+import { writeGeneratedCode } from './file-system.js';
 
 type Args = {
   skipFetch?: boolean;
@@ -36,37 +36,8 @@ const cmd = async (args: Args) => {
   intro(colors.bold(`Generate model code`));
   const settings = await cliGetSettings();
   let schema: DatabaseSchema;
-  if (args.skipFetch) {
-    log.warn(
-      squishWords(
-        `Using existing ${fmtPath(
-          CURRENT_SCHEMA_JSON_FILE_NAME
-        )} to generate code (not fetching schema from the database.)`
-      )
-    );
-    try {
-      schema = await readSchemaJson(settings);
-    } catch (error) {
-      log.error((error as Error).message);
-      const readFromDb = await confirm({
-        message: 'Fetch schema from the database instead?',
-        inactive: 'No, cancel'
-      });
-      if (isCancel(readFromDb) || readFromDb === false) {
-        return cancelAndExit();
-      }
-      schema = await cliFetchSchema(settings);
-    }
-  } else {
-    schema = await cliFetchSchema(settings);
-  }
+  schema = await cliFetchSchema(settings);
   const models = schema.tables.map((t) => parseModelDefinition(t, settings));
-  const s = wait(`Generating code`);
-  const codes = await generateCode(models, settings);
-  s.done();
-  log.success(
-    ['Generated code:', ...codes.map((f) => ` - ${fmtPath(f)}`)].join('\n')
-  );
-
+  await cliGenerateCode(models, settings)
   outro(colors.bold('Done.'));
 };

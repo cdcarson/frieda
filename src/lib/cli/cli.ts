@@ -1,14 +1,12 @@
-import { isCancel, log, type SelectOptions } from '@clack/prompts';
+import { cancel, isCancel, log, type SelectOptions } from '@clack/prompts';
 import {
-  RcSettingsError,
+
   getSettings,
   settingsDescriptions
 } from './settings.js';
 import {
-  cancelAndExit,
   fmtPath,
   fmtVarName,
-  getServerlessConnection,
   wait
 } from './utils.js';
 import colors from 'picocolors';
@@ -18,9 +16,21 @@ import type {
   FieldDefinition,
   ModelDefinition
 } from '$lib/api/types.js';
-import { fetchSchemaFromDatabase, readSchemaJson } from './schema.js';
-import { CURRENT_SCHEMA_JSON_FILE_NAME } from './constants.js';
+import { fetchSchemaFromDatabase } from './schema.js';
+import {
+  CURRENT_SCHEMA_JSON_FILE_NAME,
+  FRIEDA_RC_FILE_NAME
+} from './constants.js';
 import { select } from '@clack/prompts';
+import { getCode } from './get-code.js';
+import { getServerlessConnection } from './database-connections.js';
+import { writeCurrentSchemaFiles, writeGeneratedCode } from './file-system.js';
+
+export const cancelAndExit = () => {
+  cancel('Operation cancelled.');
+  process.exit(0);
+};
+
 export const cliGetSettings = async (
   waitMessage?: string
 ): Promise<FullSettings> => {
@@ -49,10 +59,37 @@ export const cliGetSettings = async (
       );
       return cancelAndExit();
     }
+    if (error instanceof RcNotFoundError) {
+      log.error(
+        [
+          colors.red('Settings file not found.'),
+          `The file ${fmtPath(FRIEDA_RC_FILE_NAME)} does not exist.`,
+          '',
+          `Fix: ${colors.inverse(' frieda init ')}`,
+          '',
+          `Docs: ${fmtPath(`https://github.com/nowzoo/frieda`)}`,
+          ''
+        ].join('\n')
+      );
+    }
     throw error;
   }
 };
-
+export const cliGenerateCode = async (
+  models: ModelDefinition[],
+  settings: FullSettings
+) => {
+  const s = wait('Generating code');
+  const code = getCode(models, settings);
+  const results = await writeGeneratedCode(settings, code)
+  s.done();
+  log.success(
+    [
+      'Generated code:',
+      ...results.map((f) => ` - ${fmtPath(f.relativePath)}`)
+    ].join('\n')
+  );
+};
 export const cliFetchSchema = async (
   settings: FullSettings,
   waitMessage?: string
@@ -63,7 +100,14 @@ export const cliFetchSchema = async (
     const schema = await fetchSchemaFromDatabase(
       getServerlessConnection(settings.databaseUrl)
     );
+    const results = await writeCurrentSchemaFiles(settings, schema)
     s.done();
+    log.success(
+      [
+        'Files:',
+        ...results.map((f) => ` - ${fmtPath(f.relativePath)}`)
+      ].join('\n')
+    );
     return schema;
   } catch (error) {
     s.error();
@@ -81,32 +125,32 @@ export const cliFetchSchema = async (
   }
 };
 
-export const cliReadSchemaJson = async (
-  settings: FullSettings,
-  waitMessage?: string
-) => {
-  waitMessage =
-    waitMessage || `Reading ${fmtPath(CURRENT_SCHEMA_JSON_FILE_NAME)}`;
-  const s = wait(waitMessage);
-  try {
-    const schema = await readSchemaJson(settings);
-    s.done();
-    return schema;
-  } catch (error) {
-    s.error();
-    if (error instanceof Error) {
-      log.error(
-        [
-          colors.red('Database error'),
-          `The server said: ${error.message}`,
-          ''
-        ].join('\n')
-      );
-      return cancelAndExit();
-    }
-    throw error;
-  }
-};
+// export const cliReadSchemaJson = async (
+//   settings: FullSettings,
+//   waitMessage?: string
+// ) => {
+//   waitMessage =
+//     waitMessage || `Reading ${fmtPath(CURRENT_SCHEMA_JSON_FILE_NAME)}`;
+//   const s = wait(waitMessage);
+//   try {
+//     const schema = await readSchemaJson(settings);
+//     s.done();
+//     return schema;
+//   } catch (error) {
+//     s.error();
+//     if (error instanceof Error) {
+//       log.error(
+//         [
+//           colors.red('Database error'),
+//           `The server said: ${error.message}`,
+//           ''
+//         ].join('\n')
+//       );
+//       return cancelAndExit();
+//     }
+//     throw error;
+//   }
+// };
 
 export const promptModel = async (
   models: ModelDefinition[],

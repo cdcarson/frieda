@@ -1,33 +1,34 @@
-import { join } from 'path';
-import fs from 'fs-extra';
+
 import { parse } from 'dotenv';
 import { ENV_DB_URL_KEYS, FRIEDA_RC_FILE_NAME } from './constants.js';
 import type {
+  DirectoryResult,
   FullSettings,
   RcSettings,
   ValidateEnvFilePathResult
 } from './types.js';
 import {
   fmtPath,
-  isPlainObject,
   fmtVarName,
-  getServerlessConnection,
-  prettify,
   squishWords,
   fmtValue
 } from './utils.js';
 import colors from 'picocolors';
+import {
+  getDirectoryResult,
+  getFileResult,
+  readFriedaRc
+} from './file-system.js';
+import { getServerlessConnection } from './database-connections.js';
+import { RcNotFoundError, RcSettingsError } from './errors.js';
 
 export type SettingDescription = {
   header: string;
   description: string;
 };
 
-export class RcSettingsError extends Error {
-  constructor(public readonly key: keyof RcSettings, message: string) {
-    super(message);
-  }
-}
+
+
 export const VALID_DB_URL_FORMAT = `mysql://user:password@host`;
 export const settingsDescriptions: {
   [K in keyof RcSettings]: SettingDescription;
@@ -144,20 +145,21 @@ export const getSettingHelpStr = (
 export const validateEnvFilePath = async (
   envFilePath: string
 ): Promise<ValidateEnvFilePathResult> => {
-  const fp = join(process.cwd(), envFilePath.trim());
-  if (!(await fs.exists(fp))) {
+  const fileResult = await getFileResult(envFilePath);
+  if (!fileResult.exists) {
     throw new RcSettingsError(
       'envFilePath',
       `The file ${fmtPath(envFilePath)} does not exist.`
     );
   }
-  if (!(await fs.stat(fp)).isFile()) {
+  if (!fileResult.isFile) {
     throw new RcSettingsError(
       'envFilePath',
       `The path ${fmtPath(envFilePath)} is not a file.`
     );
   }
-  const env = parse(fs.readFileSync(fp, 'utf-8'));
+
+  const env = parse(fileResult.contents || '');
   const envKeys = Object.keys(env);
   const foundKeys = ENV_DB_URL_KEYS.filter(
     (k) => envKeys.includes(k) && env[k].length > 0
@@ -250,93 +252,59 @@ export const maskDatabaseURLPassword = (urlStr: string): string => {
   );
 };
 
-export const validateOutputDirectory = (
-  value: unknown,
+export const validateOutputDirectory = async (
+  relativePath: unknown,
   key: keyof RcSettings
-): string => {
-  if (typeof value !== 'string' || value.trim().length === 0) {
-    throw new RcSettingsError(key, 'Required.');
+): Promise<DirectoryResult> => {
+  if (typeof relativePath !== 'string' || relativePath.trim().length === 0) {
+    throw new RcSettingsError(key, `Invalid directory path.`);
   }
-
-  const fp = stripTrailingSlash(join(process.cwd(), value.trim()));
-
-  if (fp === process.cwd()) {
+  const dir = await getDirectoryResult(relativePath);
+  if (!dir.isDirectory) {
+    throw new RcSettingsError(key, `${dir.relativePath} is a file.`);
+  }
+  if (!dir.isUnderCwd) {
     throw new RcSettingsError(
       key,
-      'The directory path cannot be the current working directory.'
+      'The path must be a subdirectory of the current working directory.'
     );
   }
-  if (!fp.startsWith(process.cwd())) {
-    throw new RcSettingsError(
-      key,
-      'The directory path cannot be outside the current working directory.'
-    );
-  }
-  if (fs.existsSync(fp) && !fs.statSync(fp).isDirectory()) {
-    throw new RcSettingsError(
-      key,
-      'The directory path cannot point to a file.'
-    );
-  }
-  return value.trim();
+  return dir;
 };
 
-export const stripTrailingSlash = (p: string): string => {
-  return p.replace(/\/$/, '');
-};
 
-export const readFriedaRc = async (): Promise<Partial<RcSettings>> => {
-  const p = join(process.cwd(), FRIEDA_RC_FILE_NAME);
-  const exists = await fs.exists(p);
-  if (!exists) {
-    return {};
-  }
-  const contents = await fs.readFile(p, 'utf-8');
-  try {
-    const settings = JSON.parse(contents);
-    return isPlainObject(settings) ? settings : {};
-  } catch (error) {
-    return {};
-  }
-};
 
-export const saveFriedaRc = async (
-  settings: Partial<RcSettings>
-): Promise<Partial<RcSettings>> => {
-  const prev = await readFriedaRc();
-  const merged = {
-    ...prev,
-    ...settings
-  };
-  const p = join(process.cwd(), FRIEDA_RC_FILE_NAME);
-  await fs.writeFile(p, await prettify(JSON.stringify(merged), p + '.json'));
-  return merged;
-};
+
+
 
 export const getSettings = async (): Promise<FullSettings> => {
-  const rcSettings = await readFriedaRc();
-    const envFileResult = await validateEnvFilePath(
-      rcSettings.envFilePath || '.env'
-    );
-    const schemaDirectory = validateOutputDirectory(
-      rcSettings.schemaDirectory,
-      'schemaDirectory'
-    );
-    const generatedCodeDirectory = validateOutputDirectory(
-      rcSettings.generatedCodeDirectory,
-      'generatedCodeDirectory'
-    );
-    const jsonTypeImports = (rcSettings.jsonTypeImports || [])
-      .filter((s) => typeof s === 'string')
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
+  const { settings: rcSettings, file } = await readFriedaRc();
+  if (!file.exists) {
+    throw new RcNotFoundError(`Settings file not found.`);
+  }
 
-    return {
-      ...envFileResult,
-      schemaDirectory,
-      generatedCodeDirectory,
-      jsonTypeImports,
-      typeBigIntAsString: rcSettings.typeBigIntAsString !== false,
-      typeTinyIntOneAsBoolean: rcSettings.typeTinyIntOneAsBoolean !== false
-    };
+  const envFileResult = await validateEnvFilePath(
+    rcSettings.envFilePath || '.env'
+  );
+  const schemaDirectoryResult = await validateOutputDirectory(
+    rcSettings.schemaDirectory,
+    'schemaDirectory'
+  );
+  const generatedCodeDirectoryResult = await validateOutputDirectory(
+    rcSettings.generatedCodeDirectory,
+    'generatedCodeDirectory'
+  );
+  const jsonTypeImports = (rcSettings.jsonTypeImports || [])
+    .filter((s) => typeof s === 'string')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  return {
+    ...envFileResult,
+    schemaDirectory: schemaDirectoryResult.relativePath,
+    generatedCodeDirectory: generatedCodeDirectoryResult.relativePath,
+    jsonTypeImports,
+    typeBigIntAsString: rcSettings.typeBigIntAsString !== false,
+    typeTinyIntOneAsBoolean: rcSettings.typeTinyIntOneAsBoolean !== false
+  };
 };

@@ -37,6 +37,9 @@ dependencies:
   yargs:
     specifier: ^17.7.1
     version: 17.7.1
+  yargs-parser:
+    specifier: ^21.1.1
+    version: 21.1.1
 
 devDependencies:
   '@sveltejs/adapter-static':
@@ -63,6 +66,9 @@ devDependencies:
   '@types/yargs':
     specifier: ^17.0.24
     version: 17.0.24
+  '@types/yargs-parser':
+    specifier: ^21.0.0
+    version: 21.0.0
   '@typescript-eslint/eslint-plugin':
     specifier: ^5.59.0
     version: 5.59.0(@typescript-eslint/parser@5.59.0)(eslint@8.39.0)(typescript@5.0.4)

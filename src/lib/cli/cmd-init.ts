@@ -9,20 +9,22 @@ import {
   select
 } from '@clack/prompts';
 import colors from 'picocolors';
-import { cancelAndExit, fmtPath, fmtVarName, wait } from './utils.js';
+import { fmtPath, fmtVarName, wait } from './utils.js';
 import { FRIEDA_RC_FILE_NAME } from './constants.js';
-import { join } from 'path';
-import fs from 'fs-extra';
 import {
   checkDatabaseUrlConnection,
   getSettingHelpStr,
-  readFriedaRc,
-  saveFriedaRc,
   settingsDescriptions,
   validateEnvFilePath,
   validateOutputDirectory
 } from './settings.js';
-import type { ValidateEnvFilePathResult, RcSettings } from './types.js';
+import type {
+  ValidateEnvFilePathResult,
+  RcSettings,
+  DirectoryResult
+} from './types.js';
+import { readFriedaRc, saveFriedaRc } from './file-system.js';
+import { cancelAndExit } from './cli.js';
 
 export const initCommandModule: CommandModule = {
   command: 'init',
@@ -36,11 +38,13 @@ export const initCommandModule: CommandModule = {
 const cmd = async () => {
   intro(colors.bold(`Initialize (or re-initialize) basic settings.`));
   let s = wait(`Reading current settings`);
-  const rcSettings = await readFriedaRc();
+  const { settings: rcSettings } = await readFriedaRc();
   s.done();
   const envFileResult = await promptEnvFile(rcSettings);
-  const schemaDirectory = await promptSchemaDirectory(rcSettings);
-  const generatedCodeDirectory = await promptGeneratedCodeDirectory(rcSettings);
+  const schemaDirectoryResult = await promptSchemaDirectory(rcSettings);
+  const generatedCodeDirectoryResult = await promptGeneratedCodeDirectory(
+    rcSettings
+  );
   const jsonTypeImports = (rcSettings.jsonTypeImports || [])
     .filter((s) => typeof s === 'string')
     .filter((s) => s.length > 0);
@@ -51,8 +55,8 @@ const cmd = async () => {
   s = wait(`Saving ${fmtPath(FRIEDA_RC_FILE_NAME)}`);
   await saveFriedaRc({
     envFilePath: envFileResult.envFilePath,
-    schemaDirectory,
-    generatedCodeDirectory,
+    schemaDirectory: schemaDirectoryResult.relativePath,
+    generatedCodeDirectory: generatedCodeDirectoryResult.relativePath,
     jsonTypeImports,
     typeBigIntAsString,
     typeTinyIntOneAsBoolean
@@ -61,7 +65,7 @@ const cmd = async () => {
   outro(colors.bold('Frieda initialized.'));
 };
 
-const promptEnvFile = async (
+export const promptEnvFile = async (
   rcSettings: Partial<RcSettings>
 ): Promise<ValidateEnvFilePathResult> => {
   let result: ValidateEnvFilePathResult | null = null;
@@ -110,64 +114,24 @@ const promptEnvFile = async (
 
 const promptSchemaDirectory = async (
   rcSettings: Partial<RcSettings>
-): Promise<string> => {
+): Promise<DirectoryResult> => {
   log.message(getSettingHelpStr('schemaDirectory', rcSettings));
   return await promptOutputDirectory(
+    rcSettings,
     'schemaDirectory',
-    rcSettings.schemaDirectory || '',
-    rcSettings.schemaDirectory,
     'Enter schema directory path:'
   );
 };
 
 const promptGeneratedCodeDirectory = async (
   rcSettings: Partial<RcSettings>
-): Promise<string> => {
+): Promise<DirectoryResult> => {
   log.message(getSettingHelpStr('generatedCodeDirectory', rcSettings));
   return await promptOutputDirectory(
+    rcSettings,
     'generatedCodeDirectory',
-    rcSettings.generatedCodeDirectory || '',
-    rcSettings.generatedCodeDirectory,
     'Enter generated code directory path:'
   );
-};
-
-const promptOutputDirectory = async (
-  key: keyof RcSettings,
-  initialValue: string,
-  rcValue: string | undefined,
-  message: string
-): Promise<string> => {
-  const path = await text({
-    message,
-    initialValue,
-    placeholder: 'Relative path from the project root',
-    validate: (value) => {
-      try {
-        validateOutputDirectory(value, key);
-      } catch (error) {
-        return (error as Error).message;
-      }
-    }
-  });
-  if (isCancel(path)) {
-    return cancelAndExit();
-  }
-  if (path !== rcValue) {
-    const p = join(process.cwd(), path);
-    if (fs.existsSync(p) && fs.readdirSync(p).length > 0) {
-      const goAhead = await confirm({
-        message: `The directory ${fmtPath(path)} is not empty. Continue?`
-      });
-      if (isCancel(goAhead)) {
-        return cancelAndExit();
-      }
-      if (!goAhead) {
-        return await promptOutputDirectory(key, path, rcValue, message);
-      }
-    }
-  }
-  return path;
 };
 
 const promptJsonTypeImports = async (rcSettings: Partial<RcSettings>) => {
@@ -185,7 +149,7 @@ const promptJsonTypeImports = async (rcSettings: Partial<RcSettings>) => {
   });
 };
 
-const promptTypeBigIntAsString = async (
+export const promptTypeBigIntAsString = async (
   rcSettings: Partial<RcSettings>
 ): Promise<boolean> => {
   const desc = settingsDescriptions['typeBigIntAsString'];
@@ -199,7 +163,7 @@ const promptTypeBigIntAsString = async (
   }
   return value;
 };
-const promptTinyIntOneAsBoolean = async (
+export const promptTinyIntOneAsBoolean = async (
   rcSettings: Partial<RcSettings>
 ): Promise<boolean> => {
   const desc = settingsDescriptions['typeTinyIntOneAsBoolean'];
@@ -212,4 +176,56 @@ const promptTinyIntOneAsBoolean = async (
     return cancelAndExit();
   }
   return value;
+};
+
+export const promptOutputDirectory = async (
+  rcSettings: Partial<RcSettings>,
+  key: keyof RcSettings,
+  message: string
+): Promise<DirectoryResult> => {
+  let result: DirectoryResult | null = null;
+  let promptedValue: string =
+    typeof rcSettings[key] === 'string' ? (rcSettings[key] as string) : '';
+
+  const prompt = async (initialValue: string): Promise<string> => {
+    const outputDirPath = await text({
+      message,
+      initialValue,
+      placeholder: 'Relative path from the project root',
+      validate: (value) => {
+        return value.trim().length === 0 ? 'Required.' : undefined;
+      }
+    });
+    if (isCancel(outputDirPath)) {
+      return cancelAndExit();
+    }
+    return outputDirPath;
+  };
+
+  while (result === null) {
+    promptedValue = await prompt(promptedValue);
+    console.log(promptedValue)
+    let s = wait(`Checking directory path`);
+    try {
+      result = await validateOutputDirectory(promptedValue, key);
+      s.done();
+    } catch (error) {
+      s.error();
+      log.error((error as Error).message);
+    }
+  }
+  if (result.exists && !result.isEmpty) {
+    const goAhead = await confirm({
+      message: `The directory ${fmtPath(
+        result.relativePath
+      )} is not empty. Continue?`
+    });
+    if (isCancel(goAhead)) {
+      return cancelAndExit();
+    }
+    if (!goAhead) {
+      return await promptOutputDirectory(rcSettings, key, message);
+    }
+  }
+  return result;
 };

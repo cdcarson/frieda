@@ -1,3 +1,5 @@
+import type { DatabaseSchema } from '$lib/api/types';
+import type fs from 'fs-extra';
 export type RcSettings = {
   /**
    * The path to the directory where we keep
@@ -51,3 +53,34 @@ export type ValidateEnvFilePathResult = Pick<
   FullSettings,
   'databaseUrl' | 'databaseUrlKey' | 'envFilePath'
 >;
+
+export type FileSystemPaths = {
+  inputPath: string;
+  cwd: string;
+  absolutePath: string;
+  relativePath: string;
+  isUnderCwd: boolean;
+};
+
+export type FileSystemResult = FileSystemPaths & {
+  exists: boolean;
+  stat: fs.Stats | null;
+  isDirectory: boolean;
+  isFile: boolean;
+};
+
+export type FileResult = FileSystemResult & {
+  contents?: string;
+};
+
+export type DirectoryResult = FileSystemResult & {
+  isEmpty: boolean;
+};
+
+export type MigrationData = {
+  schemaBefore: DatabaseSchema;
+  migrationSql: string;
+  schemaAfter: DatabaseSchema;
+  date: Date;
+}
+
