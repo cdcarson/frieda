@@ -22,46 +22,6 @@ export const ENV_DB_URL_KEYS = ['FRIEDA_DATABASE_URL', 'DATABASE_URL'] as const;
  */
 export const PATH_TO_CERT = '/etc/ssl/cert.pem';
 
-export const COMMANDS = {
-  generate: {
-    alias: 'g',
-    usage: 'frieda generate [options]',
-    description: `Generate model code.`,
-    options: {
-      help: {
-        alias: 'h',
-        boolean: true,
-        description: 'Show this help.'
-      }
-    }
-  },
-  migrate: {
-    alias: 'm',
-    usage: 'frieda migrate [options]',
-    description: `Perform a migration.`,
-    options: {
-      file: {
-        alias: 'f',
-        boolean: false,
-        description: 'Optional. Read the migration from the specified file rather than <schemaDirectory>/current-migration.sql.'
-      },
-      help: {
-        alias: 'h',
-        boolean: true,
-        description: 'Show this help.'
-      }
-    }
-  },
-  init: {
-    alias: 'i',
-    usage: 'frieda init [options]',
-    description: `(Re)initialize settings.`,
-    options: {
-      help: {
-        alias: 'h',
-        boolean: true,
-        description: 'Show this help.'
-      }
-    }
-  }
-} as const;
+export const DEFAULT_JSON_FIELD_TYPE = 'Object'
+
+

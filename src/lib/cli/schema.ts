@@ -7,13 +7,12 @@ import type {
 } from '$lib/api/types.js';
 import sql from 'sql-template-tag';
 import { bt } from '$lib/api/sql-utils.js';
-
-
-
+import type { FullSettings } from './types';
 
 export const fetchSchemaFromDatabase = async (
-  connection: Connection
+  settings: FullSettings
 ): Promise<DatabaseSchema> => {
+  const { connection } = settings;
   type FetchTableNamesResult = { databaseName: string; tableNames: string[] };
   const fetchTableNames = async (): Promise<FetchTableNamesResult> => {
     const query = sql`SHOW FULL TABLES;`;
@@ -84,10 +83,3 @@ export const fetchSchemaFromDatabase = async (
     fetched: new Date()
   };
 };
-
-
-
-
-
-
-

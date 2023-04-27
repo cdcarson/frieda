@@ -129,6 +129,12 @@ export const writeCurrentSchemaFiles = async (
   ]);
 };
 
+export const readCurrentSchemaJson = async (
+  settings: FullSettings,
+): Promise<FileResult> => {
+  const p = join(settings.schemaDirectory, CURRENT_SCHEMA_JSON_FILE_NAME);
+  return await getFileResult(p)
+};
 const getSchemaFileContents = (schema: DatabaseSchema): string => {
   const header = [
     `-- Schema fetched ${schema.fetched.toUTCString()} (${schema.fetched.toISOString()})`,
@@ -236,6 +242,14 @@ export const readCurrentMigrationSql = async (settings: FullSettings): Promise<F
   const {absolutePath} = getFileSystemPaths(relPath);
   await fs.ensureFile(absolutePath);
   const result = await getFileResult(relPath);
+  return result;  
+}
+
+export const writeCurrentMigrationSql = async (settings: FullSettings, sql: string): Promise<FileSystemPaths> => {
+  const relPath = join(settings.schemaDirectory, CURRENT_MIGRATION_SQL_FILE_NAME);
+  const {absolutePath} = getFileSystemPaths(relPath);
+  await fs.ensureFile(absolutePath);
+  const result = await writeFile(absolutePath, sql);
   return result;  
 }
 

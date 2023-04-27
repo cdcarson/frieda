@@ -1,7 +1,6 @@
 import type { CommandModule } from 'yargs';
 import {
-  intro,
-  outro,
+  
   log,
   text,
   confirm,
@@ -26,17 +25,9 @@ import type {
 import { readFriedaRc, saveFriedaRc } from './file-system.js';
 import { cancelAndExit } from './cli.js';
 
-export const initCommandModule: CommandModule = {
-  command: 'init',
-  handler: async () => {
-    await cmd();
-  },
-  aliases: ['i'],
-  describe: '(Re)initialize basic settings.'
-};
 
-const cmd = async () => {
-  intro(colors.bold(`Initialize (or re-initialize) basic settings.`));
+
+export const initCmd = async () => {
   let s = wait(`Reading current settings`);
   const { settings: rcSettings } = await readFriedaRc();
   s.done();
@@ -62,7 +53,7 @@ const cmd = async () => {
     typeTinyIntOneAsBoolean
   });
   s.done();
-  outro(colors.bold('Frieda initialized.'));
+  
 };
 
 export const promptEnvFile = async (

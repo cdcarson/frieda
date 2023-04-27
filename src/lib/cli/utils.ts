@@ -39,7 +39,12 @@ export const fmtValue = (s: string) => colors.blue(s);
 export const fmtPath = (p: string) => colors.cyan(colors.underline(p));
 export const fmtEx = (p: string) => colors.bold(p);
 
-export const squishWords = (s: string, lineWidth = 50): string => {
+export const getStdOutCols = (): number => {
+  return process.stdout.columns && typeof process.stdout.columns === 'number' ? process.stdout.columns : 0;
+}
+export const squishWords = (s: string, lineWidth?: number): string => {
+  const stdOutCols = getStdOutCols();
+  const cols = lineWidth && lineWidth > 40 ? lineWidth : stdOutCols > 40 ? stdOutCols - 4 : 40;
   const paras = s
     .trim()
     .split(/\n\s*\n/)
@@ -59,7 +64,7 @@ export const squishWords = (s: string, lineWidth = 50): string => {
           stripAnsi(lines[lines.length - 1]).length +
             1 +
             stripAnsi(nextWord).length >
-          lineWidth
+            cols
         ) {
           lines.push('');
         }

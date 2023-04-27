@@ -7,7 +7,8 @@ import type {
   ModelDefinition
 } from '$lib/api/types.js';
 import _ from 'lodash';
-import type { FullSettings } from './types';
+import type { FullSettings } from './types.js';
+import { DEFAULT_JSON_FIELD_TYPE } from './constants.js';
 
 /**
  * Returns the javascript (typescript) type as a string,
@@ -27,7 +28,7 @@ export const getFieldJavascriptType = (
     if (hasColumnCommentAnnotation('json', col)) {
       return getParenthesizedArgs(col.Comment, '@json');
     }
-    return 'Object';
+    return DEFAULT_JSON_FIELD_TYPE;
   }
   if (castType === 'set') {
     const strings = getParenthesizedArgs(col.Type, 'set')

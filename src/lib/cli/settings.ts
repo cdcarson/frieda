@@ -305,6 +305,7 @@ export const getSettings = async (): Promise<FullSettings> => {
     generatedCodeDirectory: generatedCodeDirectoryResult.relativePath,
     jsonTypeImports,
     typeBigIntAsString: rcSettings.typeBigIntAsString !== false,
-    typeTinyIntOneAsBoolean: rcSettings.typeTinyIntOneAsBoolean !== false
+    typeTinyIntOneAsBoolean: rcSettings.typeTinyIntOneAsBoolean !== false,
+    connection: getServerlessConnection(envFileResult.databaseUrl)
   };
 };

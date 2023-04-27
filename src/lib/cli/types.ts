@@ -1,4 +1,5 @@
 import type { DatabaseSchema } from '$lib/api/types';
+import type { Connection } from '@planetscale/database';
 import type fs from 'fs-extra';
 export type RcSettings = {
   /**
@@ -48,6 +49,7 @@ export type FullSettings = Omit<Required<RcSettings>, 'envFilePath'> & {
   databaseUrl: string;
   databaseUrlKey: string;
   envFilePath: string;
+  connection: Connection
 };
 export type ValidateEnvFilePathResult = Pick<
   FullSettings,
@@ -76,6 +78,12 @@ export type FileResult = FileSystemResult & {
 export type DirectoryResult = FileSystemResult & {
   isEmpty: boolean;
 };
+
+export type MigrationProcess = {
+  isCurrentMigrationSql: boolean;
+  sql: string;
+  schemaBefore: DatabaseSchema;
+}
 
 export type MigrationData = {
   schemaBefore: DatabaseSchema;
