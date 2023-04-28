@@ -1,6 +1,7 @@
 import fs from 'fs-extra';
 import prettier from 'prettier';
-import { resolve, relative, join } from 'path';
+import { resolve, relative, join, basename } from 'path';
+import { customAlphabet } from 'nanoid';
 import type {
   FileSystemPaths,
   FileSystemResult,
@@ -8,7 +9,8 @@ import type {
   DirectoryResult,
   FullSettings,
   MigrationData,
-  RcSettings
+  RcSettings,
+  MigrationProcess
 } from './types.js';
 import {
   CURRENT_SCHEMA_JSON_FILE_NAME,
@@ -20,6 +22,7 @@ import {
 } from './constants.js';
 import type { DatabaseSchema } from '$lib/api/types.js';
 import { isPlainObject } from './utils.js';
+import glob from 'tiny-glob';
 
 export const getFileSystemPaths = (inputPath: string): FileSystemPaths => {
   const cwd = process.cwd();
@@ -212,6 +215,7 @@ const writeFile = async (
   contents: string
 ): Promise<FileSystemPaths> => {
   const paths = getFileSystemPaths(relPath);
+  await fs.ensureFile(paths.absolutePath)
   await fs.writeFile(paths.absolutePath, contents);
   return paths;
 };
@@ -233,31 +237,52 @@ const prettifyAndWriteFile = async (
   return await writeFile(relPath, prettified);
 };
 
-
-
-
-
-
-
-export const getWorkingMigrationFilePath = (
-  settings: FullSettings,
-  fileName: string
+export const getWorkingMigrationsDirectoryPath = (
+  settings: FullSettings
 ): FileSystemPaths => {
   return getFileSystemPaths(
-    join(settings.schemaDirectory, MIGRATIONS_DIRECTORY_NAME, fileName)
+    join(settings.schemaDirectory, MIGRATIONS_DIRECTORY_NAME)
   );
 };
 
-export const writeWorkingMigrationFile = async (
-  paths: FileSystemPaths,
-  sql: string
-): Promise<FileSystemPaths> => {
-  await fs.ensureFile(paths.absolutePath);
-  return await writeFile(paths.relativePath, sql);
+export const globWorkingMigrations = async (
+  settings: FullSettings
+): Promise<string[]> => {
+  const { relativePath, absolutePath } = getWorkingMigrationsDirectoryPath(settings);
+  await fs.ensureDir(absolutePath)
+  return await glob(`${relativePath}/*.sql`);
 };
 
-export const deleteWorkingMigrationFile = async (
+export const writeWorkingMigrationFile = async (
+  settings: FullSettings,
+  migration: MigrationProcess
+): Promise<FileSystemPaths> => {
+  const dirPath = getWorkingMigrationsDirectoryPath(settings);
+  const getUniqueFileName = async (): Promise<string> => {
+    const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz');
+    const existing = await globWorkingMigrations(settings);
+    const rx = /^(\d{4})-[a-z]+\.sql/;
+    const nums = existing
+      .map(s => basename(s))
+      .map((s) => s.match(rx))
+      .filter((m) => m !== null)
+      .map((m) => (m ? parseInt(m[1]) : 0));
+    const num = Math.min(Math.max(...nums, 0) + 1, 9999)
+    const nanoLength = num === 9999 ? 36 : 5;
+    return `${num.toString().padStart(4, '0')}-${nanoid(nanoLength)}.sql`;
+  };
+  if (!migration.file) {
+    const fileName = await getUniqueFileName();
+    migration.file = getFileSystemPaths(join(dirPath.relativePath, fileName));
+  }
+  await writeFile(migration.file.relativePath, migration.sql);
+  return migration.file;
+};
+
+
+
+export const deleteFile = async (
   paths: FileSystemPaths
 ): Promise<void> => {
-  return await fs.remove(paths.absolutePath)
+  return await fs.remove(paths.absolutePath);
 };

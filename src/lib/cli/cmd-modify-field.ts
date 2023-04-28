@@ -10,10 +10,9 @@ import {
   cliCreateOrUpdatePendingMigrationFile,
   editOrSaveOptions
 } from './cli.js';
-
+import colors from 'picocolors'
 import { isCancel, select, text, confirm, log } from '@clack/prompts';
 import { DEFAULT_JSON_FIELD_TYPE } from './constants.js';
-import { KNOWN_MYSQL_TYPES } from '$lib/api/constants.js';
 import {
   getFieldColumnDefinitionSql,
   toggleBigIntAnnotation,
@@ -47,7 +46,7 @@ export const cmdModifyField = async (rawArgs: string[]) => {
     `  MODIFY COLUMN ${colDef};`
   ].join('\n');
 
-  cliLogSql(sql);
+  cliLogSql(sql, colors.dim('(current column definition)'));
   const options = [
     ...editOrSaveOptions,
     {

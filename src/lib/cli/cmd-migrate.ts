@@ -58,7 +58,7 @@ export const cmdMigrate = async (rawArgs: string[]) => {
     return;
   }
   if ('save' === action) {
-    cliCreateOrUpdatePendingMigrationFile(settings, {
+    await cliCreateOrUpdatePendingMigrationFile(settings, {
       sql: '',
       schemaBefore: schema
     });

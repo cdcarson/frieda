@@ -260,7 +260,7 @@ export const validateOutputDirectory = async (
     throw new RcSettingsError(key, `Invalid directory path.`);
   }
   const dir = await getDirectoryResult(relativePath);
-  if (!dir.isDirectory) {
+  if (!dir.isDirectory && dir.exists) {
     throw new RcSettingsError(key, `${dir.relativePath} is a file.`);
   }
   if (!dir.isUnderCwd) {

@@ -2,25 +2,19 @@ import { cancel, isCancel, log, confirm, text } from '@clack/prompts';
 import { getSettings, settingsDescriptions } from './settings.js';
 import { fmtPath, fmtVarName, squishWords, wait } from './utils.js';
 import colors from 'picocolors';
-import type {
-  FullSettings,
-  MigrationProcess
-} from './types.js';
+import { nanoid } from 'nanoid';
+import type { FullSettings, MigrationProcess } from './types.js';
 import type {
   DatabaseSchema,
   FieldDefinition,
   ModelDefinition
 } from '$lib/api/types.js';
 import { fetchSchemaFromDatabase } from './schema.js';
-import {
-  
-  FRIEDA_RC_FILE_NAME
-} from './constants.js';
+import { FRIEDA_RC_FILE_NAME } from './constants.js';
 import { select } from '@clack/prompts';
 import { getCode } from './get-code.js';
 import {
-  deleteWorkingMigrationFile,
-  getWorkingMigrationFilePath,
+  deleteFile,
   readCurrentSchemaJson,
   writeCurrentSchemaFiles,
   writeGeneratedCode,
@@ -291,11 +285,8 @@ export const cliPromptRunMigration = async (
   migration: MigrationProcess,
   error?: Mysql2QueryError
 ) => {
-  
   let promptMessage: string;
-  const options = [
-    ...editOrSaveOptions
-  ];
+  const options = [...editOrSaveOptions];
   if (!error) {
     options.unshift({
       label: 'Yes',
@@ -325,7 +316,7 @@ export const cliPromptRunMigration = async (
     }
     log.error(logs.join('\n'));
   }
-  cliLogSql(migration.sql);
+  cliLogSql(migration.sql, error ? colors.red('(error)') : '');
   const action = await select({
     message: promptMessage,
     options
@@ -350,21 +341,17 @@ export const cliPromptRunMigration = async (
   } catch (e) {
     s.error();
     if (e instanceof Mysql2QueryError) {
-      await cliPromptRunMigration(settings, migration, e)
+      await cliPromptRunMigration(settings, migration, e);
     } else {
       throw e;
     }
-    
   }
 };
 
-
-
-
-export const cliLogSql = (sql: string) => {
+export const cliLogSql = (sql: string, note: string = '') => {
   log.message(
     [
-      colors.bold('sql'),
+      colors.bold('sql') + (note ? ' ' + note : ''),
       colors.dim('-'.repeat(20)),
       sql,
       colors.dim('-'.repeat(20))
@@ -395,7 +382,7 @@ export const cliAfterMigration = async (
       message: `Remove migration file ${fmtPath(migration.file.relativePath)}?`
     });
     if (remove === true) {
-      await deleteWorkingMigrationFile(migration.file);
+      await deleteFile(migration.file);
       logs.push(`${fmtPath(migration.file.relativePath)} removed.`);
     }
   }
@@ -403,44 +390,26 @@ export const cliAfterMigration = async (
   await cliGenerateCode(models, settings);
 };
 
-
-
 export const cliCreateOrUpdatePendingMigrationFile = async (
   settings: FullSettings,
   migration: MigrationProcess
 ) => {
   let verb = 'Saving';
   if (!migration.file) {
-    const desc = await text({
-      message: 'Describe this migration:',
-      placeholder: 'Used to create a descriptive file name.',
-      validate: (s) => {
-        if (s.trim().length === 0) {
-          return 'Required.';
-        }
-      }
-    });
-    if (isCancel(desc)) {
-      return cancelAndExit();
-    }
-    const filename = _.kebabCase(desc) + `${new Date().toISOString()}.sql`;
-    migration.file = getWorkingMigrationFilePath(settings, filename);
-    migration.sql = `-- ${desc}\n\n${migration.sql}\n`;
+    
+    migration.sql = `-- Edit this migration. Then run \`frieda m <file>\`.\n\n${migration.sql}\n`;
     verb = 'Creating';
   }
   const s = wait(`${verb} migration file`);
-  await writeWorkingMigrationFile(migration.file, migration.sql);
+  const { relativePath } = await writeWorkingMigrationFile(settings, migration);
   s.done();
-  const { relativePath } = migration.file;
 
   log.info(
     [
-      `Migration file: ${fmtPath(relativePath)}`,
-      squishWords(
-        `Tweak this file in your favorite editor. When you are done, run ${colors.inverse(
-          ` frieda migrate ${relativePath} `
-        )}. `
-      )
+      `Migration file:`,
+      fmtPath(relativePath),
+      squishWords(`Tweak this file in your favorite editor. Then run the migration:`),
+      colors.italic(`frieda m ${relativePath}`)
     ].join('\n')
   );
 };
@@ -455,5 +424,5 @@ export const editOrSaveOptions = [
     label: 'Save to file',
     value: 'save',
     hint: 'Edit migration outside the terminal, then run frieda migrate <file>'
-  },
-]
+  }
+];
