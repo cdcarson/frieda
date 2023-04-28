@@ -101,9 +101,9 @@ export const getSettingHelpStr = (
   );
   const lines = [
     `${colors.bold(settingDesc.header)} (${fmtVarName(
-      'typeBigIntAsString'
+      key
     )} in ${fmtPath(FRIEDA_RC_FILE_NAME)})`,
-    squishWords(settingDesc.description, 70),
+    squishWords(settingDesc.description),
     `More: ${helpUrl}`
   ];
   if (settings) {
