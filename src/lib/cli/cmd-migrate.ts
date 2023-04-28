@@ -2,18 +2,18 @@ import parser from 'yargs-parser';
 import {
   cliFetchSchema,
   cliGetSettings,
-  promptModel,
   cancelAndExit,
   cliPromptRunMigration,
-  cliPromptEditMigration
+  cliCreateOrUpdatePendingMigrationFile
 } from './cli.js';
 
-import { isCancel, select, text, confirm, log } from '@clack/prompts';
-import { DEFAULT_JSON_FIELD_TYPE } from './constants.js';
-import { KNOWN_MYSQL_TYPES } from '$lib/api/constants.js';
-import type { FileResult, FileSystemResult } from './types.js';
+import { isCancel, select, log } from '@clack/prompts';
+
+import type { FileResult } from './types.js';
 import { getFileResult } from './file-system.js';
 import { fmtPath } from './utils.js';
+import _ from 'lodash';
+import { edit } from 'external-editor';
 
 export const cmdMigrate = async (rawArgs: string[]) => {
   const settings = await cliGetSettings();
@@ -30,15 +30,42 @@ export const cmdMigrate = async (rawArgs: string[]) => {
     } else {
       return await cliPromptRunMigration(settings, {
         sql: fileResult.contents || '',
-        isCurrentMigrationSql: false,
-        schemaBefore: schema
+        schemaBefore: schema,
+        file: fileResult
       })
     }
     
   }
-  return await cliPromptEditMigration(settings, {
-    sql: '',
-    isCurrentMigrationSql: false,
+  const where = await select({
+    message: 'Choose migration source:',
+    options: [
+      {
+        label: 'Create and edit a new migration here',
+        value: 'edit',
+        hint: 'Opens a temporary file in the terminal editor'
+      },
+      {
+        label: 'Create a new migration file',
+        value: 'create',
+        hint: 'Create a file, edit it elsewhere, then run frieda migrate <path>'
+      },
+      {
+        label: 'Cancel',
+        value: false
+      }
+    ]
+  });
+  if (isCancel(where) || !where) {
+    return cancelAndExit();
+  }
+  if ('create' === where) {
+    return cliCreateOrUpdatePendingMigrationFile(settings, {
+      schemaBefore: schema,
+      sql: ''
+    })
+  }
+  return cliPromptRunMigration(settings, {
+    sql: edit(''),
     schemaBefore: schema
   })
 };

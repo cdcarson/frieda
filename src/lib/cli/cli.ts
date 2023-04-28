@@ -2,8 +2,8 @@ import {
   cancel,
   isCancel,
   log,
-  type SelectOptions,
-  confirm
+  confirm,
+  text
 } from '@clack/prompts';
 import { getSettings, settingsDescriptions } from './settings.js';
 import { fmtPath, fmtVarName, squishWords, wait } from './utils.js';
@@ -21,19 +21,21 @@ import type {
 import { fetchSchemaFromDatabase } from './schema.js';
 import {
   CURRENT_MIGRATION_SQL_FILE_NAME,
-  CURRENT_SCHEMA_JSON_FILE_NAME,
   FRIEDA_RC_FILE_NAME
 } from './constants.js';
 import { select } from '@clack/prompts';
 import { getCode } from './get-code.js';
 import {
   clearCurrentMigrationSql,
+  deleteWorkingMigrationsFile,
+  getMigrationFilePath,
   readCurrentMigrationSql,
   readCurrentSchemaJson,
   writeCurrentMigrationSql,
   writeCurrentSchemaFiles,
   writeGeneratedCode,
-  writeMigrationFiles
+  writeMigrationFiles,
+  writeWorkingMigrationsFile
 } from './file-system.js';
 import {
   Mysql2QueryError,
@@ -43,6 +45,7 @@ import {
 import { parseModelDefinition } from './parse.js';
 import { runMigration } from './migrate.js';
 import { edit } from 'external-editor';
+import _ from 'lodash';
 
 export const cancelAndExit = () => {
   cancel('Operation cancelled.');
@@ -364,6 +367,7 @@ export const cliPromptEditMigration = async (
   migration: MigrationProcess,
   otherOpts: OtherEditOption[] = []
 ): Promise<void> => {
+  cliLogSql(migration.sql);
   const options = [
     ...(otherOpts || []).map((o) => {
       return {
@@ -429,23 +433,26 @@ export const cliAfterMigration = async (
 ) => {
   const s = wait('Saving migration');
   const { schema: schemaAfter, models } = await cliFetchSchema(settings);
-  let currMigrationFileResult: FileSystemPaths | null = null;
   const files = await writeMigrationFiles(settings, {
     date: new Date(),
     migrationSql: migration.sql,
     schemaAfter,
     schemaBefore: migration.schemaBefore
   });
-  if (migration.isCurrentMigrationSql) {
-    currMigrationFileResult = await clearCurrentMigrationSql(settings);
-  }
+  
   s.done();
   const logs = [
-    'Generated code:',
+    'Saved migration:',
     ...files.map((f) => ` - ${fmtPath(f.relativePath)}`)
   ];
-  if (currMigrationFileResult) {
-    logs.push(`${fmtPath(currMigrationFileResult.relativePath)} cleared.`);
+  if (migration.file) {
+    const remove = await confirm({
+      message: `Remove migration file ${fmtPath(migration.file.relativePath)}?`
+    });
+    if (remove === true) {
+      await deleteWorkingMigrationsFile(migration.file)
+      logs.push(`${fmtPath(migration.file.relativePath)} removed.`);
+    }
   }
   log.success(logs.join('\n'));
   await cliGenerateCode(models, settings);
@@ -464,3 +471,43 @@ const editOrSaveOptions = [
   },
   { label: 'Cancel', value: 'cancel' }
 ];
+
+export const cliCreateOrUpdatePendingMigrationFile = async (
+  settings: FullSettings,
+  migration: MigrationProcess
+) => {
+  let verb = 'Saving';
+  if (!migration.file) {
+    const desc = await text({
+      message: 'Describe this migration:',
+      placeholder: 'Used to create a descriptive file name.',
+      validate: (s) => {
+        if (s.trim().length === 0) {
+          return 'Required.';
+        }
+      }
+    });
+    if (isCancel(desc)) {
+      return cancelAndExit();
+    }
+    const filename = _.kebabCase(desc) + `${new Date().toISOString()}.sql`;
+    migration.file = getMigrationFilePath(settings, filename);
+    migration.sql = `-- ${desc}\n\n${migration.sql}\n`;
+    verb = 'Creating';
+  }
+  const s = wait(`${verb} migration file`);
+  await writeWorkingMigrationsFile(migration.file, migration.sql);
+  s.done();
+  const { relativePath } = migration.file;
+
+  log.info(
+    [
+      `Migration file: ${fmtPath(relativePath)}`,
+      squishWords(
+        `Tweak this file in your favorite editor. When you are done, run ${colors.inverse(
+          ` frieda migrate ${relativePath} `
+        )}. `
+      )
+    ].join('\n')
+  );
+};

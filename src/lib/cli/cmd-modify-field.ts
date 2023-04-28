@@ -132,7 +132,6 @@ export const cmdModifyField = async (rawArgs: string[]) => {
   await cliPromptRunMigration(
     settings,
     {
-      isCurrentMigrationSql: false,
       schemaBefore: schema,
       sql
     }

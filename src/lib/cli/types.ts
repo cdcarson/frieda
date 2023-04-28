@@ -72,6 +72,7 @@ export type FileSystemResult = FileSystemPaths & {
 };
 
 export type FileResult = FileSystemResult & {
+
   contents?: string;
 };
 
@@ -80,9 +81,9 @@ export type DirectoryResult = FileSystemResult & {
 };
 
 export type MigrationProcess = {
-  isCurrentMigrationSql: boolean;
   sql: string;
   schemaBefore: DatabaseSchema;
+  file?: FileSystemPaths
 }
 
 export type MigrationData = {
