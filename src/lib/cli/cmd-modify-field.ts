@@ -4,136 +4,201 @@ import {
   cliGetSettings,
   promptModel,
   cancelAndExit,
-  cliPromptRunMigration
+  cliPromptRunMigration,
+  promptField,
+  cliLogSql,
+  cliCreateOrUpdatePendingMigrationFile
 } from './cli.js';
 
 import { isCancel, select, text, confirm, log } from '@clack/prompts';
 import { DEFAULT_JSON_FIELD_TYPE } from './constants.js';
 import { KNOWN_MYSQL_TYPES } from '$lib/api/constants.js';
+import {
+  getFieldColumnDefinitionSql,
+  toggleBigIntAnnotation,
+  toggleBooleanType,
+  toggleJSONAnnotation
+} from './migrate.js';
+import { fmtValue } from './utils.js';
+import type { FieldDefinition, ModelDefinition } from '$lib/api/types.js';
+import { edit } from 'external-editor';
 
 export const cmdModifyField = async (rawArgs: string[]) => {
   const settings = await cliGetSettings();
   const { schema, models } = await cliFetchSchema(settings);
   const args = parser(rawArgs, {
-    alias: { model: ['m'], name: ['n'] },
-    string: ['model', 'name']
+    alias: { model: ['m'], field: ['f'] },
+    string: ['model', 'field']
   });
   const model = await promptModel(
     models,
     typeof args.model === 'string' ? args.model : ''
   );
-  let comment: string|null = null
-  const name = await text({
-    message: 'Column name:',
-    validate: (s) => {
-      if(s.trim().length === 0) {
-        return 'Required.'
-      }
-    }
-  });
-  if (isCancel(name)) {
-    return cancelAndExit()
-  }
-  let dbType = await text({
-    message: 'MySQL type:',
-    validate: (s) => {
-      const trimmed = s.trim().toLowerCase();
-      if (trimmed.length === 0) {
-        return 'Required.'
-      }
-    }
-  })
-
-  if (isCancel(dbType)) {
-    return cancelAndExit()
-  }
-  dbType = dbType.trim().toLowerCase();
-  if (['bool', 'boolean'].includes(dbType)) {
-    dbType = 'tinyint(1)'
-  }
-
-  const nullable = await select({
-    message: 'Nullable?',
-    options: [
-      {
-        label: 'NULL',
-        value: 'NULL'
-      },
-      {
-        label: 'NOT NULL',
-        value: 'NOT NULL'
-      }
-    ],
-   
-    initialValue: 'NULL'
-  })
-
-  if (isCancel(nullable)) {
-    return cancelAndExit()
-  }
-
-  if (/bigint/i.test(dbType)) {
-    const typeAsBigInt = await confirm({
-      message: 'Type as javascript bigint?',
-
-    });
-    if (isCancel(typeAsBigInt)) {
-      return cancelAndExit()
-    }
-    if (typeAsBigInt) {
-      comment = '@bigint'
-    }
-  }
-
-  if ('json' === dbType) {
-    const jsonType = await text({
-      message: 'Custom JSON type:',
-      placeholder: `Leave blank for no type annotation`
-    })
-    if (isCancel(jsonType)) {
-      return cancelAndExit()
-    }
-    if (jsonType !== DEFAULT_JSON_FIELD_TYPE && jsonType.trim().length > 0) {
-      comment = `@json(${jsonType})`
-    }
-  }
-
-  if ('tinyint' === dbType ) {
-    const typeAsBool = await confirm({
-      message: 'Type as boolean?'
-    });
-    if (isCancel(typeAsBool)) {
-      return cancelAndExit()
-    }
-    if (typeAsBool) {
-      dbType = 'tinyint(1)'
-    }
-
-  }
-  
-
-  const defaultValue = await text({
-    message: 'Default value:',
-    placeholder: 'Leave blank for no default'
-  })
-  if (isCancel(defaultValue)) {
-    return cancelAndExit()
-  }
-
-  let colDef = `\`${name}\` ${dbType} ${nullable}${defaultValue ? ` DEFAULT '${defaultValue}'` : ''}`
-  if (comment) {
-    colDef += ` COMMENT '${comment}'`
-  }
-  const sql = [
-    `ALTER TABLE \`${model.tableName}\``,
-    `   ADD COLUMN ${colDef};`
-  ].join('\n')
-  
-  await cliPromptRunMigration(
-    settings,
-    {
-      schemaBefore: schema,
-      sql
-    }
+  const field = await promptField(
+    model,
+    typeof args.field === 'string' ? args.field : ''
   );
+
+  const colDef = getFieldColumnDefinitionSql(schema, model, field);
+
+  let sql = [
+    `ALTER TABLE \`${model.tableName}\``,
+    `  MODIFY COLUMN ${colDef};`
+  ].join('\n');
+
+  cliLogSql(sql);
+  const options = [
+    {
+      label: 'Create and edit this SQL here',
+      value: 'edit',
+      hint: 'Opens a temporary file in the terminal editor'
+    },
+    {
+      label: 'Create a new migration file with this SQL',
+      value: 'create',
+      hint: 'Create a file, edit it elsewhere, then run frieda migrate <path>'
+    },
+    {
+      label: 'Cancel',
+      value: 'cancel'
+    }
+  ];
+  if (field.knownMySQLType === 'json') {
+    options.unshift({
+      value: 'typeJson',
+      label: `Add, edit or remove @json type annotation`,
+      hint: `current javascript type: ${fmtValue(field.javascriptType)}`
+    });
+  }
+  if (field.knownMySQLType === 'bigint') {
+    if (field.castType === 'string') {
+      options.unshift({
+        value: 'typeBigIntAsBigInt',
+        label: `Type field as javascript ${fmtValue(
+          'bigint'
+        )} (currently: ${fmtValue('string')})`,
+        hint: `Add ${fmtValue('@bigint')} annotation to COMMENT`
+      });
+    }
+    if (field.castType === 'string') {
+      options.unshift({
+        value: 'typeBigIntAsString',
+        label: `Type field as javascript ${fmtValue(
+          'string'
+        )} (currently: ${fmtValue('bigint')})`,
+        hint: `Remove ${fmtValue('@bigint')} annotation to COMMENT`
+      });
+    }
+  }
+  if (field.knownMySQLType === 'tinyint') {
+    if (field.castType === 'boolean') {
+      options.unshift({
+        value: 'typeTinyIntAsInt',
+        label: `Type field as javascript ${fmtValue(
+          'number'
+        )} (currently: ${fmtValue('boolean')})`,
+        hint: `Change type ${fmtValue('tinyint(1)')} to ${fmtValue('tinyint')}`
+      });
+    }
+    if (field.castType === 'int') {
+      options.unshift({
+        value: 'typeTinyIntAsBoolean',
+        label: `Type field as javascript ${fmtValue(
+          'boolean'
+        )} (currently: ${fmtValue('number')})`,
+        hint: `Change type ${fmtValue('tinyint')} to ${fmtValue('tinyint(1)')}`
+      });
+    }
+  }
+  const action = await select({
+    message: 'Migration options:',
+    options
+  });
+  if (isCancel(action) || 'cancel' === action) {
+    return cancelAndExit();
+  }
+  switch (action) {
+    case 'edit':
+      sql = edit(sql);
+      return cliPromptRunMigration(settings, {
+        sql,
+        schemaBefore: schema
+      });
+    case 'save':
+      return cliCreateOrUpdatePendingMigrationFile(settings, {
+        sql,
+        schemaBefore: schema
+      });
+    case 'typeTinyIntAsBoolean':
+      sql = [
+        `ALTER TABLE \`${model.tableName}\``,
+        `  MODIFY COLUMN ${toggleBooleanType(colDef, true)};`
+      ].join('\n');
+      return cliPromptRunMigration(settings, {
+        sql,
+        schemaBefore: schema
+      });
+    case 'typeTinyIntAsInt':
+      sql = [
+        `ALTER TABLE \`${model.tableName}\``,
+        `  MODIFY COLUMN ${toggleBooleanType(colDef, false)};`
+      ].join('\n');
+      return cliPromptRunMigration(settings, {
+        sql,
+        schemaBefore: schema
+      });
+    case 'typeBigIntAsString':
+      sql = [
+        `ALTER TABLE \`${model.tableName}\``,
+        `  MODIFY COLUMN ${toggleBigIntAnnotation(
+          colDef,
+          field.columnComment,
+          false
+        )};`
+      ].join('\n');
+      return cliPromptRunMigration(settings, {
+        sql,
+        schemaBefore: schema
+      });
+    case 'typeBigIntAsBigInt':
+      sql = [
+        `ALTER TABLE \`${model.tableName}\``,
+        `  MODIFY COLUMN ${toggleBigIntAnnotation(
+          colDef,
+          field.columnComment,
+          true
+        )};`
+      ].join('\n');
+      return cliPromptRunMigration(settings, {
+        sql,
+        schemaBefore: schema
+      });
+    case 'typeJson':
+      sql = await promptTypeJson(model, field, colDef);
+      return cliPromptRunMigration(settings, {
+        sql,
+        schemaBefore: schema
+      });
+    default:
+      throw new Error('unhandled cli option')
+  }
+};
+
+const promptTypeJson = async (
+  model: ModelDefinition,
+  field: FieldDefinition,
+  colDef: string
+): Promise<string> => {
+  let newType = await text({
+    message: 'JSON type (clear value to remove):',
+    initialValue: field.javascriptType === DEFAULT_JSON_FIELD_TYPE ? '' : field.javascriptType
+  })
+  if (isCancel(newType)) {
+    return cancelAndExit();
+  }
+  newType = newType.trim()
+  return [
+    `ALTER TABLE \`${model.tableName}\``,
+    `  MODIFY COLUMN ${toggleJSONAnnotation(colDef, field.columnComment, newType.length === 0 ? null : newType)};`
+  ].join('\n');
 };

@@ -51,11 +51,11 @@ export const cmdMigrate = async (rawArgs: string[]) => {
       },
       {
         label: 'Cancel',
-        value: false
+        value: 'cancel'
       }
     ]
   });
-  if (isCancel(where) || !where) {
+  if (isCancel(where) || 'cancel' === where) {
     return cancelAndExit();
   }
   if ('create' === where) {

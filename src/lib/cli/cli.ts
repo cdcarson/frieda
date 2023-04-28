@@ -314,7 +314,7 @@ export const cliPromptRunMigration = async (
     return;
   }
   if ('save' === action) {
-    cliSaveMigration(settings, migration.sql);
+    cliCreateOrUpdatePendingMigrationFile(settings, migration);
     return;
   }
   await cliRunMigration(settings, migration);
@@ -386,7 +386,7 @@ export const cliPromptEditMigration = async (
     return cancelAndExit();
   }
   if (action === 'save') {
-    return cliSaveMigration(settings, migration.sql);
+    return cliCreateOrUpdatePendingMigrationFile(settings, migration);;
   }
   const otherOpt = otherOpts.find((o) => o.value === action);
   if (otherOpt) {
@@ -397,24 +397,7 @@ export const cliPromptEditMigration = async (
   return await cliPromptRunMigration(settings, migration);
 };
 
-export const cliSaveMigration = async (settings: FullSettings, sql: string) => {
-  const s = wait('Saving');
-  const file = await readCurrentMigrationSql(settings);
-  const oldContents = file.contents ? file.contents.trim() : '';
-  const newSql = [sql];
-  if (oldContents.length > 0) {
-    newSql.unshift('', '');
-  }
-  const contents = oldContents + newSql.join('\n') + '\n';
-  const { relativePath } = await writeCurrentMigrationSql(settings, contents);
-  s.done();
-  log.info(
-    [
-      `${fmtPath(relativePath)} saved.`,
-      'Run frieda migrate when you are done editing.'
-    ].join('\n')
-  );
-};
+
 
 export const cliLogSql = (sql: string) => {
   log.message(
@@ -458,7 +441,7 @@ export const cliAfterMigration = async (
   await cliGenerateCode(models, settings);
 };
 
-const editOrSaveOptions = [
+export const editOrSaveOptions = [
   {
     label: `Edit here`,
     value: 'editTerminal',
