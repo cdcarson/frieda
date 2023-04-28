@@ -1,15 +1,8 @@
-import {
-  cancel,
-  isCancel,
-  log,
-  confirm,
-  text
-} from '@clack/prompts';
+import { cancel, isCancel, log, confirm, text } from '@clack/prompts';
 import { getSettings, settingsDescriptions } from './settings.js';
 import { fmtPath, fmtVarName, squishWords, wait } from './utils.js';
 import colors from 'picocolors';
 import type {
-  FileSystemPaths,
   FullSettings,
   MigrationProcess
 } from './types.js';
@@ -298,12 +291,47 @@ export const promptField = async (
 
 export const cliPromptRunMigration = async (
   settings: FullSettings,
-  migration: MigrationProcess
+  migration: MigrationProcess,
+  error?: Mysql2QueryError
 ) => {
+  
+  let promptMessage: string;
+  const options = [
+    ...editOrSaveOptions
+  ];
+  if (!error) {
+    options.unshift({
+      label: 'Yes',
+      value: 'run',
+      hint: 'Run the migration'
+    });
+    promptMessage = 'Run migration?';
+  } else {
+    promptMessage = 'Fix migration error:';
+    options.push({
+      label: 'Try again',
+      value: 'run',
+      hint: 'Try to re-run the migration as is'
+    });
+  }
+  options.push({
+    label: 'Cancel',
+    value: 'cancel',
+    hint: 'Bail. Nothing will be saved.'
+  });
+
+  // show the error
+  if (error) {
+    const logs = [colors.red(error.message)];
+    if (error.cause instanceof Error) {
+      logs.push(squishWords(`Error: ${error.cause.message}`));
+    }
+    log.error(logs.join('\n'));
+  }
   cliLogSql(migration.sql);
   const action = await select({
-    message: 'Run migration?',
-    options: [{ label: 'Yes', value: 'run' }, ...editOrSaveOptions]
+    message: promptMessage,
+    options
   });
   if (isCancel(action) || action === 'cancel') {
     return cancelAndExit();
@@ -317,85 +345,22 @@ export const cliPromptRunMigration = async (
     cliCreateOrUpdatePendingMigrationFile(settings, migration);
     return;
   }
-  await cliRunMigration(settings, migration);
-};
-
-export const cliRunMigration = async (
-  settings: FullSettings,
-  migration: MigrationProcess
-) => {
-  let s = wait('Running migration');
-
+  const s = wait('Running migration');
   try {
     await runMigration(settings, migration.sql);
     s.done();
     await cliAfterMigration(settings, migration);
-  } catch (error) {
+  } catch (e) {
     s.error();
-    await cliPromptAfterMigrationError(settings, migration, error);
+    if (e instanceof Mysql2QueryError) {
+      await cliPromptRunMigration(settings, migration, e)
+    } else {
+      throw e;
+    }
+    
   }
-};
-export const cliPromptAfterMigrationError = async (
-  settings: FullSettings,
-  migration: MigrationProcess,
-  e: unknown
-): Promise<void> => {
-  let error: Mysql2QueryError;
-  if (e instanceof Mysql2QueryError) {
-    error = e;
-  } else {
-    throw e;
-  }
-  const logs = [colors.red(error.message)];
-  if (error.cause instanceof Error) {
-    logs.push(squishWords(`Error: ${error.cause.message}`));
-  }
-  log.error(logs.join('\n'));
-  cliLogSql(migration.sql);
-  await cliPromptEditMigration(settings, migration);
 };
 
-export type OtherEditOption = {
-  label: string;
-  value: string;
-  hint: string;
-  sqlFn: (orig: string) => Promise<string>;
-};
-
-export const cliPromptEditMigration = async (
-  settings: FullSettings,
-  migration: MigrationProcess,
-  otherOpts: OtherEditOption[] = []
-): Promise<void> => {
-  cliLogSql(migration.sql);
-  const options = [
-    ...(otherOpts || []).map((o) => {
-      return {
-        label: o.label,
-        hint: o.hint,
-        value: o.value
-      };
-    }),
-    ...editOrSaveOptions
-  ];
-  const action = await select({
-    message: 'What do you want to do?',
-    options
-  });
-  if (isCancel(action) || action === 'cancel') {
-    return cancelAndExit();
-  }
-  if (action === 'save') {
-    return cliCreateOrUpdatePendingMigrationFile(settings, migration);;
-  }
-  const otherOpt = otherOpts.find((o) => o.value === action);
-  if (otherOpt) {
-    migration.sql = await otherOpt.sqlFn(migration.sql);
-    return await cliPromptRunMigration(settings, migration);
-  }
-  migration.sql = edit(migration.sql);
-  return await cliPromptRunMigration(settings, migration);
-};
 
 
 
@@ -422,7 +387,7 @@ export const cliAfterMigration = async (
     schemaAfter,
     schemaBefore: migration.schemaBefore
   });
-  
+
   s.done();
   const logs = [
     'Saved migration:',
@@ -433,7 +398,7 @@ export const cliAfterMigration = async (
       message: `Remove migration file ${fmtPath(migration.file.relativePath)}?`
     });
     if (remove === true) {
-      await deleteWorkingMigrationsFile(migration.file)
+      await deleteWorkingMigrationsFile(migration.file);
       logs.push(`${fmtPath(migration.file.relativePath)} removed.`);
     }
   }
@@ -441,19 +406,7 @@ export const cliAfterMigration = async (
   await cliGenerateCode(models, settings);
 };
 
-export const editOrSaveOptions = [
-  {
-    label: `Edit here`,
-    value: 'editTerminal',
-    hint: `Edit this SQL by hand in the terminal`
-  },
-  {
-    label: `Save to ${CURRENT_MIGRATION_SQL_FILE_NAME}`,
-    value: 'save',
-    hint: `Edit using an external editor, then run frieda migrate`
-  },
-  { label: 'Cancel', value: 'cancel' }
-];
+
 
 export const cliCreateOrUpdatePendingMigrationFile = async (
   settings: FullSettings,
@@ -494,3 +447,16 @@ export const cliCreateOrUpdatePendingMigrationFile = async (
     ].join('\n')
   );
 };
+
+export const editOrSaveOptions = [
+  {
+    label: 'Edit here',
+    value: 'edit',
+    hint: 'Edit migration in the terminal editor, then run it'
+  },
+  {
+    label: 'Save to file',
+    value: 'save',
+    hint: 'Edit migration outside the terminal, then run frieda migrate <file>'
+  },
+]

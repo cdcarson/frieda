@@ -4,7 +4,8 @@ import {
   cliGetSettings,
   cancelAndExit,
   cliPromptRunMigration,
-  cliCreateOrUpdatePendingMigrationFile
+  cliCreateOrUpdatePendingMigrationFile,
+  editOrSaveOptions
 } from './cli.js';
 
 import { isCancel, select, log } from '@clack/prompts';
@@ -36,36 +37,31 @@ export const cmdMigrate = async (rawArgs: string[]) => {
     }
     
   }
-  const where = await select({
+  const action = await select({
     message: 'Choose migration source:',
     options: [
-      {
-        label: 'Create and edit a new migration here',
-        value: 'edit',
-        hint: 'Opens a temporary file in the terminal editor'
-      },
-      {
-        label: 'Create a new migration file',
-        value: 'create',
-        hint: 'Create a file, edit it elsewhere, then run frieda migrate <path>'
-      },
+      ...editOrSaveOptions,
       {
         label: 'Cancel',
         value: 'cancel'
       }
     ]
   });
-  if (isCancel(where) || 'cancel' === where) {
+  if (isCancel(action) || 'cancel' === action) {
     return cancelAndExit();
   }
-  if ('create' === where) {
-    return cliCreateOrUpdatePendingMigrationFile(settings, {
-      schemaBefore: schema,
-      sql: ''
-    })
+  if ('edit' === action) {
+    cliPromptRunMigration(settings, {
+      sql: edit(''),
+      schemaBefore: schema
+    });
+    return;
   }
-  return cliPromptRunMigration(settings, {
-    sql: edit(''),
-    schemaBefore: schema
-  })
+  if ('save' === action) {
+    cliCreateOrUpdatePendingMigrationFile(settings, {
+      sql: '',
+      schemaBefore: schema
+    });
+    return;
+  }
 };

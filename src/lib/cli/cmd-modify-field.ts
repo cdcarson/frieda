@@ -7,7 +7,8 @@ import {
   cliPromptRunMigration,
   promptField,
   cliLogSql,
-  cliCreateOrUpdatePendingMigrationFile
+  cliCreateOrUpdatePendingMigrationFile,
+  editOrSaveOptions
 } from './cli.js';
 
 import { isCancel, select, text, confirm, log } from '@clack/prompts';
@@ -48,16 +49,7 @@ export const cmdModifyField = async (rawArgs: string[]) => {
 
   cliLogSql(sql);
   const options = [
-    {
-      label: 'Create and edit this SQL here',
-      value: 'edit',
-      hint: 'Opens a temporary file in the terminal editor'
-    },
-    {
-      label: 'Create a new migration file with this SQL',
-      value: 'create',
-      hint: 'Create a file, edit it elsewhere, then run frieda migrate <path>'
-    },
+    ...editOrSaveOptions,
     {
       label: 'Cancel',
       value: 'cancel'
@@ -117,18 +109,22 @@ export const cmdModifyField = async (rawArgs: string[]) => {
   if (isCancel(action) || 'cancel' === action) {
     return cancelAndExit();
   }
+  if ('edit' === action) {
+    cliPromptRunMigration(settings, {
+      sql: edit(sql),
+      schemaBefore: schema
+    });
+    return;
+  }
+  if ('save' === action) {
+    cliCreateOrUpdatePendingMigrationFile(settings, {
+      sql,
+      schemaBefore: schema
+    });
+    return;
+  }
   switch (action) {
-    case 'edit':
-      sql = edit(sql);
-      return cliPromptRunMigration(settings, {
-        sql,
-        schemaBefore: schema
-      });
-    case 'save':
-      return cliCreateOrUpdatePendingMigrationFile(settings, {
-        sql,
-        schemaBefore: schema
-      });
+    
     case 'typeTinyIntAsBoolean':
       sql = [
         `ALTER TABLE \`${model.tableName}\``,
