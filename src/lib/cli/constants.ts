@@ -10,7 +10,7 @@ export const GENERATED_CODE_FILENAMES = {
   modelDefinitions: 'model-definitions.ts'
 } as const;
 
-export const CURRENT_MIGRATION_SQL_FILE_NAME = 'current-migration.sql';
+export const HISTORY_DIRECTORY_NAME = 'history';
 export const MIGRATIONS_DIRECTORY_NAME = 'migrations';
 
 export const SCHEMA_CAST_CONST_NAME = 'schemaCast';

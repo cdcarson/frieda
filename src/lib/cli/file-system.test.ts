@@ -15,6 +15,7 @@ import prettier from 'prettier';
 import type { FullSettings, MigrationData } from './types.js';
 import type { DatabaseSchema } from '$lib/api/types.js';
 import type { GENERATED_CODE_FILENAMES } from './constants.js';
+import { connect } from '@planetscale/database';
 const testFullSettings: FullSettings = {
   databaseUrl: '',
   databaseUrlKey: '',
@@ -23,7 +24,8 @@ const testFullSettings: FullSettings = {
   schemaDirectory: 'schema',
   jsonTypeImports: [],
   typeBigIntAsString: true,
-  typeTinyIntOneAsBoolean: true
+  typeTinyIntOneAsBoolean: true,
+  connection: connect({url: 'a'})
 };
 const testSchema: DatabaseSchema = {
   databaseName: 'foo',

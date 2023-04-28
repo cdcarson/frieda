@@ -11,11 +11,11 @@ import type {
   RcSettings
 } from './types.js';
 import {
-  CURRENT_MIGRATION_SQL_FILE_NAME,
   CURRENT_SCHEMA_JSON_FILE_NAME,
   CURRENT_SCHEMA_SQL_FILE_NAME,
   FRIEDA_RC_FILE_NAME,
   GENERATED_CODE_FILENAMES,
+  HISTORY_DIRECTORY_NAME,
   MIGRATIONS_DIRECTORY_NAME
 } from './constants.js';
 import type { DatabaseSchema } from '$lib/api/types.js';
@@ -152,7 +152,7 @@ export const writeMigrationFiles = async (
   const { absolutePath, relativePath } = getFileSystemPaths(
     join(
       settings.schemaDirectory,
-      MIGRATIONS_DIRECTORY_NAME,
+      HISTORY_DIRECTORY_NAME,
       data.date.toISOString()
     )
   );
@@ -233,56 +233,22 @@ const prettifyAndWriteFile = async (
   return await writeFile(relPath, prettified);
 };
 
-export const readCurrentMigrationSql = async (
-  settings: FullSettings
-): Promise<FileResult> => {
-  const relPath = join(
-    settings.schemaDirectory,
-    CURRENT_MIGRATION_SQL_FILE_NAME
-  );
-  const { absolutePath } = getFileSystemPaths(relPath);
-  await fs.ensureFile(absolutePath);
-  const result = await getFileResult(relPath);
-  return result;
-};
 
-export const writeCurrentMigrationSql = async (
-  settings: FullSettings,
-  sql: string
-): Promise<FileSystemPaths> => {
-  const relPath = join(
-    settings.schemaDirectory,
-    CURRENT_MIGRATION_SQL_FILE_NAME
-  );
-  const { absolutePath } = getFileSystemPaths(relPath);
-  await fs.ensureFile(absolutePath);
-  const result = await writeFile(absolutePath, sql);
-  return result;
-};
 
-export const clearCurrentMigrationSql = async (
-  settings: FullSettings
-): Promise<FileResult> => {
-  const relPath = join(
-    settings.schemaDirectory,
-    CURRENT_MIGRATION_SQL_FILE_NAME
-  );
-  const { absolutePath } = getFileSystemPaths(relPath);
-  await fs.writeFile(absolutePath, '');
-  const result = await getFileResult(relPath);
-  return result;
-};
 
-export const getMigrationFilePath = (
+
+
+
+export const getWorkingMigrationFilePath = (
   settings: FullSettings,
   fileName: string
 ): FileSystemPaths => {
   return getFileSystemPaths(
-    join(settings.schemaDirectory, 'working-migrations', fileName)
+    join(settings.schemaDirectory, MIGRATIONS_DIRECTORY_NAME, fileName)
   );
 };
 
-export const writeWorkingMigrationsFile = async (
+export const writeWorkingMigrationFile = async (
   paths: FileSystemPaths,
   sql: string
 ): Promise<FileSystemPaths> => {
@@ -290,7 +256,7 @@ export const writeWorkingMigrationsFile = async (
   return await writeFile(paths.relativePath, sql);
 };
 
-export const deleteWorkingMigrationsFile = async (
+export const deleteWorkingMigrationFile = async (
   paths: FileSystemPaths
 ): Promise<void> => {
   return await fs.remove(paths.absolutePath)

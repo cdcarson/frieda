@@ -7,7 +7,7 @@ import { cmdMigrate } from './cmd-migrate.js';
 import { generateCmd } from './cmd-generate.js';
 import { cancel, log, intro, outro } from '@clack/prompts';
 import {  fmtPath, squishWords } from './utils.js';
-import { CURRENT_MIGRATION_SQL_FILE_NAME, FRIEDA_RC_FILE_NAME, MIGRATIONS_DIRECTORY_NAME } from './constants.js';
+import {  FRIEDA_RC_FILE_NAME, HISTORY_DIRECTORY_NAME } from './constants.js';
 import { CliError } from './errors.js';
 import { cmdModifyField } from './cmd-modify-field.js';
 import { cmdAddField } from './cmd-add-field.js';
@@ -125,14 +125,13 @@ export const main = async () => {
       alias: 'm',
       shortDesc: 'Run the current migration.',
       longDesc: `
-      After confirmation, runs the SQL in ${colors.dim('<schemaDirectory>/')}${colors.cyan(CURRENT_MIGRATION_SQL_FILE_NAME)}.
+      After confirmation, runs the SQL in ${colors.dim('<file>')}.
       If the migration is successful, the old schema, the migration itself and the new schema are saved to
-      a new ${colors.dim('<schemaDirectory>/')}${colors.cyan(MIGRATIONS_DIRECTORY_NAME)}${colors.dim('/<iso-date-string>')} folder,
-       and code is regenerated 
-      from the new schema. The contents of ${colors.cyan(CURRENT_MIGRATION_SQL_FILE_NAME)} will be cleared.
+      a new ${colors.dim('<schemaDirectory>/')}${colors.cyan(HISTORY_DIRECTORY_NAME)}${colors.dim('/<iso-date-string>')} folder,
+       and code is regenerated from the new schema. 
 
       If the migration fails, you will be prompted to try again (reloading whatever changes you have made
-        to ${colors.cyan(CURRENT_MIGRATION_SQL_FILE_NAME)})
+        to ${colors.dim('<file>')}
       or just bail.
       `,
       options: [],

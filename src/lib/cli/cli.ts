@@ -13,22 +13,19 @@ import type {
 } from '$lib/api/types.js';
 import { fetchSchemaFromDatabase } from './schema.js';
 import {
-  CURRENT_MIGRATION_SQL_FILE_NAME,
+  
   FRIEDA_RC_FILE_NAME
 } from './constants.js';
 import { select } from '@clack/prompts';
 import { getCode } from './get-code.js';
 import {
-  clearCurrentMigrationSql,
-  deleteWorkingMigrationsFile,
-  getMigrationFilePath,
-  readCurrentMigrationSql,
+  deleteWorkingMigrationFile,
+  getWorkingMigrationFilePath,
   readCurrentSchemaJson,
-  writeCurrentMigrationSql,
   writeCurrentSchemaFiles,
   writeGeneratedCode,
   writeMigrationFiles,
-  writeWorkingMigrationsFile
+  writeWorkingMigrationFile
 } from './file-system.js';
 import {
   Mysql2QueryError,
@@ -398,7 +395,7 @@ export const cliAfterMigration = async (
       message: `Remove migration file ${fmtPath(migration.file.relativePath)}?`
     });
     if (remove === true) {
-      await deleteWorkingMigrationsFile(migration.file);
+      await deleteWorkingMigrationFile(migration.file);
       logs.push(`${fmtPath(migration.file.relativePath)} removed.`);
     }
   }
@@ -427,12 +424,12 @@ export const cliCreateOrUpdatePendingMigrationFile = async (
       return cancelAndExit();
     }
     const filename = _.kebabCase(desc) + `${new Date().toISOString()}.sql`;
-    migration.file = getMigrationFilePath(settings, filename);
+    migration.file = getWorkingMigrationFilePath(settings, filename);
     migration.sql = `-- ${desc}\n\n${migration.sql}\n`;
     verb = 'Creating';
   }
   const s = wait(`${verb} migration file`);
-  await writeWorkingMigrationsFile(migration.file, migration.sql);
+  await writeWorkingMigrationFile(migration.file, migration.sql);
   s.done();
   const { relativePath } = migration.file;
 
