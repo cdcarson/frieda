@@ -3,15 +3,17 @@ import type {
   DatabaseSchema,
   DatabaseColumnRow,
   DatabaseTableIndexInfo,
-  DatabaseTableInfo
+  DatabaseTableInfo,
+  ModelDefinition
 } from '$lib/api/types.js';
 import sql from 'sql-template-tag';
 import { bt } from '$lib/api/sql-utils.js';
-import type { FullSettings } from './types';
+import type { FullSettings } from './types.js';
+import { parseModelDefinition } from './parse.js';
 
 export const fetchSchemaFromDatabase = async (
   settings: FullSettings
-): Promise<DatabaseSchema> => {
+): Promise<{ schema: DatabaseSchema; models: ModelDefinition[] }> => {
   const { connection } = settings;
   type FetchTableNamesResult = { databaseName: string; tableNames: string[] };
   const fetchTableNames = async (): Promise<FetchTableNamesResult> => {
@@ -34,6 +36,7 @@ export const fetchSchemaFromDatabase = async (
       const tableName: string = row[k0];
       result.tableNames.push(tableName);
     });
+    
     return result;
   };
 
@@ -77,9 +80,12 @@ export const fetchSchemaFromDatabase = async (
     tableNames.map((name) => fetchTableInfo(name))
   );
   return {
-    databaseName,
-    tableNames,
-    tables,
-    fetched: new Date()
+    schema:  {
+      databaseName,
+      tableNames,
+      tables,
+      fetched: new Date()
+    },
+    models: tables.map((t) => parseModelDefinition(t, settings))
   };
 };

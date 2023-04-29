@@ -195,7 +195,6 @@ export const promptOutputDirectory = async (
 
   while (result === null) {
     promptedValue = await prompt(promptedValue);
-    console.log(promptedValue)
     let s = wait(`Checking directory path`);
     try {
       result = await validateOutputDirectory(promptedValue, key);
@@ -205,7 +204,7 @@ export const promptOutputDirectory = async (
       log.error((error as Error).message);
     }
   }
-  if (result.exists && !result.isEmpty) {
+  if (result.exists && !result.isEmpty && result.relativePath !== rcSettings[key]) {
     const goAhead = await confirm({
       message: `The directory ${fmtPath(
         result.relativePath

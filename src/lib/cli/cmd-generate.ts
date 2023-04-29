@@ -15,8 +15,7 @@ import { writeGeneratedCode } from './file-system.js';
 
 export const generateCmd = async () => {
   const settings = await cliGetSettings();
-  let schema: DatabaseSchema;
-  schema = await cliFetchSchema(settings);
-  const models = schema.tables.map((t) => parseModelDefinition(t, settings));
+  
+  const {models} = await cliFetchSchema(settings);
   await cliGenerateCode(models, settings)
 };

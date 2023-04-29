@@ -15,6 +15,7 @@ import { select } from '@clack/prompts';
 import { getCode } from './get-code.js';
 import {
   deleteFile,
+  getWorkingMigrationsDirectoryPath,
   readCurrentSchemaJson,
   writeCurrentSchemaFiles,
   writeGeneratedCode,
@@ -102,18 +103,15 @@ export const cliFetchSchema = async (
   waitMessage = waitMessage || `Fetching schema from database`;
   const s = wait(waitMessage);
   try {
-    const schema = await fetchSchemaFromDatabase(settings);
-    const results = await writeCurrentSchemaFiles(settings, schema);
+    const result = await fetchSchemaFromDatabase(settings);
+    const results = await writeCurrentSchemaFiles(settings, result.schema);
     s.done();
     log.success(
       ['Files:', ...results.map((f) => ` - ${fmtPath(f.relativePath)}`)].join(
         '\n'
       )
     );
-    return {
-      schema,
-      models: schema.tables.map((t) => parseModelDefinition(t, settings))
-    };
+    return result;
   } catch (error) {
     s.error();
     if (error instanceof Error) {
@@ -202,7 +200,7 @@ export const promptModel = async (
     }
     return selected;
   };
-  const filterStr = search || '';
+  const filterStr = (search || '').toLowerCase();
   const matched =
     filterStr.length > 0
       ? models.filter(
@@ -262,7 +260,7 @@ export const promptField = async (
     }
     return selected;
   };
-  const filterStr = search || '';
+  const filterStr = (search || '').toLowerCase();
   const matched =
     filterStr.length > 0
       ? model.fields.filter(
@@ -326,11 +324,11 @@ export const cliPromptRunMigration = async (
   }
   if ('edit' === action) {
     migration.sql = edit(migration.sql);
-    cliPromptRunMigration(settings, migration);
+    await cliPromptRunMigration(settings, migration);
     return;
   }
   if ('save' === action) {
-    cliCreateOrUpdatePendingMigrationFile(settings, migration);
+    await cliCreateOrUpdatePendingMigrationFile(settings, migration);
     return;
   }
   const s = wait('Running migration');
@@ -364,7 +362,7 @@ export const cliAfterMigration = async (
   migration: MigrationProcess
 ) => {
   const s = wait('Saving migration');
-  const { schema: schemaAfter, models } = await cliFetchSchema(settings);
+  const { schema: schemaAfter, models } = await fetchSchemaFromDatabase(settings);
   const files = await writeMigrationFiles(settings, {
     date: new Date(),
     migrationSql: migration.sql,
@@ -378,12 +376,15 @@ export const cliAfterMigration = async (
     ...files.map((f) => ` - ${fmtPath(f.relativePath)}`)
   ];
   if (migration.file) {
-    const remove = await confirm({
-      message: `Remove migration file ${fmtPath(migration.file.relativePath)}?`
-    });
-    if (remove === true) {
+    const remove = migration.file.absolutePath.startsWith(
+      getWorkingMigrationsDirectoryPath(settings).absolutePath
+    );
+
+    if (remove) {
+      const s1 = wait('Removing executed migration file');
       await deleteFile(migration.file);
-      logs.push(`${fmtPath(migration.file.relativePath)} removed.`);
+      s1.done();
+      logs.push(` - removed ${fmtPath(migration.file.relativePath)}`);
     }
   }
   log.success(logs.join('\n'));
@@ -396,8 +397,7 @@ export const cliCreateOrUpdatePendingMigrationFile = async (
 ) => {
   let verb = 'Saving';
   if (!migration.file) {
-    
-    migration.sql = `-- Edit this migration. Then run \`frieda m <file>\`.\n\n${migration.sql}\n`;
+    migration.sql = `${migration.sql}\n`;
     verb = 'Creating';
   }
   const s = wait(`${verb} migration file`);
@@ -408,7 +408,9 @@ export const cliCreateOrUpdatePendingMigrationFile = async (
     [
       `Migration file:`,
       fmtPath(relativePath),
-      squishWords(`Tweak this file in your favorite editor. Then run the migration:`),
+      squishWords(
+        `Tweak this file in your favorite editor. Then run the migration:`
+      ),
       colors.italic(`frieda m ${relativePath}`)
     ].join('\n')
   );

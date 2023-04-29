@@ -26,17 +26,19 @@ import { edit } from 'external-editor';
 export const cmdModifyField = async (rawArgs: string[]) => {
   const settings = await cliGetSettings();
   const { schema, models } = await cliFetchSchema(settings);
-  const args = parser(rawArgs, {
-    alias: { model: ['m'], field: ['f'] },
-    string: ['model', 'field']
-  });
+  const [argModel, argField] = (rawArgs[0] || '').split('.');
+  log.info(rawArgs[0])
+  log.info(argModel)
+  log.info(argField)
+
+ 
   const model = await promptModel(
     models,
-    typeof args.model === 'string' ? args.model : ''
+    typeof argModel === 'string' ? argModel : ''
   );
   const field = await promptField(
     model,
-    typeof args.field === 'string' ? args.field : ''
+    typeof argField === 'string' ? argField : ''
   );
 
   const colDef = getFieldColumnDefinitionSql(schema, model, field);
@@ -109,14 +111,14 @@ export const cmdModifyField = async (rawArgs: string[]) => {
     return cancelAndExit();
   }
   if ('edit' === action) {
-    cliPromptRunMigration(settings, {
+    await cliPromptRunMigration(settings, {
       sql: edit(sql),
       schemaBefore: schema
     });
     return;
   }
   if ('save' === action) {
-    cliCreateOrUpdatePendingMigrationFile(settings, {
+    await cliCreateOrUpdatePendingMigrationFile(settings, {
       sql,
       schemaBefore: schema
     });

@@ -12,6 +12,7 @@ import { CliError } from './errors.js';
 import { cmdModifyField } from './cmd-modify-field.js';
 import { cmdAddField } from './cmd-add-field.js';
 import { cmdDropField } from './cmd-drop-field.js';
+import { cmdDropModels } from './cmd-drop-models.js';
 type Command = {
   name: string;
   usage: string;
@@ -59,6 +60,20 @@ export const main = async () => {
        
       ],
       cmd: cmdAddField
+    },
+    {
+      name: 'drop-models',
+      alias: 'dm',
+      usage: 'frieda drop-models [options]',
+      shortDesc: 'Drop all models.',
+      longDesc: `
+        Create and run sql to drop all of your models.
+      `,
+      options: [
+       
+       
+      ],
+      cmd: cmdDropModels
     },
     {
       name: 'modify-field',

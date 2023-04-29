@@ -160,7 +160,7 @@ export const writeMigrationFiles = async (
     )
   );
   const beforeSchema = getSchemaFileContents(data.schemaBefore);
-  const migration = `- migration on ${data.date.toUTCString()}\n\n${
+  const migration = `-- migration on ${data.date.toUTCString()}\n\n${
     data.migrationSql
   }`;
   const afterSchema = getSchemaFileContents(data.schemaAfter);
