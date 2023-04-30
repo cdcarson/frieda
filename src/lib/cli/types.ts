@@ -3,17 +3,11 @@ import type { Connection } from '@planetscale/database';
 import type fs from 'fs-extra';
 export type RcSettings = {
   /**
-   * The path to the directory where we keep
-   * the current schema, the current migration,
-   * and migration history.
+   * Where Frieda will write schema files and generated code.
    */
-  schemaDirectory: string;
+  outputDirectory: string;
 
-  /**
-   * The path to where we place generated code.
-   */
-  generatedCodeDirectory: string;
-
+  
   /**
    * An array of userland import statements
    * providing types relied upon by the models.
@@ -51,39 +45,40 @@ export type FullSettings = Omit<Required<RcSettings>, 'envFilePath'> & {
   envFilePath: string;
   connection: Connection
 };
-export type ValidateEnvFilePathResult = Pick<
+export type EnvFileDatabaseUrl = Pick<
   FullSettings,
   'databaseUrl' | 'databaseUrlKey' | 'envFilePath'
 >;
 
-export type FileSystemPaths = {
+export type FsPaths = {
   inputPath: string;
   cwd: string;
   absolutePath: string;
   relativePath: string;
+  dirname: string;
+  basename: string;
+  extname: string;
   isUnderCwd: boolean;
 };
 
-export type FileSystemResult = FileSystemPaths & {
-  exists: boolean;
-  stat: fs.Stats | null;
-  isDirectory: boolean;
+
+
+export type FileResult = FsPaths & {
+  exists:boolean;
   isFile: boolean;
-};
-
-export type FileResult = FileSystemResult & {
-
   contents?: string;
 };
 
-export type DirectoryResult = FileSystemResult & {
+export type DirectoryResult = FsPaths & {
+  exists:boolean;
+  isDirectory: boolean;
   isEmpty: boolean;
 };
 
 export type MigrationProcess = {
   sql: string;
   schemaBefore: DatabaseSchema;
-  file?: FileSystemPaths
+  file?: FsPaths
 }
 
 export type MigrationData = {
@@ -92,4 +87,3 @@ export type MigrationData = {
   schemaAfter: DatabaseSchema;
   date: Date;
 }
-

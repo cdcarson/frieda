@@ -13,6 +13,8 @@ import { cmdModifyField } from './cmd-modify-field.js';
 import { cmdAddField } from './cmd-add-field.js';
 import { cmdDropField } from './cmd-drop-field.js';
 import { cmdDropModels } from './cmd-drop-models.js';
+import { cmdField } from './cmd-field.js';
+import { getSettings } from './settings/get-settings.js';
 type Command = {
   name: string;
   usage: string;
@@ -27,6 +29,11 @@ type Command = {
   cmd: (args: string[]) => Promise<void>
 };
 export const main = async () => {
+  const settings = await getSettings(process.argv.slice(2));
+  console.log(settings)
+  // await cmdField(process.argv.slice(2))
+}
+export const mainx = async () => {
   const commands: Command[] = [
     {
       name: 'generate',

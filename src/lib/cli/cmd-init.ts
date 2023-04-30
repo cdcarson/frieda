@@ -18,7 +18,7 @@ import {
   validateOutputDirectory
 } from './settings.js';
 import type {
-  ValidateEnvFilePathResult,
+  EnvFileDatabaseUrl,
   RcSettings,
   DirectoryResult
 } from './types.js';
@@ -58,8 +58,8 @@ export const initCmd = async () => {
 
 export const promptEnvFile = async (
   rcSettings: Partial<RcSettings>
-): Promise<ValidateEnvFilePathResult> => {
-  let result: ValidateEnvFilePathResult | null = null;
+): Promise<EnvFileDatabaseUrl> => {
+  let result: EnvFileDatabaseUrl | null = null;
   let promptedValue =
     typeof rcSettings.envFilePath === 'string'
       ? rcSettings.envFilePath

@@ -3,7 +3,7 @@ import prettier from 'prettier';
 import { resolve, relative, join, basename } from 'path';
 import { customAlphabet } from 'nanoid';
 import type {
-  FileSystemPaths,
+  FsPaths,
   FileSystemResult,
   FileResult,
   DirectoryResult,
@@ -24,7 +24,7 @@ import type { DatabaseSchema } from '$lib/api/types.js';
 import { isPlainObject } from './utils.js';
 import glob from 'tiny-glob';
 
-export const getFileSystemPaths = (inputPath: string): FileSystemPaths => {
+export const getFileSystemPaths = (inputPath: string): FsPaths => {
   const cwd = process.cwd();
   const absolutePath = stripTrailingSlash(resolve(cwd, inputPath));
   const relativePath = relative(cwd, absolutePath);
@@ -95,7 +95,7 @@ export const writeGeneratedCode = async (
   code: {
     [K in keyof typeof GENERATED_CODE_FILENAMES]: string;
   }
-): Promise<FileSystemPaths[]> => {
+): Promise<FsPaths[]> => {
   const orderedKeys: (keyof typeof GENERATED_CODE_FILENAMES)[] = [
     'schemaCast',
     'modelDefinitions',
@@ -118,7 +118,7 @@ export const writeGeneratedCode = async (
 export const writeCurrentSchemaFiles = async (
   settings: FullSettings,
   schema: DatabaseSchema
-): Promise<FileSystemPaths[]> => {
+): Promise<FsPaths[]> => {
   await fs.ensureDir(getFileSystemPaths(settings.schemaDirectory).absolutePath);
   return await Promise.all([
     writeFile(
@@ -151,7 +151,7 @@ const getSchemaFileContents = (schema: DatabaseSchema): string => {
 export const writeMigrationFiles = async (
   settings: FullSettings,
   data: MigrationData
-): Promise<FileSystemPaths[]> => {
+): Promise<FsPaths[]> => {
   const { absolutePath, relativePath } = getFileSystemPaths(
     join(
       settings.schemaDirectory,
@@ -194,7 +194,7 @@ export const readFriedaRc = async (): Promise<{
 export const saveFriedaRc = async (
   settings: Partial<RcSettings>
 ): Promise<{
-  paths: FileSystemPaths;
+  paths: FsPaths;
   settings: Partial<RcSettings>;
 }> => {
   const { settings: prev, file } = await readFriedaRc();
@@ -213,18 +213,18 @@ export const saveFriedaRc = async (
 const writeFile = async (
   relPath: string,
   contents: string
-): Promise<FileSystemPaths> => {
+): Promise<FsPaths> => {
   const paths = getFileSystemPaths(relPath);
   await fs.ensureFile(paths.absolutePath)
   await fs.writeFile(paths.absolutePath, contents);
   return paths;
 };
 
-const prettifyAndWriteFile = async (
+export const prettifyAndWriteFile = async (
   relPath: string,
   contents: string,
   prettifyExt?: string
-): Promise<FileSystemPaths> => {
+): Promise<FsPaths> => {
   const paths = getFileSystemPaths(relPath);
   const pathForPretty = prettifyExt
     ? `${paths.absolutePath}.${prettifyExt}`
@@ -239,7 +239,7 @@ const prettifyAndWriteFile = async (
 
 export const getWorkingMigrationsDirectoryPath = (
   settings: FullSettings
-): FileSystemPaths => {
+): FsPaths => {
   return getFileSystemPaths(
     join(settings.schemaDirectory, MIGRATIONS_DIRECTORY_NAME)
   );
@@ -256,7 +256,7 @@ export const globWorkingMigrations = async (
 export const writeWorkingMigrationFile = async (
   settings: FullSettings,
   migration: MigrationProcess
-): Promise<FileSystemPaths> => {
+): Promise<FsPaths> => {
   const dirPath = getWorkingMigrationsDirectoryPath(settings);
   const getUniqueFileName = async (): Promise<string> => {
     const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz');
@@ -282,7 +282,7 @@ export const writeWorkingMigrationFile = async (
 
 
 export const deleteFile = async (
-  paths: FileSystemPaths
+  paths: FsPaths
 ): Promise<void> => {
   return await fs.remove(paths.absolutePath);
 };

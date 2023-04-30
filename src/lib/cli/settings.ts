@@ -5,7 +5,7 @@ import type {
   DirectoryResult,
   FullSettings,
   RcSettings,
-  ValidateEnvFilePathResult
+  EnvFileDatabaseUrl
 } from './types.js';
 import {
   fmtPath,
@@ -144,7 +144,7 @@ export const getSettingHelpStr = (
 
 export const validateEnvFilePath = async (
   envFilePath: string
-): Promise<ValidateEnvFilePathResult> => {
+): Promise<EnvFileDatabaseUrl> => {
   const fileResult = await getFileResult(envFilePath);
   if (!fileResult.exists) {
     throw new RcSettingsError(
@@ -164,7 +164,7 @@ export const validateEnvFilePath = async (
   const foundKeys = ENV_DB_URL_KEYS.filter(
     (k) => envKeys.includes(k) && env[k].length > 0
   );
-  const validResults: ValidateEnvFilePathResult[] = foundKeys
+  const validResults: EnvFileDatabaseUrl[] = foundKeys
     .filter((k) => isValidDatabaseURL(env[k]))
     .map((k) => {
       return {
@@ -196,21 +196,9 @@ export const validateEnvFilePath = async (
 export const checkDatabaseUrlConnection = async (
   databaseUrl: string
 ): Promise<string> => {
-  try {
-    const conn = getServerlessConnection(databaseUrl);
+  const conn = getServerlessConnection(databaseUrl);
     await conn.execute('SELECT 1 as `foo`');
     return databaseUrl;
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new RcSettingsError(
-        'envFilePath',
-        `Could not connect with the URL ${maskDatabaseURLPassword(
-          databaseUrl
-        )}  The server said ${colors.gray(error.message)}`
-      );
-    }
-    throw error;
-  }
 };
 
 export const isValidDatabaseURL = (urlStr: unknown): boolean => {

@@ -28,6 +28,13 @@ export const wait = (msg: string, show = true): WaitSpinner => {
  
 };
 
+export const onPromptCancel = () => {
+  console.log();
+  console.log('Process cancelled');
+  process.exit(0);
+};
+
+
 
 
 
@@ -37,6 +44,7 @@ export const wait = (msg: string, show = true): WaitSpinner => {
 export const fmtVarName = (name: string) => colors.magenta(name);
 export const fmtValue = (s: string) => colors.blue(s);
 export const fmtPath = (p: string) => colors.cyan(colors.underline(p));
+export const fmtErr = (p: string) => colors.italic(colors.red(p))
 export const fmtEx = (p: string) => colors.bold(p);
 
 export const getStdOutCols = (): number => {
