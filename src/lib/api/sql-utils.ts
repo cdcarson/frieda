@@ -3,7 +3,7 @@ import type {
   ModelOrderByInput,
   ModelWhereInput,
   OneBasedPagingInput
-} from './types';
+} from './types.js';
 import sql, { raw, join, Sql, empty } from 'sql-template-tag';
 
 /**

@@ -2,7 +2,7 @@
 Commands:
 
 frieda init | frieda i
-Initializes basic settings in 
+Initializes basic settings in
 
 frieda generate
 

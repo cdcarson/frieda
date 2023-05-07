@@ -3,14 +3,14 @@ import type {
   DbLoggingOptions,
   Model,
   SchemaCast
-} from './types';
+} from './types.js';
 import type {
   Connection,
   ExecutedQuery,
   Transaction
 } from '@planetscale/database';
 import type { Sql } from 'sql-template-tag';
-import { createCastFunction } from './casting';
+import { createCastFunction } from './casting.js';
 
 export abstract class AbstractDb {
   constructor(
