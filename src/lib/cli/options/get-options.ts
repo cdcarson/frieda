@@ -7,15 +7,11 @@ import { getBooleanOption } from './get-boolean-option.js';
 import { prompt } from '../ui/prompt.js';
 import {
   fmtPath,
-  fmtVal,
-  fmtVarName,
-  maskDatabaseURLPassword
 } from '../utils/formatters.js';
 import { FRIEDA_RC_FILE_NAME } from '../constants.js';
-import colors from 'kleur';
 import { prettifyAndSaveFile } from '../fs/prettify-and-save-file.js';
 import log from '../ui/log.js';
-import { Connection, connect } from '@planetscale/database';
+import {  connect } from '@planetscale/database';
 
 export const getOptions = async (
   cliArgs: Partial<CliArgs>,

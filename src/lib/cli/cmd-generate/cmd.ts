@@ -1,4 +1,3 @@
-import { connect } from '@planetscale/database';
 import { fetchSchema } from '../fetch-schema/fetch-schema.js';
 import { getOptions } from '../options/get-options.js';
 import type { CliArgs } from '../types.js';
