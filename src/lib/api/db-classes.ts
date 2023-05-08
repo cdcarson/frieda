@@ -3,85 +3,186 @@ import type {
   ExecutedQuery,
   Transaction
 } from '@planetscale/database';
-import sql, { join, raw, type Sql } from 'sql-template-tag';
 import type {
+  Column,
+  CustomModelCast,
   DbLoggingOptions,
-  FieldDefinition,
   Model,
   ModelOrderByInput,
-  ModelDefinition,
   ModelSelectColumnsInput,
   ModelWhereInput,
   OneBasedPagingInput,
-  SchemaCast
+  Schema,
+  SelectedModel,
+  Table
 } from './types.js';
+import sql, { join, raw, type Sql } from 'sql-template-tag';
+import { createCastFunction } from './create-cast-function.js';
+import {
+  getFieldCastType,
+  getFieldIsAutoIncrement,
+  getFieldIsPrimaryKey
+} from './parsers/field-parsers.js';
 import { bt, getLimitOffset, getOrderBy, getWhere } from './sql-utils.js';
-import { AbstractDb } from './abstract-db.js';
 
-export class ModelRepo<
+export class BaseDb {
+  #connOrTx: Connection | Transaction;
+  #schema: Schema;
+  #loggingOptions: DbLoggingOptions;
+  constructor(
+    conn: Connection | Transaction,
+    schema: Schema,
+    loggingOptions: DbLoggingOptions = {}
+  ) {
+    this.#connOrTx = conn;
+    this.#schema = schema;
+    this.#loggingOptions = loggingOptions;
+  }
+
+  get connOrTx(): Connection | Transaction {
+    return this.#connOrTx;
+  }
+
+  get schema(): Schema {
+    return this.#schema;
+  }
+
+  get loggingOptions(): DbLoggingOptions {
+    return this.#loggingOptions;
+  }
+
+  get performanceLogger(): (
+    executedQuery: ExecutedQuery,
+    roundTripMs: number
+  ) => void {
+    return (
+      this.loggingOptions.performanceLogger ||
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      ((_e: ExecutedQuery, _t: number) => {
+        /** noop */
+      })
+    );
+  }
+
+  get errorLogger(): (error: Error) => void {
+    return (
+      this.loggingOptions.errorLogger ||
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      ((_e: Error) => {
+        /** noop */
+      })
+    );
+  }
+
+  public async execute(
+    query: Sql,
+    customModelCast?: CustomModelCast<Model>
+  ): Promise<ExecutedQuery> {
+    try {
+      const start = Date.now();
+      const result = await this.connOrTx.execute(query.sql, query.values, {
+        as: 'object',
+        cast: createCastFunction(this.schema.cast, customModelCast)
+      });
+      // noop by default, see getter
+      this.performanceLogger(result, Date.now() - start);
+      return result;
+    } catch (error) {
+      this.errorLogger(
+        new Error('execute failed', {
+          cause: {
+            query: query,
+            originalError: error
+          }
+        })
+      );
+      throw new Error(`Internal server error.`);
+    }
+  }
+
+  public async executeSelect<M extends Model>(
+    query: Sql,
+    customModelCast?: CustomModelCast<M>
+  ): Promise<{ executedQuery: ExecutedQuery; rows: M[] }> {
+    const executedQuery = await this.execute(query, customModelCast);
+    return { executedQuery, rows: executedQuery.rows as M[] };
+  }
+}
+
+export class ModelDb<
   M extends Model,
+  ExcludedBySelectAll extends (keyof M)[],
   PrimaryKey extends { [K in keyof M]?: M[K] },
   CreateData extends { [K in keyof M]?: M[K] },
   UpdateData extends { [K in keyof M]?: M[K] },
   FindUniqueParams extends { [K in keyof M]?: M[K] }
-> extends AbstractDb {
+> extends BaseDb {
+  #table: Table;
   constructor(
-    private _def: ModelDefinition,
-    connOrTx: Connection | Transaction,
-    schemaCast: SchemaCast,
+    table: Table,
+    conn: Connection | Transaction,
+    schema: Schema,
     loggingOptions: DbLoggingOptions = {}
   ) {
-    super(connOrTx, schemaCast, loggingOptions);
+    super(conn, schema, loggingOptions);
+    this.#table = table;
   }
 
-  protected get def(): ModelDefinition {
-    return this._def;
-  }
-  protected get tableName(): string {
-    return this.def.tableName;
+  get table(): Table {
+    return this.#table;
   }
 
-  protected get fields(): FieldDefinition[] {
-    return this.def.fields;
+  get tableName(): string {
+    return this.table.name;
   }
 
-  protected get keys(): (keyof M & string)[] {
-    return this.fields.map((f) => f.fieldName);
+  get columns(): Column[] {
+    return Object.values(this.table.columns);
   }
 
-  protected get primaryKeys(): (keyof M & string)[] {
-    return this.fields.filter((f) => f.isPrimaryKey).map((f) => f.fieldName);
+  get keys(): (keyof M & string)[] {
+    return this.columns.map((col) => col.Field);
+  }
+
+  get primaryKeys(): (keyof M & string)[] {
+    return this.columns
+      .filter((col) => getFieldIsPrimaryKey(col))
+      .map((col) => col.Field);
   }
 
   protected get jsonKeys(): (keyof M & string)[] {
-    return this.fields
-      .filter((f) => f.castType === 'json')
-      .map((f) => f.fieldName);
+    return this.columns
+      .filter(
+        (col) => getFieldCastType(col, this.schema.typeOptions) === 'json'
+      )
+      .map((col) => col.Field);
   }
 
   protected get setKeys(): (keyof M & string)[] {
-    return this.fields
-      .filter((f) => f.castType === 'set')
-      .map((f) => f.fieldName);
+    return this.columns
+      .filter((col) => getFieldCastType(col, this.schema.typeOptions) === 'set')
+      .map((col) => col.Field);
   }
 
   protected get autoIncrementingPrimaryKey(): (keyof M & string) | null {
-    const f = this.fields.find((f) => f.isPrimaryKey && f.isAutoIncrement);
-    return f ? f.fieldName : null;
+    const col = this.columns.find(
+      (col) => getFieldIsPrimaryKey(col) && getFieldIsAutoIncrement(col)
+    );
+    return col ? col.Field : null;
   }
 
-  async findMany(input: {
+  async findMany<S extends ModelSelectColumnsInput<M> = undefined>(input: {
     where?: ModelWhereInput<M>;
     paging?: OneBasedPagingInput;
     orderBy?: ModelOrderByInput<M>;
-    select?: ModelSelectColumnsInput<M>;
-  }): Promise<M[]> {
+    select?: S;
+  }): Promise<SelectedModel<M, ExcludedBySelectAll, S>[]> {
     const where = getWhere(input.where, this.tableName);
     const orderBy = getOrderBy(input.orderBy, this.tableName);
     const limit = getLimitOffset(input.paging);
     const select =
       Array.isArray(input.select) && input.select.length > 0
-        ? input.select.map((k) => bt(this.tableName, k))
+        ? input.select.map((fieldName) => bt(this.tableName, fieldName))
         : raw('*');
     const query = sql`
         SELECT
@@ -91,15 +192,17 @@ export class ModelRepo<
         ${where} 
         ${orderBy} 
         ${limit}`;
-    const { rows } = await this.executeSelect<M>(query);
+    const { rows } = await this.executeSelect<
+      SelectedModel<M, ExcludedBySelectAll, S>
+    >(query);
     return rows;
   }
 
-  async findFirst(input: {
+  async findFirst<S extends ModelSelectColumnsInput<M> = undefined>(input: {
     where: Partial<M> | Sql;
     orderBy?: ModelOrderByInput<M> | Sql;
-    select?: ModelSelectColumnsInput<M>;
-  }): Promise<M | null> {
+    select?: S;
+  }): Promise<SelectedModel<M, ExcludedBySelectAll, S> | null> {
     const rows = await this.findMany({
       ...input,
       paging: { page: 1, rpp: 1 }
@@ -107,27 +210,31 @@ export class ModelRepo<
     return rows[0] || null;
   }
 
-  async findFirstOrThrow(input: {
+  async findFirstOrThrow<
+    S extends ModelSelectColumnsInput<M> = undefined
+  >(input: {
     where: Partial<M> | Sql;
     orderBy?: ModelOrderByInput<M>;
-    select?: ModelSelectColumnsInput<M>;
-  }): Promise<M> {
+    select?: S;
+  }): Promise<SelectedModel<M, ExcludedBySelectAll, S>> {
     const result = await this.findFirst(input);
     if (!result) {
       throw new Error('findFirstOrThrow failed to find a record.');
     }
     return result;
   }
-  async findUnique(input: {
+  async findUnique<S extends ModelSelectColumnsInput<M> = undefined>(input: {
     where: FindUniqueParams;
-    select?: ModelSelectColumnsInput<M>;
-  }): Promise<M | null> {
+    select?: S;
+  }): Promise<SelectedModel<M, ExcludedBySelectAll, S> | null> {
     return await this.findFirst(input);
   }
-  async findUniqueOrThrow(input: {
+  async findUniqueOrThrow<
+    S extends ModelSelectColumnsInput<M> = undefined
+  >(input: {
     where: FindUniqueParams;
-    select?: ModelSelectColumnsInput<M>;
-  }): Promise<M> {
+    select?: S;
+  }): Promise<SelectedModel<M, ExcludedBySelectAll, S>> {
     return await this.findFirstOrThrow(input);
   }
   async countBigInt(input: { where: ModelWhereInput<M> }): Promise<bigint> {

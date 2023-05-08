@@ -4,6 +4,9 @@ dependencies:
   '@planetscale/database':
     specifier: ^1.7.0
     version: 1.7.0
+  camelcase:
+    specifier: ^7.0.1
+    version: 7.0.1
   dotenv:
     specifier: ^16.0.3
     version: 16.0.3
@@ -13,9 +16,6 @@ dependencies:
   kleur:
     specifier: ^4.1.5
     version: 4.1.5
-  lodash:
-    specifier: ^4.17.21
-    version: 4.17.21
   ora:
     specifier: ^6.3.0
     version: 6.3.0
@@ -48,9 +48,6 @@ devDependencies:
   '@types/fs-extra':
     specifier: ^11.0.1
     version: 11.0.1
-  '@types/lodash':
-    specifier: ^4.14.194
-    version: 4.14.194
   '@types/prettier':
     specifier: ^2.7.2
     version: 2.7.2
@@ -60,9 +57,6 @@ devDependencies:
   '@types/yargs':
     specifier: ^17.0.24
     version: 17.0.24
-  '@types/yargs-parser':
-    specifier: ^21.0.0
-    version: 21.0.0
   '@typescript-eslint/eslint-plugin':
     specifier: ^5.59.2
     version: 5.59.2(@typescript-eslint/parser@5.59.2)(eslint@8.40.0)(typescript@5.0.4)
@@ -528,10 +522,6 @@ packages:
       '@types/node': 20.1.0
     dev: true
 
-  /@types/lodash@4.14.194:
-    resolution: {integrity: sha512-r22s9tAS7imvBt2lyHC9B8AGwWnXaYb1tY09oyLkXDs4vArpYJzw09nj8MLx5VfciBPGIb+ZwG0ssYnEPJxn/g==}
-    dev: true
-
   /@types/node@20.1.0:
     resolution: {integrity: sha512-O+z53uwx64xY7D6roOi4+jApDGFg0qn6WHcxe5QeqjMaTezBO/mxdfFXIVAVVyNWKx84OmPB3L8kbVYOTeN34A==}
     dev: true
@@ -905,6 +895,11 @@ packages:
     resolution: {integrity: sha512-P8BjAsXvZS+VIDUI11hHCQEv74YT67YUi5JJFNWIqL235sBmjX4+qx9Muvls5ivyNENctx46xQLQ3aTuE7ssaQ==}
     engines: {node: '>=6'}
     dev: true
+
+  /camelcase@7.0.1:
+    resolution: {integrity: sha512-xlx1yCK2Oc1APsPXDL2LdlNP6+uu8OCDdhOBSVT279M/S+y75O30C2VuD8T2ogdePBBl7PfPF4504tnLgX3zfw==}
+    engines: {node: '>=14.16'}
+    dev: false
 
   /chai@4.3.7:
     resolution: {integrity: sha512-HLnAzZ2iupm25PlN0xFreAlBA5zaBSv3og0DdeGA4Ar6h6rJ3A0rolRUKJhSF2V10GZKDgWF/VmAEsNWjCRB+A==}
@@ -1667,6 +1662,7 @@ packages:
 
   /lodash@4.17.21:
     resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
+    dev: true
 
   /log-symbols@5.1.0:
     resolution: {integrity: sha512-l0x2DvrW294C9uDCoQe1VSU4gf529FkSZ6leBl4TiqZH/e+0R7hSfHQBNut2mNygDgHwvYHfFLn6Oxb3VWj2rA==}

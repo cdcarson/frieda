@@ -1,13 +1,13 @@
 import type { Connection } from '@planetscale/database';
-import type { DatabaseShowIndexesRow } from '../types.js';
+import type { Index } from '../../api/types.js';
 import sql from 'sql-template-tag';
 import { bt } from '$lib/index.js';
 
 export const fetchTableIndexes = async (
   connection: Connection,
   tableName: string
-): Promise<DatabaseShowIndexesRow[]> => {
+): Promise<Index[]> => {
   const query = sql`SHOW INDEXES FROM ${bt(tableName)};`;
   const result = await connection.execute(query.sql);
-  return result.rows as DatabaseShowIndexesRow[];
+  return result.rows as Index[];
 };

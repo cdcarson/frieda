@@ -1,11 +1,52 @@
 import type { Sql } from 'sql-template-tag';
-import type { KNOWN_MYSQL_TYPES } from './constants.js';
 import type { ExecutedQuery } from '@planetscale/database';
-
+// https://www.typescriptlang.org/play?#code/C4TwDgpgBAsg9gEwgGygXigJQgYzgJwQB4BnYfASwDsBzAGigFcqBrKuAdyoD4BuAKH6hIsRCgDKKXMApwqRGFAgAPYBCoISopMm7ooAChYQQcAGawAlAG0AulAA+TDRDPUICAUPDQAospxkRiQEADF8OABbSWRpAEFkZAUlVXVNbRQ9DCMTc1goADIoMkpaG1tBYWgY6Q9QihRNIn4ofJU1DS14HToWqF8UjvT-QOC6iOipHGAEpJhuXtbxQbSusWQa6dl5ef1mJDcqD34sqGX21cNjUwsYcqgAfigAbyhrAGkoajPrKkZIgBGEHwtlsAC5YB97ABfKAQgDykQowAUDF8v3+QJBei8VSgABUIGR9M8+gBDCElag0AStAGU8jU2lQHAQv6A4HMhAQgAiZLUAmhuJ8ZymagQhOJGE24vqjRIRElwAY1gA5GTVQxVQhVbY+PwgA
 /**
  * The base type for models
  */
 export type Model = Record<string, unknown>;
+
+/**
+ * The database types we handle typing for. Other types are allowed,
+ * but they will be typed as javascript string.
+ */
+export const MYSQL_TYPES = [
+  'bigint',
+  'tinyint',
+  'bool',
+  'boolean',
+  'smallint',
+  'mediumint',
+  'int',
+  'integer',
+  'float',
+  'double',
+  'real',
+  'decimal',
+  'numeric',
+  'bit',
+  'datetime',
+  'timestamp',
+  'date',
+  'year',
+  'time',
+  'json',
+  'enum',
+  'set',
+  'char',
+  'binary',
+  'varchar',
+  'varbinary',
+  'tinyblob',
+  'tinytext',
+  'blob',
+  'text',
+  'mediumblob',
+  'mediumtext',
+  'longblob',
+  'longtext'
+] as const;
+export type MysqlType = (typeof MYSQL_TYPES)[number];
 
 /**
  * A simplified set of casting rules. We infer this for each schema field from:
@@ -29,159 +70,85 @@ export const CAST_TYPES = [
 ] as const;
 export type CastType = (typeof CAST_TYPES)[number];
 
+export const ANNOTATIONS = ['bigint', 'enum', 'set', 'json'] as const;
+
+export type Annotation = (typeof ANNOTATIONS)[number];
+
+export type ParsedAnnotation = {
+  annotation: Annotation;
+  argument?: string;
+};
+
 export type CustomModelCast<M extends Model> = {
   [K in keyof M]?: CastType;
 };
-export type SchemaCast = {
+export type SchemaCastMap = {
   [orgTableOrgCol: string]: CastType;
 };
 
-export type FieldDefinition = {
-  /**
-   * The javascript field name (camelCase'd columnName)
-   */
-  fieldName: string;
-
-  /**
-   * DatabaseColumnRow.Field
-   * The actual database column name.
-   */
-  columnName: string;
-
-  /**
-   * DatabaseColumnRow.Type
-   * The full database type.
-   */
-  columnType: string;
-
-  /**
-   * DatabaseColumnRow.Null
-   */
-  columnNull: 'YES' | 'NO';
-
-  /**
-   * DatabaseColumnRow.Key
-   */
-  columnKey: string;
-
-  /**
-   * DatabaseColumnRow.Default
-   */
-  columnDefault: string | null;
-
-  /**
-   * DatabaseColumnRow.Extra
-   */
-  columnExtra: string;
-
-  /**
-   * DatabaseColumnRow.Comment
-   */
-  columnComment: string;
-
-  /**
-   * A normalized database type (a type string without any `(<M>)` args or `UNSIGNED` flags.)
-   * Used to simplify and debug other inferences.
-   */
-  knownMySQLType: (typeof KNOWN_MYSQL_TYPES)[number] | null;
-
-  /**
-   * How to actually cast the value, received from the database as
-   * `string|null`, into javascript, e.g. `parseInt`, `parseFloat`, etc.
-   * Note that though this is used to help infer the userland javascript
-   * type (see below) there isn't a one-one mapping.
-   */
-  castType: CastType;
-
-  /**
-   * The userland javascript field type, inferred from the cast type, the column type def,
-   * column comment type annotations and global generate settings.
-   */
-  javascriptType: string;
-
-  /**
-   * true if DatabaseColumnRow.Key is 'PRI'
-   */
-  isPrimaryKey: boolean;
-
-  /**
-   * true if DatabaseColumnRow.Extra is auto_increment
-   */
-  isAutoIncrement: boolean;
-
-  /**
-   * true if DatabaseColumnRow.Extra contains VIRTUAL GENERATED or STORED GENERATED
-   */
-  isAlwaysGenerated: boolean;
-
-  /**
-   * true if DatabaseColumnRow.Extra contains DEFAULT_GENERATED, e.g.
-   * created at or updated at columns, or some expression
-   */
-  isDefaultGenerated: boolean;
-
-  /**
-   * true if DatabaseColumnRow.Extra contains INVISIBLE
-   */
-  isInvisible: boolean;
-
-  /**
-   * True if DatabaseColumnRow.Null === 'YES'
-   */
-  isNullable: boolean;
-
-  /**
-   * true if DatabaseColumnRow.Key === 'UNI'
-   */
-  isUnique: boolean;
-
-  /**
-   * true if DatabaseColumnRow.Default is a string,
-   * or if the field is nullable and DatabaseColumnRow.Default is null
-   */
-  hasDefault: boolean;
-
-  /**
-   * true if the field is INVISIBLE, therefore undefined in the
-   * base model returned by SELECT *
-   */
-  isOmittableInModel: boolean;
-
-  /**
-   * true if the field is always generated
-   */
-  isOmittedFromCreateData: boolean;
-
-  /**
-   * true if the field is auto incremented or has a default
-   */
-  isOptionalInCreateData: boolean;
-
-  /**
-   * true if the field is a primary key or is always generated
-   */
-  isOmittedFromUpdateData: boolean;
+/**
+ * A row from a `SHOW FULL COLUMNS FROM TableName` query.
+ * see https://dev.mysql.com/doc/refman/8.0/en/show-columns.html
+ */
+export type Column<Name extends string = string> = {
+  Field: Name;
+  Type: string;
+  Null: 'YES' | 'NO';
+  Collation: string | null;
+  Key: string;
+  Default: string | null;
+  Extra: string;
+  Comment: string;
+  Privileges: string;
 };
 
-export type ModelDefinition = {
-  tableName: string;
+export type TableColumnsMap = { [name: string]: Column<typeof name> };
+/**
+ * A row from `SHOW INDEXES FROM FROM TableName`
+ */
+export type Index = {
+  Table: string;
+  Non_unique: number;
+  Key_name: string;
+  Seq_in_index: number;
+  Column_name: string | null;
+  Collation: string | null;
+  Cardinality: string;
+  Sub_part: string | null;
+  Packed: string | null;
+  Null: string;
+  Index_type: string;
+  Comment: string;
+  Index_comment: string;
+  Visible: string;
+  Expression: string | null;
+};
 
-  /**
-   * The javascript model name (PascalCase'd columnName)
-   */
-  modelName: string;
+export type Table<Name extends string = string> = {
+  name: Name;
+  columns: TableColumnsMap;
+  indexes: Index[];
+};
 
-  // Other model names...
-  modelPrimaryKeyTypeName: string;
-  modelCreateDataTypeName: string;
-  modelUpdateDataTypeName: string;
-  modelFindUniqueParamsTypeName: string;
-  modelRepoTypeName: string;
-  classRepoName: string;
-  modelDefinitionConstName: string;
+export type SchemaTablesMap = { [name: string]: Table<typeof name> };
 
-  // the model's fields
-  fields: FieldDefinition[];
+export type TypeOptions = {
+  typeTinyIntOneAsBoolean: boolean;
+  typeBigIntAsString: boolean;
+};
+
+export type Schema = {
+  databaseName: string;
+  tables: SchemaTablesMap;
+  typeOptions: TypeOptions;
+  cast: SchemaCastMap;
+};
+export type TableCreateStatement<Name extends string> = {
+  tableName: Name;
+  create: string;
+};
+export type TableCreateStatementsMap = {
+  [name: string]: TableCreateStatement<typeof name>;
 };
 
 export type DbLoggingOptions = {
@@ -195,6 +162,13 @@ export type DbLoggingOptions = {
 export type ModelSelectColumnsInput<M extends Model> =
   | (keyof M & string)[]
   | undefined;
+
+export type SelectedModel<
+  M extends Model,
+  ExcludedBySelectAll extends (keyof M)[],
+  S extends ModelSelectColumnsInput<M>,
+> = S extends (keyof M)[] ? { [K in S[number]]: M[K] } : Omit<M, ExcludedBySelectAll[number]>;
+
 
 export type ModelWhereInput<M extends Model> = Partial<M> | Sql | undefined;
 

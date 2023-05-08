@@ -5,7 +5,7 @@ import * as cmdInitMod from './cmd-init/cmd.js';
 import * as cmdModelMod from './cmd-model/cmd.js';
 import * as cmdGenMod from './cmd-generate/cmd.js';
 import * as helpMod from './ui/show-help.js';
-import * as logHeader from './ui/log-header.js'
+import * as logHeader from './ui/log-header.js';
 import { main } from './main.js';
 
 describe('main', () => {
@@ -16,7 +16,7 @@ describe('main', () => {
   let showHelpSpy: SpyInstance;
   let showHelpForCommandSpy: SpyInstance;
   beforeEach(() => {
-    vi.spyOn(logHeader, 'logHeader').mockResolvedValue()
+    vi.spyOn(logHeader, 'logHeader').mockResolvedValue();
     cmdFieldSpy = vi.spyOn(cmdFieldMod, 'cmd').mockResolvedValue();
     cmdInitSpy = vi.spyOn(cmdInitMod, 'cmd').mockResolvedValue();
     cmdModelSpy = vi.spyOn(cmdModelMod, 'cmd').mockResolvedValue();

@@ -5,13 +5,11 @@ import { getEnvFileOption } from './get-env-file-option.js';
 import { getDirectoryOption } from './get-directory-option.js';
 import { getBooleanOption } from './get-boolean-option.js';
 import { prompt } from '../ui/prompt.js';
-import {
-  fmtPath,
-} from '../utils/formatters.js';
+import { fmtPath } from '../utils/formatters.js';
 import { FRIEDA_RC_FILE_NAME } from '../constants.js';
 import { prettifyAndSaveFile } from '../fs/prettify-and-save-file.js';
 import log from '../ui/log.js';
-import {  connect } from '@planetscale/database';
+import { connect } from '@planetscale/database';
 
 export const getOptions = async (
   cliArgs: Partial<CliArgs>,
@@ -112,5 +110,8 @@ export const getOptions = async (
     }
   }
 
-  return { ...options, connection: connect({url: envFile.databaseUrl.databaseUrl}) };
+  return {
+    ...options,
+    connection: connect({ url: envFile.databaseUrl.databaseUrl })
+  };
 };

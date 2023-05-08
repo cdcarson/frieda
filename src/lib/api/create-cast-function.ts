@@ -4,11 +4,11 @@ import {
   type CastType,
   type CustomModelCast,
   type Model,
-  type SchemaCast
+  type SchemaCastMap
 } from './types.js';
 
 export const createCastFunction = <M extends Model>(
-  schemaCast: SchemaCast,
+  schemaCast: SchemaCastMap,
   customModelCast?: CustomModelCast<M>
 ): Cast => {
   const custom: CustomModelCast<M> = customModelCast || {};

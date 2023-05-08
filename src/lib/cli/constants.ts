@@ -13,6 +13,7 @@ export const SCHEMA_CAST_CONST_NAME = 'schemaCast';
 
 export const GENERATED_CODE_FILENAMES = {
   types: 'types.ts',
+  schema: 'schema.ts',
   database: 'database.ts'
 } as const;
 

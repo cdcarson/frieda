@@ -1,4 +1,4 @@
-import type { Connection } from "@planetscale/database";
+import type { Connection } from '@planetscale/database';
 
 export type FsPaths = {
   inputPath: string;
@@ -34,7 +34,7 @@ export type Options = {
 };
 
 export type OptionsWithConnection = Options & {
-  connection: Connection
+  connection: Connection;
 };
 
 export type CliArgs = Exclude<Options, 'typeImports'> & {
@@ -46,21 +46,6 @@ export type FetchTableNamesResult = {
   tableNames: string[];
 };
 
-/**
- * A row from a `SHOW FULL COLUMNS FROM TableName` query.
- * see https://dev.mysql.com/doc/refman/8.0/en/show-columns.html
- */
-export type DatabaseShowColumnsRow = {
-  Field: string;
-  Type: string;
-  Null: 'YES' | 'NO';
-  Collation: string | null;
-  Key: string;
-  Default: string | null;
-  Extra: string;
-  Comment: string;
-  Privileges: string;
-};
 /**
  * A row from `SHOW INDEXES FROM FROM TableName`
  */
@@ -89,16 +74,8 @@ export type DatabaseShowCreateTableRow = {
   'Create Table': string;
 };
 
-export type FetchedTable = {
-  name: string;
-  columns: DatabaseShowColumnsRow[];
-  indexes: DatabaseShowIndexesRow[];
-  createTableSql: string;
-};
-export type FetchedSchema = {
-  databaseName: string;
-  tables: FetchedTable[];
-};
+
+
 
 export type CliPositionalOption = {
   name: string;
