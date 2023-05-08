@@ -70,14 +70,33 @@ export const CAST_TYPES = [
 ] as const;
 export type CastType = (typeof CAST_TYPES)[number];
 
-export const ANNOTATIONS = ['bigint', 'enum', 'set', 'json'] as const;
+export type FieldDefinition = {
+  fieldName: string;
+  columnName: string;
+  castType: CastType;
+  hasDefault: boolean;
+  isAlwaysGenerated: boolean;
+  isAutoIncrement: boolean;
+  isInvisible: boolean;
+  isNullable: boolean;
+  isPrimaryKey: boolean;
+  isUnique: boolean;
+  javascriptType: string;
+  mysqlType: MysqlType|null
+}
 
-export type Annotation = (typeof ANNOTATIONS)[number];
-
-export type ParsedAnnotation = {
-  annotation: Annotation;
-  argument?: string;
+export type ModelDefinition = {
+  modelName: string;
+  tableName: string;
+  fields: FieldDefinition[];
 };
+
+export type SchemaDefinition = {
+  databaseName: string;
+  models: ModelDefinition[];
+  cast: SchemaCastMap;
+}
+
 
 export type CustomModelCast<M extends Model> = {
   [K in keyof M]?: CastType;
@@ -86,70 +105,16 @@ export type SchemaCastMap = {
   [orgTableOrgCol: string]: CastType;
 };
 
-/**
- * A row from a `SHOW FULL COLUMNS FROM TableName` query.
- * see https://dev.mysql.com/doc/refman/8.0/en/show-columns.html
- */
-export type Column<Name extends string = string> = {
-  Field: Name;
-  Type: string;
-  Null: 'YES' | 'NO';
-  Collation: string | null;
-  Key: string;
-  Default: string | null;
-  Extra: string;
-  Comment: string;
-  Privileges: string;
-};
 
-export type TableColumnsMap = { [name: string]: Column<typeof name> };
-/**
- * A row from `SHOW INDEXES FROM FROM TableName`
- */
-export type Index = {
-  Table: string;
-  Non_unique: number;
-  Key_name: string;
-  Seq_in_index: number;
-  Column_name: string | null;
-  Collation: string | null;
-  Cardinality: string;
-  Sub_part: string | null;
-  Packed: string | null;
-  Null: string;
-  Index_type: string;
-  Comment: string;
-  Index_comment: string;
-  Visible: string;
-  Expression: string | null;
-};
 
-export type Table<Name extends string = string> = {
-  name: Name;
-  columns: TableColumnsMap;
-  indexes: Index[];
-};
-
-export type SchemaTablesMap = { [name: string]: Table<typeof name> };
 
 export type TypeOptions = {
   typeTinyIntOneAsBoolean: boolean;
   typeBigIntAsString: boolean;
 };
 
-export type Schema = {
-  databaseName: string;
-  tables: SchemaTablesMap;
-  typeOptions: TypeOptions;
-  cast: SchemaCastMap;
-};
-export type TableCreateStatement<Name extends string> = {
-  tableName: Name;
-  create: string;
-};
-export type TableCreateStatementsMap = {
-  [name: string]: TableCreateStatement<typeof name>;
-};
+
+
 
 export type DbLoggingOptions = {
   performanceLogger?: (

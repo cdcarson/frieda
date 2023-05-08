@@ -9,7 +9,6 @@ export const SCHEMA_JSON_FILE_NAME = 'schema.json';
 
 export const DEFAULT_JSON_FIELD_TYPE = 'Object';
 
-export const SCHEMA_CAST_CONST_NAME = 'schemaCast';
 
 export const GENERATED_CODE_FILENAMES = {
   types: 'types.ts',

@@ -1,14 +1,14 @@
-import type { Schema } from '$lib/index.js';
 import ora from 'ora';
 import { prettifyAndSaveFile } from '../fs/prettify-and-save-file.js';
 import { getFsPaths } from '../fs/get-fs-paths.js';
 import { join } from 'node:path';
 import type { Options } from '../types.js';
 import { GENERATED_CODE_FILENAMES } from '../constants.js';
-import { getModelTypeDeclarations } from './get-model-type-declarations.js';
+import type { ModelDefinition, SchemaDefinition } from '../../api/types.js';
+import { getModelNames } from '../parse/get-model-names.js';
 export const generate = async (
-  options: Options,
-  schema: Schema
+  schema: SchemaDefinition,
+  options: Options
 ): Promise<void> => {
   const spinner = ora('Generating typescript code').start();
   const bannerComment = `
@@ -19,31 +19,110 @@ export const generate = async (
   `;
   const typesTs = getTypesTsTypescript(options, schema, bannerComment);
   const schemaTs = getSchemaTsTypescript(schema, bannerComment);
+  const databaseTs = getDatabaseTsTypescript(schema, bannerComment)
   const typesPaths = getFsPaths(
     join(options.codeDirectory, GENERATED_CODE_FILENAMES.types)
   );
   const schemaPaths = getFsPaths(
     join(options.codeDirectory, GENERATED_CODE_FILENAMES.schema)
   );
+  const databasePaths = getFsPaths(
+    join(options.codeDirectory, GENERATED_CODE_FILENAMES.database)
+  );
   await prettifyAndSaveFile(typesPaths.relativePath, typesTs, 'ts');
   await prettifyAndSaveFile(schemaPaths.relativePath, schemaTs, 'ts');
+  await prettifyAndSaveFile(databasePaths.relativePath, databaseTs, 'ts');
 
   spinner.succeed();
 };
 
-export const getSchemaTsTypescript = (
-  schema: Schema,
+const getSchemaTsTypescript = (
+  schema: SchemaDefinition,
   bannerComment: string
 ): string => {
   return `
     ${bannerComment}
-    export const schema = ${JSON.stringify(schema)};
+
+    import type { SchemaDefinition } from '@nowzoo/frieda';
+
+    export const schema: SchemaDefinition = ${JSON.stringify(schema)};
   `;
 };
 
-export const getTypesTsTypescript = (
+const getTypesForModel = (m: ModelDefinition): string => {
+  const names = getModelNames(m.tableName);
+  return `
+    /**
+     * Types for the ${m.modelName} model
+     */
+    export type ${names.modelName} = {
+      ${m.fields
+        .map((f) => {
+          return `${f.fieldName}${f.isInvisible ? '?' : ''}: ${
+            f.javascriptType
+          }${f.isNullable ? '|null' : ''};`;
+        })
+        .join('\n')}
+    }
+    export type ${names.modelOmittedBySelectAllTypeName} = [
+      ${m.fields
+        .filter((f) => f.isInvisible)
+        .map((f) => `'${f.fieldName}'`)
+        .join(',')}
+    ];
+    export type ${names.modelPrimaryKeyTypeName} = {
+      ${m.fields
+        .filter((f) => f.isPrimaryKey)
+        .map((f) => {
+          return `${f.fieldName}: ${f.javascriptType}`;
+        })
+        .join('\n')};
+    }
+    export type ${names.modelCreateDataTypeName} = {
+      ${m.fields
+        .filter((f) => !f.isAlwaysGenerated)
+        .map((f) => {
+          const isOptional = f.hasDefault || f.isAutoIncrement;
+          return `${f.fieldName}${isOptional ? '?' : ''}: ${f.javascriptType}${
+            f.isNullable ? '|null' : ''
+          }`;
+        })
+        .join('\n')};
+    }
+    export type ${names.modelUpdateDataTypeName} = {
+      ${m.fields
+        .filter((f) => !f.isAlwaysGenerated)
+        .filter((f) => !f.isPrimaryKey)
+        .map((f) => {
+          return `${f.fieldName}?: ${f.javascriptType}${
+            f.isNullable ? '|null' : ''
+          }`;
+        })
+        .join('\n')};
+    }
+    export type ${names.modelFindUniqueParamsTypeName} = ${[
+    names.modelPrimaryKeyTypeName,
+    ...m.fields
+      .filter((f) => f.isUnique)
+      .map((f) => {
+        return `{${f.fieldName}: ${f.javascriptType}}`;
+      })
+  ].join('|')}
+    export type ${names.modelDbTypeName} = ModelDb<${[
+    names.modelName,
+    names.modelOmittedBySelectAllTypeName,
+    names.modelPrimaryKeyTypeName,
+    names.modelCreateDataTypeName,
+    names.modelUpdateDataTypeName,
+    names.modelFindUniqueParamsTypeName
+  ].join(',')}>
+    
+  `;
+};
+
+const getTypesTsTypescript = (
   options: Options,
-  schema: Schema,
+  schema: SchemaDefinition,
   bannerComment: string
 ): string => {
   return `
@@ -51,9 +130,82 @@ export const getTypesTsTypescript = (
     import type { ModelDb } from '@nowzoo/frieda';
     ${(options.typeImports || []).join('\n')}
 
-    ${Object.values(schema.tables)
-      .map((t) => getModelTypeDeclarations(t, options))
-      .join('\n\n')}
-  `;
+    ${schema.models.map((m) => getTypesForModel(m)).join('\n\n')}
+
+    `;
 };
 
+const getDatabaseTsTypescript = (
+  schema: SchemaDefinition,
+  bannerComment: string
+) => {
+  return `
+    ${bannerComment}
+    import type {Transaction, Connection } from '@planetscale/database';
+    import { BaseDb, ModelDb, type DbLoggingOptions } from '@nowzoo/frieda';
+    import type {
+      ${schema.models.map(m => getModelNames(m.tableName).modelDbTypeName).join(',')}
+    } from './types.js'
+    import { schema } from './schema.js';
+    export abstract class ModelsDb extends BaseDb {
+      #models: Partial<{
+        ${schema.models
+          .map((m) => {
+            const { classGetterName, modelDbTypeName } = getModelNames(
+              m.tableName
+            );
+            return `${classGetterName}: ${modelDbTypeName}`;
+          })
+          .join('\n')}
+      }> = {};
+
+      ${schema.models
+        .map((m) => {
+          const { classGetterName, modelDbTypeName } = getModelNames(
+            m.tableName
+          );
+
+          return `
+            get ${classGetterName}(): ${modelDbTypeName} {
+              if (! this.#models.${classGetterName}) {
+                this.#models.${classGetterName} = new ModelDb('${m.modelName}', this.connOrTx, schema, this.loggingOptions)
+              }
+              return this.#models.${classGetterName} 
+            }
+          `;
+        })
+        .join('\n')}
+    }
+
+    export class TxDb extends ModelsDb {
+      constructor(
+        transaction: Transaction,
+        loggingOptions: DbLoggingOptions = {}
+      ) {
+        super(transaction, schema, loggingOptions)
+      }
+    }
+
+    export class AppDb extends ModelsDb {
+      #conn: Connection;
+      constructor(
+        connection: Connection,
+        loggingOptions: DbLoggingOptions = {}
+      ) {
+        super(connection, schema, loggingOptions);
+        this.#conn = connection;
+      }
+      async transaction<T>(txFn: (txDb: TxDb) => Promise<T>) {
+        const result = await this.#conn.transaction(async (tx) => {
+          const txDb = new TxDb(tx, this.loggingOptions);
+          return await txFn(txDb);
+        });
+        return result;
+      }
+    }
+   
+
+    
+
+    `;
+};

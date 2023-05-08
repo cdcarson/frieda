@@ -8,8 +8,10 @@ import type { CliArgs } from '../types.js';
 // import { getFsPaths } from '../fs/get-fs-paths.js';
 // import { compileToJavascript } from '../generate/compile-to-javascript.js';
 import { generate } from '../code/generate.js';
+import { parseSchema } from '../parse/parse-schema.js';
 export const cmd = async (cliArgs: Partial<CliArgs>) => {
   const options = await getOptions(cliArgs);
-  const { schema } = await fetch(options.connection, options);
-  await generate(options, schema);
+  const fetched = await fetch(options.connection);
+  const schema = parseSchema(fetched, options)
+  await generate(schema, options);
 };

@@ -46,6 +46,34 @@ export type FetchTableNamesResult = {
   tableNames: string[];
 };
 
+export type FetchedTable = {
+  name: string;
+  columns: DatabaseShowFullColumnsRow[];
+  indexes: DatabaseShowIndexesRow[];
+  createSql: string;
+};
+
+export type FetchedSchema = {
+  databaseName: string;
+  tables: FetchedTable[];
+};
+
+/**
+ * A row from a `SHOW FULL COLUMNS FROM TableName` query.
+ * see https://dev.mysql.com/doc/refman/8.0/en/show-columns.html
+ */
+export type DatabaseShowFullColumnsRow = {
+  Field: string;
+  Type: string;
+  Null: 'YES' | 'NO';
+  Collation: string | null;
+  Key: string;
+  Default: string | null;
+  Extra: string;
+  Comment: string;
+  Privileges: string;
+};
+
 /**
  * A row from `SHOW INDEXES FROM FROM TableName`
  */
@@ -74,7 +102,13 @@ export type DatabaseShowCreateTableRow = {
   'Create Table': string;
 };
 
+export const ANNOTATIONS = ['bigint', 'enum', 'set', 'json'] as const;
+export type Annotation = (typeof ANNOTATIONS)[number];
 
+export type ParsedAnnotation = {
+  annotation: Annotation;
+  argument?: string;
+};
 
 
 export type CliPositionalOption = {

@@ -4,34 +4,30 @@ import type {
   Transaction
 } from '@planetscale/database';
 import type {
-  Column,
   CustomModelCast,
   DbLoggingOptions,
+  FieldDefinition,
   Model,
+  ModelDefinition,
   ModelOrderByInput,
   ModelSelectColumnsInput,
   ModelWhereInput,
   OneBasedPagingInput,
-  Schema,
-  SelectedModel,
-  Table
+  SchemaDefinition,
+  SelectedModel
 } from './types.js';
 import sql, { join, raw, type Sql } from 'sql-template-tag';
 import { createCastFunction } from './create-cast-function.js';
-import {
-  getFieldCastType,
-  getFieldIsAutoIncrement,
-  getFieldIsPrimaryKey
-} from './parsers/field-parsers.js';
+
 import { bt, getLimitOffset, getOrderBy, getWhere } from './sql-utils.js';
 
 export class BaseDb {
   #connOrTx: Connection | Transaction;
-  #schema: Schema;
+  #schema: SchemaDefinition;
   #loggingOptions: DbLoggingOptions;
   constructor(
     conn: Connection | Transaction,
-    schema: Schema,
+    schema: SchemaDefinition,
     loggingOptions: DbLoggingOptions = {}
   ) {
     this.#connOrTx = conn;
@@ -43,7 +39,7 @@ export class BaseDb {
     return this.#connOrTx;
   }
 
-  get schema(): Schema {
+  get schema(): SchemaDefinition {
     return this.#schema;
   }
 
@@ -117,58 +113,56 @@ export class ModelDb<
   UpdateData extends { [K in keyof M]?: M[K] },
   FindUniqueParams extends { [K in keyof M]?: M[K] }
 > extends BaseDb {
-  #table: Table;
+  #model: ModelDefinition;
   constructor(
-    table: Table,
+    modelName: string,
     conn: Connection | Transaction,
-    schema: Schema,
+    schema: SchemaDefinition,
     loggingOptions: DbLoggingOptions = {}
   ) {
     super(conn, schema, loggingOptions);
-    this.#table = table;
+    const model = schema.models.find(m => m.modelName === modelName);
+    if (! model){
+      throw new Error(`Model ${modelName} not found in schema.`)
+    }
+    this.#model = model
   }
 
-  get table(): Table {
-    return this.#table;
+  get model(): ModelDefinition {
+    return this.#model
   }
 
   get tableName(): string {
-    return this.table.name;
+    return this.model.tableName;
   }
 
-  get columns(): Column[] {
-    return Object.values(this.table.columns);
+  get fields(): FieldDefinition[] {
+    return Object.values(this.model.fields);
   }
 
   get keys(): (keyof M & string)[] {
-    return this.columns.map((col) => col.Field);
+    return this.fields.map((f) => f.fieldName);
   }
 
   get primaryKeys(): (keyof M & string)[] {
-    return this.columns
-      .filter((col) => getFieldIsPrimaryKey(col))
-      .map((col) => col.Field);
+    return this.fields.filter((f) => f.isPrimaryKey).map((f) => f.fieldName);
   }
 
   protected get jsonKeys(): (keyof M & string)[] {
-    return this.columns
-      .filter(
-        (col) => getFieldCastType(col, this.schema.typeOptions) === 'json'
-      )
-      .map((col) => col.Field);
+    return this.fields
+      .filter((f) => f.castType === 'json')
+      .map((f) => f.fieldName);
   }
 
   protected get setKeys(): (keyof M & string)[] {
-    return this.columns
-      .filter((col) => getFieldCastType(col, this.schema.typeOptions) === 'set')
-      .map((col) => col.Field);
+    return this.fields
+      .filter((f) => f.castType === 'set')
+      .map((f) => f.fieldName);
   }
 
   protected get autoIncrementingPrimaryKey(): (keyof M & string) | null {
-    const col = this.columns.find(
-      (col) => getFieldIsPrimaryKey(col) && getFieldIsAutoIncrement(col)
-    );
-    return col ? col.Field : null;
+    const field = this.fields.find((f) => f.isAutoIncrement);
+    return field ? field.fieldName : null;
   }
 
   async findMany<S extends ModelSelectColumnsInput<M> = undefined>(input: {
@@ -180,9 +174,16 @@ export class ModelDb<
     const where = getWhere(input.where, this.tableName);
     const orderBy = getOrderBy(input.orderBy, this.tableName);
     const limit = getLimitOffset(input.paging);
+    const getSelectForFieldName = (fieldName: string ): string => {
+      const field = this.fields.find(f => f.fieldName === fieldName);
+      if (! field) {
+        throw new Error(`Invalid select: the field named ${fieldName} does not exist.`)
+      }
+      return `${bt(this.tableName, field.columnName)} as ${bt(field.fieldName)}`
+    }
     const select =
       Array.isArray(input.select) && input.select.length > 0
-        ? input.select.map((fieldName) => bt(this.tableName, fieldName))
+        ? join(input.select.map((fieldName) => getSelectForFieldName(fieldName)), ',')
         : raw('*');
     const query = sql`
         SELECT

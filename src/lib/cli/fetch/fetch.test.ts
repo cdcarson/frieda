@@ -3,13 +3,10 @@ import * as fetchTableMod from './fetch-table.js';
 import * as tableNamesMod from './fetch-table-names.js';
 import { fetch } from './fetch.js';
 import type { Connection } from '@planetscale/database';
-import type {  Options } from '../types.js';
 
 describe('fetch', () => {
-  let options: Options;
   let connection: Connection
   beforeEach(() => {
-    options = {typeBigIntAsString: true, typeTinyIntOneAsBoolean: true} as Options;
     connection = {} as Connection
   })
   it('should make the right calls', async () => {
@@ -24,8 +21,8 @@ describe('fetch', () => {
         tableNames: ['a', 'b']
       });
 
-    const result = await fetch(connection, options);
-    expect(result.schema.databaseName).toBe('foo');
+    const result = await fetch(connection);
+    expect(result.databaseName).toBe('foo');
     expect(ftSpy).toHaveBeenCalledTimes(2);
     expect(namesSpy).toHaveBeenCalledOnce();
   });
@@ -41,8 +38,8 @@ describe('fetch', () => {
         tableNames: []
       });
 
-    const result = await fetch(connection, options);
-    expect(result.schema.databaseName).toBe('foo');
+    const result = await fetch(connection);
+    expect(result.databaseName).toBe('foo');
     expect(ftSpy).not.toHaveBeenCalled();
     expect(namesSpy).toHaveBeenCalledOnce();
   });

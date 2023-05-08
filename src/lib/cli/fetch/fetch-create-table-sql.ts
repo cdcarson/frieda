@@ -1,4 +1,4 @@
-import { bt } from '$lib/index.js';
+import { bt } from '../../api/sql-utils.js';
 import type { Connection } from '@planetscale/database';
 import sql from 'sql-template-tag';
 import type { DatabaseShowCreateTableRow } from '../types.js';
