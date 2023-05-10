@@ -1,88 +1,200 @@
 import ora from 'ora';
-import type { CliArgs, Options, OptionsWithConnection } from '../types.js';
+import type {
+  CliArgs,
+  DatabaseUrlResult,
+  DirectoryResult,
+  Options,
+} from '../types.js';
 import { readFriedarc } from './read-friedarc.js';
-import { getEnvFileOption } from './get-env-file-option.js';
-import { getDirectoryOption } from './get-directory-option.js';
-import { getBooleanOption } from './get-boolean-option.js';
-import { prompt } from '../ui/prompt.js';
-import { fmtPath } from '../utils/formatters.js';
-import { FRIEDA_RC_FILE_NAME } from '../constants.js';
+
+import { fmtPath, fmtVarName, squishWords } from '../utils/formatters.js';
+import { FRIEDA_RC_FILE_NAME, OPTION_DESCRIPTIONS } from '../constants.js';
 import { prettifyAndSaveFile } from '../fs/prettify-and-save-file.js';
 import log from '../ui/log.js';
-import { connect } from '@planetscale/database';
+import { validateEnvFile } from './validate-env-file.js';
+import { validateDirectory } from './validate-directory.js';
+import { promptEnvFile } from './prompt-env-file.js';
+import { promptDirectory } from './prompt-directory.js';
+import { promptBooleanOption } from './prompt-boolean-option.js';
+import { promptDirectoryNotEmpty } from './prompt-directory-not-empty.js';
+import { prompt } from '../ui/prompt.js';
 
 export const getOptions = async (
   cliArgs: Partial<CliArgs>,
   promptAlways = false
-): Promise<OptionsWithConnection> => {
-  const spinner = ora('Reading current options');
+): Promise<{options: Options, databaseUrlResult: DatabaseUrlResult}> => {
+  const spinner = ora('Reading current options').start();
   const { rc } = await readFriedarc();
-  spinner.succeed();
-  const envFile = await getEnvFileOption(cliArgs, rc, promptAlways);
-  const schemaDirectory = await getDirectoryOption(
-    'schemaDirectory',
-    cliArgs,
-    rc,
-    promptAlways
-  );
-  const codeDirectory = await getDirectoryOption(
-    'codeDirectory',
-    cliArgs,
-    rc,
-    promptAlways
-  );
-  const outputJs = await getBooleanOption(
-    'outputJs',
-    cliArgs,
-    rc,
-    false,
-    promptAlways
-  );
-  const typeBigIntAsString = await getBooleanOption(
-    'typeBigIntAsString',
-    cliArgs,
-    rc,
-    true,
-    promptAlways
-  );
-  const typeTinyIntOneAsBoolean = await getBooleanOption(
-    'typeTinyIntOneAsBoolean',
-    cliArgs,
-    rc,
-    true,
-    promptAlways
-  );
-  const options: Options = {
-    codeDirectory: codeDirectory.value,
-    envFile: envFile.value,
-    schemaDirectory: schemaDirectory.value,
-    outputJs: outputJs.value,
-    typeBigIntAsString: typeBigIntAsString.value,
-    typeTinyIntOneAsBoolean: typeTinyIntOneAsBoolean.value,
-    typeImports: (rc.typeImports || []).filter((s) => typeof s === 'string')
-  };
+  let envFile: string;
+  let envFileError: Error | undefined;
+  let databaseUrlResult: DatabaseUrlResult | undefined;
+  if (
+    typeof cliArgs.envFile === 'string' &&
+    cliArgs.envFile.trim().length > 0
+  ) {
+    envFile = cliArgs.envFile.trim();
+  } else if (typeof rc.envFile === 'string' && rc.envFile.trim().length > 0) {
+    envFile = rc.envFile.trim();
+  } else {
+    envFile = '.env';
+  }
+  try {
+    databaseUrlResult = await validateEnvFile(envFile);
+  } catch (error) {
+    if (error instanceof Error) {
+      envFileError = error;
+    } else {
+      throw error;
+    }
+  }
 
-  // log.info([
-  //   colors.dim('Options'),
-  //   `${fmtVarName('envFile')}: ${fmtPath(options.envFile)}`,
-  //   `${fmtVarName('databaseUrl')}: ${maskDatabaseURLPassword(
-  //     envFile.databaseUrl.databaseUrl
-  //   )}`,
-  //   ...['schemaDirectory', 'codeDirectory'].map((k) => {
-  //     return `${fmtVarName(k)}: ${fmtPath(
-  //       options[k as keyof Options] as string
-  //     )}`;
-  //   }),
-  //   ...['outputJs', 'typeBigIntAsString', 'typeTinyIntOneAsBoolean'].map(
-  //     (k) => {
-  //       return `${fmtVarName(k)}: ${fmtVal(
-  //         JSON.stringify(options[k as keyof Options])
-  //       )}`;
-  //     }
-  //   ),
-  //   `${fmtVarName('typeImports')}:`,
-  //   ...fmtVal(JSON.stringify(options.typeImports, null, 1)).split('\n')
-  // ]);
+  let outputDirectory: string | undefined;
+  let outputDirectoryError: Error | undefined;
+  let outputDirectoryResult: DirectoryResult | undefined;
+  if (
+    typeof cliArgs.outputDirectory === 'string' &&
+    cliArgs.outputDirectory.trim().length > 0
+  ) {
+    outputDirectory = cliArgs.outputDirectory.trim();
+  } else if (
+    typeof rc.outputDirectory === 'string' &&
+    rc.outputDirectory.trim().length > 0
+  ) {
+    outputDirectory = rc.outputDirectory.trim();
+  } else {
+    outputDirectoryError = new Error(
+      `${fmtVarName('outputDirectory')} not found in ${fmtPath(
+        FRIEDA_RC_FILE_NAME
+      )} or passed as a cli argument.`
+    );
+  }
+  if (outputDirectory) {
+    try {
+      outputDirectoryResult = await validateDirectory(
+        outputDirectory,
+        'outputDirectory'
+      );
+    } catch (error) {
+      if (error instanceof Error) {
+        outputDirectoryError = error;
+      } else {
+        throw error;
+      }
+    }
+  }
+  let compileJs: boolean;
+  if (typeof cliArgs.compileJs === 'boolean') {
+    compileJs = cliArgs.compileJs;
+  } else if (typeof rc.compileJs === 'boolean') {
+    compileJs = rc.compileJs;
+  } else {
+    compileJs = false;
+  }
+
+  let typeTinyIntOneAsBoolean: boolean;
+  if (typeof cliArgs.typeTinyIntOneAsBoolean === 'boolean') {
+    typeTinyIntOneAsBoolean = cliArgs.typeTinyIntOneAsBoolean;
+  } else if (typeof rc.typeTinyIntOneAsBoolean === 'boolean') {
+    typeTinyIntOneAsBoolean = rc.typeTinyIntOneAsBoolean;
+  } else {
+    typeTinyIntOneAsBoolean = true;
+  }
+
+  let typeBigIntAsString: boolean;
+  if (typeof cliArgs.typeBigIntAsString === 'boolean') {
+    typeBigIntAsString = cliArgs.typeBigIntAsString;
+  } else if (typeof rc.typeBigIntAsString === 'boolean') {
+    typeBigIntAsString = rc.typeBigIntAsString;
+  } else {
+    typeBigIntAsString = true;
+  }
+
+  const typeImports = (rc.typeImports || [])
+    .filter((s) => typeof s === 'string')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  spinner.succeed('Current options read.');
+
+  if (databaseUrlResult === undefined || promptAlways) {
+    if (envFileError) {
+      log.error(envFileError.message);
+    }
+    log.info([fmtVarName('envFile'), ...squishWords(OPTION_DESCRIPTIONS.envFile).split('\n')]);
+    databaseUrlResult = await promptEnvFile(envFile, rc.envFile);
+  }
+
+  if (outputDirectoryResult === undefined || promptAlways) {
+    if (outputDirectoryError) {
+      log.error(outputDirectoryError.message);
+    }
+    log.info([
+      fmtVarName('outputDirectory'),
+      ...squishWords(OPTION_DESCRIPTIONS.outputDirectory).split(`\n`)
+    ]);
+    outputDirectoryResult = await promptDirectory(
+      'outputDirectory',
+      outputDirectory,
+      rc.outputDirectory
+    );
+  } else {
+    if (
+      outputDirectoryResult.isEmpty === false &&
+      outputDirectoryResult.relativePath !== rc.outputDirectory
+    ) {
+      const ok = await promptDirectoryNotEmpty(
+        outputDirectoryResult.relativePath
+      );
+      if (!ok) {
+        outputDirectoryResult = await promptDirectory(
+          'outputDirectory',
+          outputDirectory,
+          rc.outputDirectory
+        );
+      }
+    }
+  }
+
+  if (promptAlways) {
+    log.info([
+      fmtVarName('compileJs'),
+      ...squishWords(OPTION_DESCRIPTIONS.compileJs).split('\n')
+    ]);
+    compileJs = await promptBooleanOption('compileJs', compileJs);
+
+    log.info([
+      fmtVarName('typeBigIntAsString'),
+      ...squishWords(OPTION_DESCRIPTIONS.typeBigIntAsString).split('\n')
+    ]);
+    typeBigIntAsString = await promptBooleanOption(
+      'typeBigIntAsString',
+      typeBigIntAsString
+    );
+
+    log.info([
+      fmtVarName('typeTinyIntOneAsBoolean'),
+      ...squishWords(OPTION_DESCRIPTIONS.typeTinyIntOneAsBoolean).split('\n')
+    ]);
+    typeTinyIntOneAsBoolean = await promptBooleanOption(
+      'typeTinyIntOneAsBoolean',
+      typeTinyIntOneAsBoolean
+    );
+    if (promptAlways) {
+      log.info([
+        fmtVarName('typeImports'),
+        squishWords(`Note that you can edit the ${fmtVarName('typeImports')} array directly in ${fmtPath(FRIEDA_RC_FILE_NAME)}.`)
+      ])
+    }
+  }
+
+  const options: Options = {
+    compileJs,
+    envFile: databaseUrlResult.envFile,
+    outputDirectory: outputDirectoryResult.relativePath,
+    typeBigIntAsString,
+    typeImports,
+    typeTinyIntOneAsBoolean
+  };
 
   const changedKeys = Object.keys(options).filter((k) => {
     const key = k as keyof Options;
@@ -93,10 +205,10 @@ export const getOptions = async (
   });
 
   if (changedKeys.length > 0) {
-    log.info(`Changed: ${changedKeys.join(', ')}`);
+    log.info(`Changed options: ${changedKeys.map(k => fmtVarName(k)).join(', ')}`);
     const save = await prompt({
       type: 'confirm',
-      message: `Save changes in ${fmtPath(FRIEDA_RC_FILE_NAME)}`,
+      message: `Save changes to ${fmtPath(FRIEDA_RC_FILE_NAME)}`,
       name: 'save'
     });
     if (save) {
@@ -110,8 +222,5 @@ export const getOptions = async (
     }
   }
 
-  return {
-    ...options,
-    connection: connect({ url: envFile.databaseUrl.databaseUrl })
-  };
+  return {options, databaseUrlResult};
 };

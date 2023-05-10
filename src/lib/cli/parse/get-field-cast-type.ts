@@ -1,5 +1,5 @@
 import { getFieldCommentAnnotations } from './get-field-comment-annotations.js';
-import type { CastType, MysqlType, TypeOptions } from '../../api/types.js';
+import type { CastType, MysqlBaseType, TypeOptions } from '../../api/types.js';
 import type { DatabaseShowFullColumnsRow } from '../types.js';
 import { getFieldMysqlType } from './get-field-mysql-type.js';
 import { getParenthesizedArgs } from './get-parenthesized-args.js';
@@ -8,19 +8,19 @@ export const getFieldCastType = (
   column: DatabaseShowFullColumnsRow,
   typeOptions: Partial<TypeOptions>
 ): CastType => {
-  const mysqlType = getFieldMysqlType(column);
+  const mysqlBaseType = getFieldMysqlType(column);
   const annotations = getFieldCommentAnnotations(column);
-  if (!mysqlType) {
+  if (!mysqlBaseType) {
     return 'string';
   }
 
   // json, an easy one...
-  if ('json' === mysqlType) {
+  if ('json' === mysqlBaseType) {
     return 'json';
   }
 
   // bigint
-  if ('bigint' === mysqlType) {
+  if ('bigint' === mysqlBaseType) {
     // type as string can be turned off globally
     if (typeOptions.typeBigIntAsString === false) {
       return 'bigint';
@@ -34,8 +34,8 @@ export const getFieldCastType = (
 
   // the boolean case, tinyint(1)...
   if (
-    mysqlType === 'tinyint' &&
-    getParenthesizedArgs(column.Type, mysqlType).trim() === '1'
+    mysqlBaseType === 'tinyint' &&
+    getParenthesizedArgs(column.Type, mysqlBaseType).trim() === '1'
   ) {
     // type as boolean can be turned off globally
     if (typeOptions.typeTinyIntOneAsBoolean === false) {
@@ -47,28 +47,28 @@ export const getFieldCastType = (
   // having dealt with the special int cases, bigint and tinyint(1), do the other int types...
   if (
     (
-      ['tinyint', 'int', 'integer', 'smallint', 'mediumint'] as MysqlType[]
-    ).includes(mysqlType)
+      ['tinyint', 'int', 'integer', 'smallint', 'mediumint'] as MysqlBaseType[]
+    ).includes(mysqlBaseType)
   ) {
     return 'int';
   }
 
   // floaty types...
   if (
-    (['float', 'double', 'real', 'decimal', 'numeric'] as MysqlType[]).includes(
-      mysqlType
+    (['float', 'double', 'real', 'decimal', 'numeric'] as MysqlBaseType[]).includes(
+      mysqlBaseType
     )
   ) {
     return 'float';
   }
 
   // date types
-  if ((['date', 'datetime', 'timestamp'] as MysqlType[]).includes(mysqlType)) {
+  if ((['date', 'datetime', 'timestamp'] as MysqlBaseType[]).includes(mysqlBaseType)) {
     return 'date';
   }
 
   // set...
-  if (mysqlType === 'set') {
+  if (mysqlBaseType === 'set') {
     if (annotations.find((a) => a.annotation === 'set')) {
       return 'set';
     }
@@ -76,12 +76,12 @@ export const getFieldCastType = (
   }
 
   // enum...
-  if (mysqlType === 'enum') {
+  if (mysqlBaseType === 'enum') {
     return 'enum';
   }
 
   // year... (this is separate from the int types above, because we may want some options around this)
-  if (mysqlType === 'year') {
+  if (mysqlBaseType === 'year') {
     return 'int';
   }
 

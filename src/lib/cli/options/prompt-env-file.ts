@@ -1,13 +1,13 @@
 import ora from 'ora';
 import { fmtVarName } from '../utils/formatters.js';
-import type { DatabaseUrl } from '../types.js';
+import type { DatabaseUrlResult } from '../types.js';
 import { prompt } from '../ui/prompt.js';
 import { promptValidateRequiredString } from '../utils/prompt-validate-required-string.js';
 import { validateEnvFile } from './validate-env-file.js';
 export const promptEnvFile = async (
   currentValue: string,
   rcValue?: string
-): Promise<DatabaseUrl> => {
+): Promise<DatabaseUrlResult> => {
   const envFile = await prompt<string>({
     type: 'text',
     name: 'envFile',

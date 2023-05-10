@@ -1,13 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import * as fetchTableMod from './fetch-table.js';
-import * as tableNamesMod from './fetch-table-names.js';
-import { fetch } from './fetch.js';
+import * as fetchTableMod from './fetch/fetch-table.js';
+import * as tableNamesMod from './fetch/fetch-table-names.js';
+import { fetchAndParseSchema } from './fetch-and-parse-schema.js';
 import type { Connection } from '@planetscale/database';
+import type { Options } from './types.js';
 
-describe('fetch', () => {
-  let connection: Connection
+describe('fetchAndParseSchema', () => {
+  let connection: Connection;
+  let options: Options
   beforeEach(() => {
-    connection = {} as Connection
+    connection = {} as Connection;
+    options = {} as Options
   })
   it('should make the right calls', async () => {
     const ftSpy = vi
@@ -21,8 +24,8 @@ describe('fetch', () => {
         tableNames: ['a', 'b']
       });
 
-    const result = await fetch(connection);
-    expect(result.databaseName).toBe('foo');
+    const result = await fetchAndParseSchema(connection, options);
+    expect(result.schema.databaseName).toBe('foo');
     expect(ftSpy).toHaveBeenCalledTimes(2);
     expect(namesSpy).toHaveBeenCalledOnce();
   });
@@ -38,8 +41,8 @@ describe('fetch', () => {
         tableNames: []
       });
 
-    const result = await fetch(connection);
-    expect(result.databaseName).toBe('foo');
+    const result = await fetchAndParseSchema(connection, options);
+    expect(result.schema.databaseName).toBe('foo');
     expect(ftSpy).not.toHaveBeenCalled();
     expect(namesSpy).toHaveBeenCalledOnce();
   });

@@ -6,11 +6,9 @@ import type { DirectoryResult, Options } from '../types.js';
  * or be a directory under the current working directory.
  * Non-emptiness is checked elsewhere.
  */
-export const validateDirectory = async <
-  K extends ('codeDirectory' | 'schemaDirectory') & keyof Options
->(
+export const validateDirectory = async (
   relativePath: string,
-  key: K
+  key: string
 ): Promise<DirectoryResult> => {
   const dir = await getDirectory(relativePath);
   if (!dir.isDirectory && dir.exists) {

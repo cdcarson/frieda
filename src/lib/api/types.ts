@@ -46,7 +46,7 @@ export const MYSQL_TYPES = [
   'longblob',
   'longtext'
 ] as const;
-export type MysqlType = (typeof MYSQL_TYPES)[number];
+export type MysqlBaseType = (typeof MYSQL_TYPES)[number];
 
 /**
  * A simplified set of casting rules. We infer this for each schema field from:
@@ -82,7 +82,8 @@ export type FieldDefinition = {
   isPrimaryKey: boolean;
   isUnique: boolean;
   javascriptType: string;
-  mysqlType: MysqlType|null
+  mysqlBaseType: MysqlBaseType|null,
+  mysqlFullType: string;
 }
 
 export type ModelDefinition = {
@@ -91,7 +92,7 @@ export type ModelDefinition = {
   fields: FieldDefinition[];
 };
 
-export type SchemaDefinition = {
+export type Schema = {
   databaseName: string;
   models: ModelDefinition[];
   cast: SchemaCastMap;
@@ -155,3 +156,12 @@ export type OneBasedPagingInput =
       rpp: number;
     }
   | undefined;
+
+
+export type Config = {
+  databaseUrl: string;
+  outputDirectory: string;
+  typeImports?: string[];
+  typeTinyIntOneAsBoolean?: boolean;
+  typeBigIntAsString?: boolean;
+}

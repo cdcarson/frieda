@@ -13,7 +13,7 @@ import type {
   ModelSelectColumnsInput,
   ModelWhereInput,
   OneBasedPagingInput,
-  SchemaDefinition,
+  Schema,
   SelectedModel
 } from './types.js';
 import sql, { join, raw, type Sql } from 'sql-template-tag';
@@ -23,11 +23,11 @@ import { bt, getLimitOffset, getOrderBy, getWhere } from './sql-utils.js';
 
 export class BaseDb {
   #connOrTx: Connection | Transaction;
-  #schema: SchemaDefinition;
+  #schema: Schema;
   #loggingOptions: DbLoggingOptions;
   constructor(
     conn: Connection | Transaction,
-    schema: SchemaDefinition,
+    schema: Schema,
     loggingOptions: DbLoggingOptions = {}
   ) {
     this.#connOrTx = conn;
@@ -39,7 +39,7 @@ export class BaseDb {
     return this.#connOrTx;
   }
 
-  get schema(): SchemaDefinition {
+  get schema(): Schema {
     return this.#schema;
   }
 
@@ -117,7 +117,7 @@ export class ModelDb<
   constructor(
     modelName: string,
     conn: Connection | Transaction,
-    schema: SchemaDefinition,
+    schema: Schema,
     loggingOptions: DbLoggingOptions = {}
   ) {
     super(conn, schema, loggingOptions);

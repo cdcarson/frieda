@@ -1,70 +1,169 @@
-import yargs, { type CommandModule } from 'yargs';
-import type { CliArgs, CliCommand } from './types.js';
-import { COMMANDS, HELP_OPTION } from './constants.js';
-import { cmd as cmdGenerate } from './cmd-generate/cmd.js';
-import { cmd as cmdInit } from './cmd-init/cmd.js';
-import { cmd as cmdField } from './cmd-field/cmd.js';
-import { cmd as cmdModel } from './cmd-model/cmd.js';
-import { showHelp, showHelpForCommand } from './ui/show-help.js';
+import yargs from 'yargs';
+import type { CliArgs } from './types.js';
+import { COMMAND_DESCRIPTIONS, OPTION_DESCRIPTIONS } from './constants.js';
+import { cmdGenerate } from './cmd-generate.js';
+import { cmdInit } from './cmd-init.js';
+import colors from 'kleur'
 import { logHeader } from './ui/log-header.js';
+import { cmdModel } from './cmd-model.js';
 export const main = async (argv: string[]) => {
-  let command: CliCommand | undefined;
-  const commandModules: CommandModule[] = COMMANDS.map((cmd) => {
-    const aliases = cmd.alias ? [cmd.alias] : [];
-    const positionals = cmd.positionals || [];
-    const options = cmd.options || [];
-    const mod: CommandModule = {
-      command: cmd.name,
-      aliases,
+  let commandName: 'init' | 'generate' | 'model' | 'field' | undefined;
+  const cmds = yargs(argv)
+    .scriptName('frieda')
+    .help()
+    .version(false)
+
+    .command({
+      command: 'generate',
+      describe: COMMAND_DESCRIPTIONS.generate,
+      aliases: ['g'],
       handler: () => {
-        command = cmd;
+        commandName = 'generate';
       },
       builder: (b) => {
-        positionals.forEach((opt) => {
-          b = b.positional(opt.name, {
+        return b.options({
+          envFile: {
+            alias: 'e',
             type: 'string',
-            alias: opt.name
-          });
+            description: OPTION_DESCRIPTIONS.envFile
+          },
+          outputDirectory: {
+            alias: 'o',
+            type: 'string',
+            description: OPTION_DESCRIPTIONS.outputDirectory
+          },
+          compileJs: {
+            alias: 'j',
+            type: 'boolean',
+            description: OPTION_DESCRIPTIONS.compileJs
+          },
+          typeBigIntAsString: {
+            type: 'boolean',
+            description: OPTION_DESCRIPTIONS.typeBigIntAsString
+          },
+          typeTinyIntOneAsBoolean: {
+            type: 'boolean',
+            description: OPTION_DESCRIPTIONS.typeTinyIntOneAsBoolean
+          }
         });
-        options.forEach((opt) => {
-          b = b.option(opt.name, {
-            alias: opt.alias,
-            type: opt.type
-          });
-        });
-
-        return b;
       }
-    };
-    return mod;
-  });
-  let commands = yargs(argv)
-    .help(false)
-    .version(false)
-    .option(HELP_OPTION.name, {
-      alias: HELP_OPTION.alias,
-      type: HELP_OPTION.type
+    })
+    .command({
+      command: 'model [modelName]',
+      describe: COMMAND_DESCRIPTIONS.model,
+      aliases: ['m'],
+      handler: () => {
+        commandName = 'model';
+      },
+      builder: (b) => {
+        return b
+          .positional('modelName', {
+            type: 'string',
+            description: 'The partial name of the model or underlying table.'
+          })
+          .options({
+            envFile: {
+              alias: 'e',
+              type: 'string',
+              description: OPTION_DESCRIPTIONS.envFile
+            },
+            outputDirectory: {
+              alias: 'o',
+              type: 'string',
+              description: OPTION_DESCRIPTIONS.outputDirectory
+            },
+            compileJs: {
+              alias: 'j',
+              type: 'boolean',
+              description: OPTION_DESCRIPTIONS.compileJs
+            },
+            typeBigIntAsString: {
+              type: 'boolean',
+              description: OPTION_DESCRIPTIONS.typeBigIntAsString
+            },
+            typeTinyIntOneAsBoolean: {
+              type: 'boolean',
+              description: OPTION_DESCRIPTIONS.typeTinyIntOneAsBoolean
+            }
+          });
+      }
+    })
+    .command({
+      command: 'field [modelName] [fieldName]',
+      describe: COMMAND_DESCRIPTIONS.field,
+      aliases: ['f'],
+      handler: () => {
+        commandName = 'field';
+      },
+      builder: (b) => {
+        return b
+          .positional('modelName', {
+            type: 'string',
+            description: 'The partial name of the model or underlying table.'
+          })
+          .positional('fieldName', {
+            type: 'string',
+            description: 'The partial name of the field or underlying column.'
+          })
+          .options({
+            envFile: {
+              alias: 'e',
+              type: 'string',
+              description: OPTION_DESCRIPTIONS.envFile
+            },
+            outputDirectory: {
+              alias: 'o',
+              type: 'string',
+              description: OPTION_DESCRIPTIONS.outputDirectory
+            },
+            compileJs: {
+              alias: 'j',
+              type: 'boolean',
+              description: OPTION_DESCRIPTIONS.compileJs
+            },
+            typeBigIntAsString: {
+              type: 'boolean',
+              description: OPTION_DESCRIPTIONS.typeBigIntAsString
+            },
+            typeTinyIntOneAsBoolean: {
+              type: 'boolean',
+              description: OPTION_DESCRIPTIONS.typeTinyIntOneAsBoolean
+            }
+          });
+      }
+    })
+    .command({
+      command: 'init',
+      aliases: ['i'],
+      describe: COMMAND_DESCRIPTIONS.init,
+      handler: () => {
+        commandName = 'init';
+      }
     });
-  commandModules.forEach((mod) => {
-    commands = commands.command(mod);
-  });
-  const results = await commands.parse();
+    cmds.wrap(cmds.terminalWidth());
+    
+    const cliArgs = await cmds.parse();
+    
+ 
+ 
   await logHeader();
 
-  if (command === undefined) {
-    return showHelp();
+  if (!commandName) {
+    cmds.showHelp()
   }
-  if (results.help) {
-    return showHelpForCommand(command);
-  }
-  switch (command.name) {
-    case 'init':
-      return await cmdInit(results as Partial<CliArgs>);
-    case 'generate':
-      return await cmdGenerate(results as Partial<CliArgs>);
-    case 'field':
-      return await cmdField(results as Partial<CliArgs>);
+  switch(commandName) {
+    case 'generate': 
+      await cmdGenerate(cliArgs as Partial<CliArgs>)
+      break;
     case 'model':
-      return await cmdModel(results as Partial<CliArgs>);
+      await cmdModel(cliArgs as Partial<CliArgs>);
+      break;
+    case 'init': 
+      await cmdInit(cliArgs as Partial<CliArgs>)
+      break;
   }
+
+  console.log(colors.bold('done'), '🦮');
+  console.log();
+
 };

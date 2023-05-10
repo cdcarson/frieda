@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { getFieldCastType } from './get-field-cast-type.js';
 import type { DatabaseShowFullColumnsRow } from '../types.js';
-import type { MysqlType } from '../../api/types.js';
+import type { MysqlBaseType } from '../../api/types.js';
 import { getParenthesizedArgs } from './get-parenthesized-args.js';
 
 describe('getFieldCastType', () => {
@@ -59,7 +59,7 @@ describe('getFieldCastType', () => {
     );
   });
   it('should be int for all other int-y types', () => {
-    const intTypes: MysqlType[] = [
+    const intTypes: MysqlBaseType[] = [
       'tinyint',
       'int',
       'integer',
@@ -72,14 +72,14 @@ describe('getFieldCastType', () => {
     });
   });
   it('should be float for the float-y types', () => {
-    const ft: MysqlType[] = ['float', 'double', 'real', 'decimal', 'numeric'];
+    const ft: MysqlBaseType[] = ['float', 'double', 'real', 'decimal', 'numeric'];
     ft.forEach((t) => {
       col.Type = t;
       expect(getFieldCastType(col, {})).toBe('float');
     });
   });
   it('should be date for the date types', () => {
-    const types: MysqlType[] = ['date', 'datetime', 'timestamp'];
+    const types: MysqlBaseType[] = ['date', 'datetime', 'timestamp'];
     types.forEach((t) => {
       col.Type = t;
       expect(getFieldCastType(col, {})).toBe('date');
@@ -108,7 +108,7 @@ describe('getFieldCastType', () => {
     expect(getFieldCastType(col, {})).toBe('string');
   });
   it('should be string for all the string-y types', () => {
-    const types: MysqlType[] = [
+    const types: MysqlBaseType[] = [
       'bit',
       'binary',
       'char',

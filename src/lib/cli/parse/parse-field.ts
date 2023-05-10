@@ -28,6 +28,7 @@ export const parseField = (
     isPrimaryKey: getFieldIsPrimaryKey(column),
     isUnique: getFieldIsUnique(column),
     javascriptType: getFieldJavascriptType(column, options),
-    mysqlType: getFieldMysqlType(column)
+    mysqlBaseType: getFieldMysqlType(column),
+    mysqlFullType: column.Type
   };
 };

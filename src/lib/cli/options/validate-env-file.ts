@@ -1,13 +1,13 @@
 import { parse } from 'dotenv';
 import { fmtPath, fmtVarName } from '../utils/formatters.js';
 import { getFile } from '../fs/get-file.js';
-import type { DatabaseUrl } from '../types.js';
+import type { DatabaseUrlResult } from '../types.js';
 import { ENV_DB_URL_KEYS } from '../constants.js';
 import { validateDatabaseUrl } from './validate-database-url.js';
 
 export const validateEnvFile = async (
   envFilePath: string
-): Promise<Required<DatabaseUrl>> => {
+): Promise<Required<DatabaseUrlResult>> => {
   const fileResult = await getFile(envFilePath);
   if (!fileResult.exists) {
     throw new Error(`The file ${fmtPath(envFilePath)} does not exist.`);
@@ -21,7 +21,7 @@ export const validateEnvFile = async (
   const foundKeys = ENV_DB_URL_KEYS.filter(
     (k) => envKeys.includes(k) && env[k].length > 0
   );
-  const validResults: DatabaseUrl[] = foundKeys
+  const validResults: DatabaseUrlResult[] = foundKeys
     .filter((k) => validateDatabaseUrl(env[k]))
     .map((k) => {
       return {

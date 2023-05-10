@@ -1,4 +1,4 @@
-import type { Connection } from '@planetscale/database';
+import type { FieldDefinition } from '$lib/index.js';
 
 export type FsPaths = {
   inputPath: string;
@@ -24,17 +24,12 @@ export type DirectoryResult = FsPaths & {
 };
 
 export type Options = {
-  codeDirectory: string;
-  schemaDirectory: string;
-  outputJs: boolean;
   envFile: string;
+  outputDirectory: string;
+  compileJs: boolean;
   typeTinyIntOneAsBoolean: boolean;
   typeBigIntAsString: boolean;
   typeImports: string[];
-};
-
-export type OptionsWithConnection = Options & {
-  connection: Connection;
 };
 
 export type CliArgs = Exclude<Options, 'typeImports'> & {
@@ -110,44 +105,10 @@ export type ParsedAnnotation = {
   argument?: string;
 };
 
-
-export type CliPositionalOption = {
-  name: string;
-  description: string;
-};
-
-export type CliOption = CliPositionalOption & {
-  type: 'string' | 'boolean';
-  alias?: string;
-  isRcOption: boolean;
-};
-
-export type CliCommand = {
-  name: string;
-  usage: string;
-  description: string;
-  longDescription?: string;
-  alias?: string;
-  positionals?: CliPositionalOption[];
-  options?: CliOption[];
-};
-
-export type DatabaseUrl = {
+export type DatabaseUrlResult = {
   databaseUrl: string;
   databaseUrlKey: string;
   envFile: string;
 };
-export type OptionSource = 'arg' | 'rc' | 'default' | 'prompt' | 'not set';
-export type ResolvedOption<K extends keyof Options> = {
-  source: OptionSource;
-  value: Options[K];
-};
-export type ResolvedDirectoryOption<
-  K extends keyof Pick<Options, 'codeDirectory' | 'schemaDirectory'>
-> = ResolvedOption<K> & {
-  directory: DirectoryResult;
-};
 
-export type ResolvedEnvFileOption = ResolvedOption<'envFile'> & {
-  databaseUrl: DatabaseUrl;
-};
+
