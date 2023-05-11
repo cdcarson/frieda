@@ -1,11 +1,8 @@
+import type { CliCommand, CliOption } from './types.js';
+import { fmtVarName } from './ui/formatters.js';
 
 export const FRIEDA_RC_FILE_NAME = '.friedarc.json';
 export const ENV_DB_URL_KEYS = ['FRIEDA_DATABASE_URL', 'DATABASE_URL'] as const;
-
-export const SCHEMA_SQL_FILE_NAME = 'schema.sql';
-export const SCHEMA_JSON_FILE_NAME = 'schema.json';
-
-export const DEFAULT_JSON_FIELD_TYPE = 'Object';
 
 export const GENERATED_CODE_FILENAMES = {
   types: 'types.ts',
@@ -25,7 +22,87 @@ export const OPTION_DESCRIPTIONS = {
 
 export const COMMAND_DESCRIPTIONS = {
   generate: 'Generate code.',
+  type: `Show type details and other information about models and fields.`,
   model: `Show type details and other information about a model.`,
   field: `Show type details for a model field.`,
   init: `(Re-)initialize options in ${FRIEDA_RC_FILE_NAME}.`
 };
+
+export const CLI_OPTIONS: CliOption[] = [
+  {
+    name: 'envFile',
+    type: 'string',
+    alias: 'e',
+    description: OPTION_DESCRIPTIONS.envFile,
+    isRc: true
+  },
+  {
+    name: 'outputDirectory',
+    type: 'string',
+    alias: 'o',
+    description: OPTION_DESCRIPTIONS.outputDirectory,
+    isRc: true
+  },
+  {
+    name: 'compileJs',
+    type: 'flag',
+    alias: 'j',
+    description: OPTION_DESCRIPTIONS.compileJs,
+    isRc: true
+  },
+  {
+    name: 'typeBigIntAsString',
+    type: 'flag',
+    description: OPTION_DESCRIPTIONS.typeBigIntAsString,
+    isRc: true
+  },
+  {
+    name: 'typeTinyIntOneAsBoolean',
+    type: 'flag',
+    description: OPTION_DESCRIPTIONS.typeTinyIntOneAsBoolean,
+    isRc: true
+  },
+  {
+    name: 'help',
+    type: 'flag',
+    alias: 'h',
+    description: 'Show this help.',
+    isRc: false
+  }
+];
+
+export const CLI_COMMANDS = [
+  {
+    name: 'generate',
+    alias: 'g',
+    description: COMMAND_DESCRIPTIONS.generate,
+    usage: '[options]'
+  },
+  {
+    name: 'type',
+    alias: 't',
+    description: COMMAND_DESCRIPTIONS.type,
+    usage: '[model] [field] [otherOptions]',
+    positionalOptions: [
+      {
+        name: 'model',
+        description: `Optional. The name of the model or underlying table.`,
+        isRc: false,
+        type: 'string'
+      },
+      {
+        name: 'field',
+        description: `Optional. The name of the field or underlying column.`,
+        isRc: false,
+        type: 'string'
+      }
+    ]
+  },
+  {
+    name: 'init',
+    alias: 'i',
+    description: COMMAND_DESCRIPTIONS.init,
+    usage: '[options]'
+  },
+
+] as const;

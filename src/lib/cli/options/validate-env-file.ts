@@ -1,6 +1,6 @@
 import { parse } from 'dotenv';
-import { fmtPath, fmtVarName } from '../utils/formatters.js';
-import { getFile } from '../fs/get-file.js';
+import { fmtPath, fmtVarName } from '../ui/formatters.js';
+import { getFile } from '../../fs/get-file.js';
 import type { DatabaseUrlResult } from '../types.js';
 import { ENV_DB_URL_KEYS } from '../constants.js';
 import { validateDatabaseUrl } from './validate-database-url.js';

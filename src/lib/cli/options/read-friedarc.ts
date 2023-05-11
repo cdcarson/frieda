@@ -1,14 +1,15 @@
 import { FRIEDA_RC_FILE_NAME } from '../constants.js';
-import { getFile } from '../fs/get-file.js';
-import type { FileResult, Options } from '../types.js';
-import { isPlainObject } from '../utils/is-plain-object.js';
+import { getFile } from '../../fs/get-file.js';
+import type { ResolvedCliOptions } from '../types.js';
+import { isPlainObject } from '../../utils/is-plain-object.js';
+import type { FileResult } from '../../fs/types.js';
 
 export const readFriedarc = async (): Promise<{
   file: FileResult;
-  rc: Partial<Options>;
+  rc: Partial<ResolvedCliOptions>;
 }> => {
   const file = await getFile(FRIEDA_RC_FILE_NAME);
-  let rc: Partial<Options> = {};
+  let rc: Partial<ResolvedCliOptions> = {};
   if (file.isFile) {
     try {
       rc = JSON.parse(file.contents || '');

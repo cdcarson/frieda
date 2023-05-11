@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, type SpyInstance, vi } from 'vitest';
-import type { FileResult } from '../types.js';
-import * as getFileMod from '../fs/get-file.js';
+import * as getFileMod from '../../fs/get-file.js';
 import { validateEnvFile } from './validate-env-file.js';
+import type { FileResult } from '../../fs/types.js';
 
 describe('readEnvFileDatabaseUrl', () => {
   let fileResult: FileResult;

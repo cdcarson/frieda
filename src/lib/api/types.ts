@@ -75,12 +75,12 @@ export type FieldDefinition = {
   columnName: string;
   castType: CastType;
   hasDefault: boolean;
-  isAlwaysGenerated: boolean;
-  isAutoIncrement: boolean;
-  isInvisible: boolean;
-  isNullable: boolean;
-  isPrimaryKey: boolean;
-  isUnique: boolean;
+  autoIncrement: boolean;
+  generatedAlways: boolean;
+  invisible: boolean;
+  nullable: boolean;
+  primaryKey: boolean;
+  unique: boolean;
   javascriptType: string;
   mysqlBaseType: MysqlBaseType|null,
   mysqlFullType: string;
@@ -107,11 +107,10 @@ export type SchemaCastMap = {
 };
 
 
-
-
 export type TypeOptions = {
   typeTinyIntOneAsBoolean: boolean;
   typeBigIntAsString: boolean;
+  typeImports: string[];
 };
 
 
@@ -158,10 +157,3 @@ export type OneBasedPagingInput =
   | undefined;
 
 
-export type Config = {
-  databaseUrl: string;
-  outputDirectory: string;
-  typeImports?: string[];
-  typeTinyIntOneAsBoolean?: boolean;
-  typeBigIntAsString?: boolean;
-}

@@ -1,13 +1,15 @@
+import colors from 'kleur';
 import yargs from 'yargs';
-import type { CliArgs } from './types.js';
-import { COMMAND_DESCRIPTIONS, OPTION_DESCRIPTIONS } from './constants.js';
 import { cmdGenerate } from './cmd-generate.js';
 import { cmdInit } from './cmd-init.js';
-import colors from 'kleur'
-import { logHeader } from './ui/log-header.js';
 import { cmdModel } from './cmd-model.js';
+import { COMMAND_DESCRIPTIONS, OPTION_DESCRIPTIONS } from './constants.js';
+import type { CliArgs } from './types.js';
+import { cmdField } from './cmd-field.js';
+import { FRIEDA_VERSION } from '$lib/version.js';
 export const main = async (argv: string[]) => {
-  let commandName: 'init' | 'generate' | 'model' | 'field' | undefined;
+  let commandName: 'init' | 'generate' | 'model' | 'field' | 'type' | undefined;
+  
   const cmds = yargs(argv)
     .scriptName('frieda')
     .help()
@@ -140,30 +142,30 @@ export const main = async (argv: string[]) => {
         commandName = 'init';
       }
     });
-    cmds.wrap(cmds.terminalWidth());
-    
-    const cliArgs = await cmds.parse();
-    
- 
- 
-  await logHeader();
+  cmds.wrap(cmds.terminalWidth());
+
+  const cliArgs = await cmds.parse();
+
+  console.log(colors.bold('frieda'), colors.dim(`v${FRIEDA_VERSION}`), '🦮');
 
   if (!commandName) {
-    cmds.showHelp()
+    cmds.showHelp();
   }
-  switch(commandName) {
-    case 'generate': 
-      await cmdGenerate(cliArgs as Partial<CliArgs>)
+  switch (commandName) {
+    case 'generate':
+      await cmdGenerate(cliArgs as Partial<CliArgs>);
       break;
     case 'model':
       await cmdModel(cliArgs as Partial<CliArgs>);
       break;
-    case 'init': 
-      await cmdInit(cliArgs as Partial<CliArgs>)
+    case 'field':
+      await cmdField(cliArgs as Partial<CliArgs>);
+      break;
+    case 'init':
+      await cmdInit(cliArgs as Partial<CliArgs>);
       break;
   }
 
   console.log(colors.bold('done'), '🦮');
   console.log();
-
 };

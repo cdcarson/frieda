@@ -1,4 +1,4 @@
-import { fmtPath } from '../utils/formatters.js';
+import { fmtPath } from '../ui/formatters.js';
 import { prompt } from '../ui/prompt.js';
 
 export const promptDirectoryNotEmpty = async (

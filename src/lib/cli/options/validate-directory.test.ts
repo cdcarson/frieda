@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, type SpyInstance, vi } from 'vitest';
-import type { DirectoryResult } from '../types.js';
-import * as getDirMod from '../fs/get-directory.js';
+import * as getDirMod from '../../fs/get-directory.js';
 import { validateDirectory } from './validate-directory.js';
+import type { DirectoryResult } from '../../fs/types.js';
 
 describe('validateDirectory', () => {
   let dirResult: DirectoryResult;

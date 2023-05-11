@@ -1,10 +1,10 @@
 import ora from 'ora';
-import { fmtVarName } from '../utils/formatters.js';
-import type { DirectoryResult } from '../types.js';
+import { fmtVarName } from '../ui/formatters.js';
 import { prompt } from '../ui/prompt.js';
-import { promptValidateRequiredString } from '../utils/prompt-validate-required-string.js';
+import { promptValidateRequiredString } from '../ui/prompt-validate-required-string.js';
 import { validateDirectory } from './validate-directory.js';
 import { promptDirectoryNotEmpty } from './prompt-directory-not-empty.js';
+import type { DirectoryResult } from '$lib/fs/types.js';
 export const promptDirectory = async (
   key: string,
   currentValue?: string,

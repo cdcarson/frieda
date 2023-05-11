@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, type SpyInstance, beforeEach } from 'vitest';
-import * as getFileMod from '../fs/get-file.js';
-import type { FileResult } from '../types.js';
+import * as getFileMod from '../../fs/get-file.js';
 import { readFriedarc } from './read-friedarc.js';
+import type { FileResult } from '$lib/fs/types.js';
 describe('readFriedarc', () => {
   let fileResult: FileResult;
   let getFileSpy: SpyInstance;

@@ -8,8 +8,9 @@ import { promptModel } from './ui/prompt-model.js';
 import colors from 'kleur';
 type CmdOpts = CliArgs & {
   modelName: string;
+  fieldName: string;
 };
-export const cmdModel = async (cliArgs: Partial<CmdOpts>) => {
+export const cmdType = async (cliArgs: Partial<CmdOpts>) => {
   const { options, connection } = await getOptions(cliArgs);
   const schema = await getSchema(options, connection);
 

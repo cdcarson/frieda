@@ -1,5 +1,5 @@
-import { getDirectory } from '../fs/get-directory.js';
-import type { DirectoryResult, Options } from '../types.js';
+import type { DirectoryResult } from '$lib/fs/types.js';
+import { getDirectory } from '../../fs/get-directory.js';
 
 /**
  * Validate  a directory that we will write to. It must either not exist

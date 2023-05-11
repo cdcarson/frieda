@@ -1,5 +1,5 @@
 import ora from 'ora';
-import { getStdOutCols } from '../utils/formatters.js';
+import { getStdOutCols } from './formatters.js';
 import colors from 'kleur'
 const fromStringOrArray = (message: string | string[], indent = 2): string => {
   return (Array.isArray(message) ? message : [message])

@@ -1,13 +1,13 @@
-import type { ModelDefinition } from '$lib/api/types.js';
+import type { ExtendedModelDefinition } from '../../parse/types.js';
 import { prompt } from './prompt.js';
 
 export const promptModel = async (
-  models: ModelDefinition[],
+  models: ExtendedModelDefinition[],
   search = ''
-): Promise<ModelDefinition> => {
+): Promise<ExtendedModelDefinition> => {
   type Choice = {
     title: string;
-    value: ModelDefinition;
+    value: ExtendedModelDefinition;
   };
   const choices: Choice[] = models.map((m) => {
     return {
@@ -25,7 +25,7 @@ export const promptModel = async (
   };
   const initialChoice = suggest(search, choices)[0] || choices[0];
 
-  const model = await prompt<ModelDefinition>({
+  const model = await prompt<ExtendedModelDefinition>({
     type: 'autocomplete',
     message: 'Model',
     name: 'model',

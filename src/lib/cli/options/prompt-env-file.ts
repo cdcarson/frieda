@@ -1,8 +1,8 @@
 import ora from 'ora';
-import { fmtVarName } from '../utils/formatters.js';
+import { fmtVarName } from '../ui/formatters.js';
 import type { DatabaseUrlResult } from '../types.js';
 import { prompt } from '../ui/prompt.js';
-import { promptValidateRequiredString } from '../utils/prompt-validate-required-string.js';
+import { promptValidateRequiredString } from '../ui/prompt-validate-required-string.js';
 import { validateEnvFile } from './validate-env-file.js';
 export const promptEnvFile = async (
   currentValue: string,

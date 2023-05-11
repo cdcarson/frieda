@@ -1,4 +1,4 @@
-import { fmtVarName } from '../utils/formatters.js';
+import { fmtVarName } from '../ui/formatters.js';
 import { prompt } from '../ui/prompt.js';
 
 export const promptBooleanOption = async (
