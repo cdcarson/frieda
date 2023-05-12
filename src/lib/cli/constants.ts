@@ -3,11 +3,6 @@ import type { CliOption } from './types.js';
 export const FRIEDA_RC_FILE_NAME = '.friedarc.json';
 export const ENV_DB_URL_KEYS = ['FRIEDA_DATABASE_URL', 'DATABASE_URL'] as const;
 
-export const GENERATED_CODE_FILENAMES = {
-  types: 'types.ts',
-  schema: 'schema.ts',
-  database: 'database.ts'
-} as const;
 
 export const OPTION_DESCRIPTIONS = {
   envFile: `The path to an environment variables file containing either ${ENV_DB_URL_KEYS.join(
