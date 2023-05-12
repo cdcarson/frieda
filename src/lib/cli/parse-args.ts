@@ -13,7 +13,7 @@ export const parseArgs = (argv: string[]): {
   const parsed = parser(argv, {
     alias,
     string: CLI_OPTIONS.filter(o => o.type === 'string').map(o => o.name),
-    boolean: CLI_OPTIONS.filter(o => o.type === 'flag').map(o => o.name)
+    boolean: CLI_OPTIONS.filter(o => o.type === 'boolean').map(o => o.name)
   }) as  Partial<CliArgs> & {_: string[]}
   const positionalArgs = [...parsed._];
   const cmdName = positionalArgs.shift()

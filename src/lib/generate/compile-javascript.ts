@@ -6,44 +6,41 @@ import { join } from 'node:path';
 import fs from 'fs-extra';
 import { getFile } from '../fs/get-file.js';
 import { prettifyAndSaveFile } from '../fs/prettify-and-save-file.js';
-import type { GENERATED_FILE_BASENAMES, GenerateResult } from './types.js';
+import { GENERATED_FILE_BASENAMES } from './types.js';
+import { getFsPaths } from '$lib/fs/get-fs-paths.js';
 export const compileJavascript = async (
   options: ResolvedCliOptions,
-  typescript: GenerateResult
-): Promise<GenerateResult> => {
+  typescript: FsPaths[]
+): Promise<FsPaths[]> => {
   const program = ts.createProgram(
-    Object.values(typescript).map((p) => p.relativePath),
+    typescript.map((p) => p.relativePath),
     { ...TS_COMPILER_OPTIONS }
   );
 
   program.emit();
-  const result: GenerateResult = {
-    database: await prettifyJs(options.outputDirectory, 'database'),
-    schema: await prettifyJs(options.outputDirectory, 'schema'),
-    types: await prettifyJs(options.outputDirectory, 'types')
-  };
 
-  for (const p of Object.values(typescript)) {
+  const results = await Promise.all(Object.values(GENERATED_FILE_BASENAMES).flatMap(basename => {
+    return [
+      readAndPrettifyFile(join(options.outputDirectory, basename + GENERATED_FILE_EXTNAMES.js)),
+      readAndPrettifyFile(join(options.outputDirectory, basename + GENERATED_FILE_EXTNAMES.dTs)),
+      getFsPaths(join(options.outputDirectory, basename + GENERATED_FILE_EXTNAMES.jsMap))
+    ]
+  }));
+  
+
+  
+  for (const p of typescript) {
     await fs.rm(p.absolutePath);
   }
-  return result;
+  return results;
 };
 
-const prettifyJs = async (
-  outputPath: string,
-  key: keyof typeof GENERATED_FILE_BASENAMES
-): Promise<FsPaths> => {
-  const jsFile = await getFile(
-    join(outputPath, key + GENERATED_FILE_EXTNAMES.js)
-  );
-  const dTsFile = await getFile(
-    join(outputPath, key + GENERATED_FILE_EXTNAMES.dTs)
-  );
-  if (jsFile.isFile && jsFile.contents) {
-    await prettifyAndSaveFile(jsFile.relativePath, jsFile.contents);
+const readAndPrettifyFile = async (relPath: string): Promise<FsPaths> => {
+  const file = await getFile(relPath);
+  if (file.contents) {
+    await prettifyAndSaveFile(file.relativePath, file.contents);
   }
-  if (dTsFile.isFile && dTsFile.contents) {
-    await prettifyAndSaveFile(dTsFile.relativePath, dTsFile.contents);
-  }
-  return jsFile;
-};
+  return file;
+}
+
+

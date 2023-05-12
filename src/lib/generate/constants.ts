@@ -26,6 +26,6 @@ export const TS_COMPILER_OPTIONS = {
   forceConsistentCasingInFileNames: true,
   resolveJsonModule: true,
   skipLibCheck: true,
-  sourceMap: true,
+  sourceMap: false,
   strict: true
 };

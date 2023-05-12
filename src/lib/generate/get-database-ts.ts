@@ -1,4 +1,3 @@
-import type { FieldDefinition, ModelDefinition, Schema } from '../api/types.js';
 import type { ExtendedSchema } from '../parse/types.js';
 
 export const getDatabaseTs = (
@@ -11,15 +10,9 @@ export const getDatabaseTs = (
     import type { Transaction, Connection } from '@planetscale/database';
     import { BaseDb, ModelDb, type DbLoggingOptions } from '@nowzoo/frieda';
     import schema from './schema.js';
-    import {
+    import type {
       ${extendedSchema.models.flatMap(m => {
         return [
-          m.modelName,
-          m.omittedBySelectAllTypeName,
-          m.primaryKeyTypeName,
-          m.createDataTypeName,
-          m.updateDataTypeName,
-          m.findUniqueParamsTypeName,
           m.dbTypeName
         ]
       }).join(',')}

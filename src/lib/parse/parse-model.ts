@@ -1,12 +1,13 @@
 import type { FetchedTable } from '$lib/fetch/types.js';
 import type { TypeOptions } from '../api/types.js';
 import { parseField } from './parse-field.js';
-import type { ExtendedModelDefinition } from './types.js';
+import type { ExtendedModelDefinition, ModelNames } from './types.js';
 import camelcase from 'camelcase';
 export const parseModel = (
   table: FetchedTable,
   options: TypeOptions
 ): ExtendedModelDefinition => {
+  const modelNames = getModelNames(table.name)
   const {
     modelName,
     omittedBySelectAllTypeName,
@@ -16,8 +17,8 @@ export const parseModel = (
     findUniqueParamsTypeName,
     dbTypeName,
     classGetterName
-  } = getModelNames(table.name);
-  const fields = table.columns.map((c) => parseField(c, options));
+  } = modelNames;
+  const fields = table.columns.map((c) => parseField(c, options, modelNames));
   const modelTypeDeclaration = `export type ${modelName}={${fields
     .map((f) => f.modelTypeDeclaration)
     .join(';')}}`;
@@ -42,7 +43,6 @@ export const parseModel = (
     ...fields.map((f) => f.modelFindUniqueParamsType).filter((s) => s !== null)
   ].join('|')}`;
   const dbTypeDeclaration = `export type ${dbTypeName}=ModelDb<${[
-    modelName,
     modelName,
     omittedBySelectAllTypeName,
     primaryKeyTypeName,
@@ -73,7 +73,7 @@ export const parseModel = (
   }
 };
 
-export const getModelNames = (tableName: string) => {
+export const getModelNames = (tableName: string): ModelNames => {
   const modelName = camelcase(tableName, { pascalCase: true });
   return {
     modelName,

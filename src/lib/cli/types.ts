@@ -21,7 +21,7 @@ export type DatabaseUrlResult = {
 
 export type CliOption = {
   name: string;
-  type: 'flag' | 'string';
+  type: 'boolean' | 'string';
   alias?: string;
   description: string;
   isRc: boolean;

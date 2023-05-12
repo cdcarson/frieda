@@ -1,6 +1,7 @@
 import type {
   Annotation,
   ExtendedFieldDefinition,
+  ModelNames,
   ParsedAnnotation
 } from './types.js';
 import type { ColumnRow } from '../fetch/types.js';
@@ -16,7 +17,8 @@ import { getParenthesizedArgs } from './helpers.js';
 
 export const parseField = (
   column: ColumnRow,
-  options: TypeOptions
+  options: TypeOptions,
+  modelNames: ModelNames
 ): ExtendedFieldDefinition => {
   const fieldName = camelcase(column.Field);
   const columnName = column.Field;
@@ -31,29 +33,52 @@ export const parseField = (
   const mysqlFullType = column.Type;
   const mysqlBaseType = getFieldMysqlBaseType(column);
 
-  const { castType, isImportedType, javascriptType, typeAnnotation } =
+  const { castType, isImportedType, javascriptType, typeAnnotation, javascriptTypeComment } =
     getFieldTypeInfo(column, options, mysqlBaseType);
 
+  
   const javascriptTypePossiblyNull = `${javascriptType}${
     nullable ? '|null' : ''
   }`;
+
+  const otherTypeComments: string[] = [];
   const modelTypeDeclaration = `${fieldName}${
     invisible ? '?' : ''
   }:${javascriptTypePossiblyNull}`;
 
+  if (invisible) {
+    otherTypeComments.push(`invisible: Field will be undefined in ${modelNames.modelName} using SELECT *`)
+  }
+
   const modelPrimaryKeyTypeDeclaration = primaryKey
     ? `${fieldName}:${javascriptType}`
     : null;
+  
   const modelCreateDataTypeDeclaration = generatedAlways
     ? null
     : `${fieldName}${
         autoIncrement || hasDefault ? '?' : ''
       }:${javascriptTypePossiblyNull}`;
 
+  if (generatedAlways) {
+    otherTypeComments.push(`generatedAlways: Field is omitted in ${modelNames.createDataTypeName}`)
+  } else if (autoIncrement) {
+    otherTypeComments.push(`autoIncrement: Field is optional in ${modelNames.createDataTypeName}`)
+  } else if (hasDefault) {
+    otherTypeComments.push(`hasDefault: Field is optional in ${modelNames.createDataTypeName}`)
+  } 
+
   const modelUpdateDataTypeDeclaration =
     primaryKey || generatedAlways
       ? null
       : `${fieldName}?:${javascriptTypePossiblyNull}`;
+
+  if (generatedAlways) {
+    otherTypeComments.push(`generatedAlways: Field is omitted in ${modelNames.updateDataTypeName}`)
+  } else if (primaryKey) {
+    otherTypeComments.push(`primaryKey: Field is omitted in ${modelNames.createDataTypeName}`)
+  }  
+    
 
   const modelFindUniqueParamsType = unique
     ? `{${fieldName}:${javascriptType}}`
@@ -80,7 +105,9 @@ export const parseField = (
     modelPrimaryKeyTypeDeclaration,
     modelCreateDataTypeDeclaration,
     modelUpdateDataTypeDeclaration,
-    modelFindUniqueParamsType
+    modelFindUniqueParamsType,
+    javascriptTypeComment,
+    otherTypeComments
   };
   return fd;
 };
@@ -115,13 +142,15 @@ export const getFieldTypeInfo = (
   javascriptType: string;
   typeAnnotation: ParsedAnnotation | null;
   isImportedType: boolean;
+  javascriptTypeComment: string;
 } => {
   if (!mysqlBaseType) {
     return {
       castType: 'string',
       javascriptType: 'string',
       typeAnnotation: null,
-      isImportedType: false
+      isImportedType: false,
+      javascriptTypeComment: `Unsupported column type ${column.Type}. Typed as string by default.`
     };
   }
 
@@ -160,7 +189,8 @@ export const getFieldTypeInfo = (
         isImportedType: false,
         castType: 'int',
         javascriptType: 'number',
-        typeAnnotation: null
+        typeAnnotation: null,
+        javascriptTypeComment: `Default type for ${column.Type} columns.`
       };
     case 'float':
     case 'double':
@@ -171,7 +201,8 @@ export const getFieldTypeInfo = (
         isImportedType: false,
         castType: 'float',
         javascriptType: 'number',
-        typeAnnotation: null
+        typeAnnotation: null,
+        javascriptTypeComment: `Default type for ${column.Type} columns.`
       };
     case 'date':
     case 'datetime':
@@ -180,7 +211,8 @@ export const getFieldTypeInfo = (
         isImportedType: false,
         castType: 'date',
         javascriptType: 'Date',
-        typeAnnotation: null
+        typeAnnotation: null,
+        javascriptTypeComment: `Default type for ${column.Type} columns.`
       };
     
   }
@@ -191,7 +223,8 @@ export const getFieldTypeInfo = (
     isImportedType: false,
     castType: 'string',
     javascriptType: 'string',
-    typeAnnotation: null
+    typeAnnotation: null,
+    javascriptTypeComment: `Default type for ${column.Type} columns.`
   };
 };
 
@@ -202,6 +235,7 @@ const getJsonFieldTypeInfo = (
   javascriptType: string;
   typeAnnotation: ParsedAnnotation | null;
   isImportedType: boolean;
+  javascriptTypeComment: string;
 } => {
   const typeAnnotation = getCommentAnnotations(column).find(
     (a) => a.annotation === 'json'
@@ -215,14 +249,16 @@ const getJsonFieldTypeInfo = (
       isImportedType: true,
       castType: 'json',
       javascriptType: typeAnnotation.argument.trim(),
-      typeAnnotation
+      typeAnnotation,
+      javascriptTypeComment: `Typed using the  ${typeAnnotation.argument.trim()} annotation.`
     };
   }
   return {
     isImportedType: false,
     castType: 'json',
     javascriptType: DEFAULT_JSON_FIELD_TYPE,
-    typeAnnotation: null
+    typeAnnotation: null,
+    javascriptTypeComment: `Missing @json type annotation. Typed as ${DEFAULT_JSON_FIELD_TYPE}.`
   };
 };
 
@@ -234,6 +270,7 @@ const getBigIntFieldTypeInfo = (
   javascriptType: string;
   typeAnnotation: ParsedAnnotation | null;
   isImportedType: boolean;
+  javascriptTypeComment: string;
 } => {
   // type as string can be turned off globally
   if (options.typeBigIntAsString === false) {
@@ -241,7 +278,8 @@ const getBigIntFieldTypeInfo = (
       isImportedType: false,
       castType: 'bigint',
       javascriptType: 'bigint',
-      typeAnnotation: null
+      typeAnnotation: null,
+      javascriptTypeComment: `Options typeBigIntAsString = false.`
     };
   }
   const typeAnnotation = getCommentAnnotations(column).find(
@@ -253,14 +291,16 @@ const getBigIntFieldTypeInfo = (
       isImportedType: false,
       castType: 'bigint',
       javascriptType: 'bigint',
-      typeAnnotation
+      typeAnnotation,
+      javascriptTypeComment: `Typed as bigint using @bigint annotation.`
     };
   }
   return {
     isImportedType: false,
     castType: 'string',
     javascriptType: 'string',
-    typeAnnotation: null
+    typeAnnotation: null,
+    javascriptTypeComment: `Options typeBigIntAsString = true.`
   };
 };
 
@@ -273,14 +313,16 @@ const getTinyIntOrBoolFieldTypeInfo = (
   javascriptType: string;
   typeAnnotation: ParsedAnnotation | null;
   isImportedType: boolean;
+  javascriptTypeComment: string
 } => {
-  // I don't think this acan happen, but whatevs
+  // I don't think this can happen, but whatevs
   if (mysqlBaseType === 'bool' || mysqlBaseType === 'boolean') {
     return {
       isImportedType: false,
       castType: 'boolean',
       javascriptType: 'boolean',
-      typeAnnotation: null
+      typeAnnotation: null,
+      javascriptTypeComment: `Default type for ${column.Type} columns.`
     };
   }
   // if it's not tinyint(1) then it's an int
@@ -289,7 +331,8 @@ const getTinyIntOrBoolFieldTypeInfo = (
       isImportedType: false,
       castType: 'int',
       javascriptType: 'number',
-      typeAnnotation: null
+      typeAnnotation: null,
+      javascriptTypeComment: `Default type for ${column.Type} columns.`
     };
   }
   // type as boolean can be turned off globally
@@ -298,14 +341,16 @@ const getTinyIntOrBoolFieldTypeInfo = (
       isImportedType: false,
       castType: 'int',
       javascriptType: 'number',
-      typeAnnotation: null
+      typeAnnotation: null,
+      javascriptTypeComment: `Options typeTinyIntOneAsBoolean = false.`
     };
   }
   return {
     isImportedType: false,
     castType: 'boolean',
     javascriptType: 'boolean',
-    typeAnnotation: null
+    typeAnnotation: null,
+    javascriptTypeComment: `Options typeTinyIntOneAsBoolean = true.`
   };
 };
 
@@ -316,6 +361,7 @@ const getSetFieldTypeInfo = (
   javascriptType: string;
   typeAnnotation: ParsedAnnotation | null;
   isImportedType: boolean;
+  javascriptTypeComment: string;
 } => {
   const typeAnnotation = getCommentAnnotations(column).find(
     (a) => a.annotation === 'set'
@@ -327,7 +373,8 @@ const getSetFieldTypeInfo = (
         isImportedType: true,
         castType: 'set',
         javascriptType: jsType,
-        typeAnnotation
+        typeAnnotation,
+        javascriptTypeComment: `Typed using the  ${typeAnnotation.argument.trim()} annotation.`
       };
     }
     const strings = getParenthesizedArgs(column.Type, 'set')
@@ -340,14 +387,16 @@ const getSetFieldTypeInfo = (
       isImportedType: false,
       castType: 'set',
       javascriptType: jsType,
-      typeAnnotation
+      typeAnnotation,
+      javascriptTypeComment: `Typed using the @set annotation.`
     };
   }
   return {
     isImportedType: false,
     castType: 'string',
     javascriptType: 'string',
-    typeAnnotation: null
+    typeAnnotation: null,
+    javascriptTypeComment: `Default type for ${column.Type} columns.`
   };
 };
 
@@ -358,6 +407,7 @@ const getEnumFieldTypeInfo = (
   javascriptType: string;
   typeAnnotation: ParsedAnnotation | null;
   isImportedType: boolean;
+  javascriptTypeComment: string
 } => {
   const typeAnnotation = getCommentAnnotations(column).find(
     (a) => a.annotation === 'enum'
@@ -372,7 +422,8 @@ const getEnumFieldTypeInfo = (
       isImportedType: true,
       castType: 'enum',
       javascriptType: jsType,
-      typeAnnotation
+      typeAnnotation,
+      javascriptTypeComment: `Typed using the  ${typeAnnotation.argument.trim()} annotation.`
     };
   }
   const strings = getParenthesizedArgs(column.Type, 'enum')
@@ -385,6 +436,7 @@ const getEnumFieldTypeInfo = (
     isImportedType: false,
     castType: 'enum',
     javascriptType: jsType,
-    typeAnnotation: null
+    typeAnnotation: null,
+    javascriptTypeComment: `Default type for ${column.Type} columns.`
   };
 };

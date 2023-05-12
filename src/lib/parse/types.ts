@@ -1,5 +1,9 @@
 import type { ColumnRow, IndexRow } from '../fetch/types.js';
-import type { FieldDefinition, SchemaCastMap, TypeOptions } from '../api/types.js';
+import type {
+  FieldDefinition,
+  SchemaCastMap,
+  TypeOptions
+} from '../api/types.js';
 
 export const ANNOTATIONS = ['bigint', 'enum', 'set', 'json'] as const;
 export type Annotation = (typeof ANNOTATIONS)[number];
@@ -15,7 +19,7 @@ export type ExtendedSchema = {
   models: ExtendedModelDefinition[];
   cast: SchemaCastMap;
   typeOptions: TypeOptions;
-}
+};
 
 export type ExtendedModelDefinition = {
   modelName: string;
@@ -41,6 +45,11 @@ export type ExtendedModelDefinition = {
 
 export type ExtendedFieldDefinition = FieldDefinition &
   ColumnRow & {
+    // How the type was inferred
+    javascriptTypeComment: string;
+
+    otherTypeComments: string[];
+
     // The full field type, including '|null'
     // if the field is nullable.
     javascriptTypePossiblyNull: string;
@@ -78,3 +87,14 @@ export type ExtendedFieldDefinition = FieldDefinition &
     // `{email: string}`
     modelFindUniqueParamsType: string | null;
   };
+
+export type ModelNames = {
+  modelName: string;
+  omittedBySelectAllTypeName: string;
+  primaryKeyTypeName: string;
+  createDataTypeName: string;
+  updateDataTypeName: string;
+  findUniqueParamsTypeName: string;
+  dbTypeName: string;
+  classGetterName: string;
+};

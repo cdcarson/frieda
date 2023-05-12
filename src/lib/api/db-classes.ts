@@ -145,7 +145,7 @@ export class ModelDb<
   }
 
   get primaryKeys(): (keyof M & string)[] {
-    return this.fields.filter((f) => f.isPrimaryKey).map((f) => f.fieldName);
+    return this.fields.filter((f) => f.primaryKey).map((f) => f.fieldName);
   }
 
   protected get jsonKeys(): (keyof M & string)[] {
@@ -161,7 +161,7 @@ export class ModelDb<
   }
 
   protected get autoIncrementingPrimaryKey(): (keyof M & string) | null {
-    const field = this.fields.find((f) => f.isAutoIncrement);
+    const field = this.fields.find((f) => f.autoIncrement);
     return field ? field.fieldName : null;
   }
 

@@ -45,26 +45,26 @@ export const CLI_OPTIONS: CliOption[] = [
   },
   {
     name: 'compileJs',
-    type: 'flag',
+    type: 'boolean',
     alias: 'j',
     description: OPTION_DESCRIPTIONS.compileJs,
     isRc: true
   },
   {
     name: 'typeBigIntAsString',
-    type: 'flag',
+    type: 'boolean',
     description: OPTION_DESCRIPTIONS.typeBigIntAsString,
     isRc: true
   },
   {
     name: 'typeTinyIntOneAsBoolean',
-    type: 'flag',
+    type: 'boolean',
     description: OPTION_DESCRIPTIONS.typeTinyIntOneAsBoolean,
     isRc: true
   },
   {
     name: 'help',
-    type: 'flag',
+    type: 'boolean',
     alias: 'h',
     description: 'Show this help.',
     isRc: false
