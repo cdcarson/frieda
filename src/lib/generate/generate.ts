@@ -8,11 +8,10 @@ export const generate = async (
   options: ResolvedCliOptions,
   schema: ExtendedSchema
 ): Promise<FsPaths[]> => {
-  await removeRecognizedFiles(options.outputDirectory)
+  await removeRecognizedFiles(options.outputDirectory);
   const typescript = await generateTypescript(options, schema);
-  if (! options.compileJs) {
+  if (!options.compileJs) {
     return typescript;
   }
-  return await compileJavascript(options, typescript)
-
+  return await compileJavascript(options, typescript);
 };

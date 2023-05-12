@@ -21,11 +21,11 @@ export const promptDirectory = async (
 
   try {
     const dir = await validateDirectory(path, key);
-    
+
     spinner.succeed();
     if (dir.isEmpty === false && dir.relativePath !== rcValue) {
-      const goAhead = await promptDirectoryNotEmpty(dir.relativePath); 
-      return goAhead ? dir : promptDirectory(key, dir.relativePath, rcValue)
+      const goAhead = await promptDirectoryNotEmpty(dir.relativePath);
+      return goAhead ? dir : promptDirectory(key, dir.relativePath, rcValue);
     }
     return dir;
   } catch (error) {

@@ -82,9 +82,9 @@ export type FieldDefinition = {
   primaryKey: boolean;
   unique: boolean;
   javascriptType: string;
-  mysqlBaseType: MysqlBaseType|null,
+  mysqlBaseType: MysqlBaseType | null;
   mysqlFullType: string;
-}
+};
 
 export type ModelDefinition = {
   modelName: string;
@@ -96,8 +96,7 @@ export type Schema = {
   databaseName: string;
   models: ModelDefinition[];
   cast: SchemaCastMap;
-}
-
+};
 
 export type CustomModelCast<M extends Model> = {
   [K in keyof M]?: CastType;
@@ -106,15 +105,11 @@ export type SchemaCastMap = {
   [orgTableOrgCol: string]: CastType;
 };
 
-
 export type TypeOptions = {
   typeTinyIntOneAsBoolean: boolean;
   typeBigIntAsString: boolean;
   typeImports: string[];
 };
-
-
-
 
 export type DbLoggingOptions = {
   performanceLogger?: (
@@ -131,9 +126,10 @@ export type ModelSelectColumnsInput<M extends Model> =
 export type SelectedModel<
   M extends Model,
   ExcludedBySelectAll extends (keyof M)[],
-  S extends ModelSelectColumnsInput<M>,
-> = S extends (keyof M)[] ? { [K in S[number]]: M[K] } : Omit<M, ExcludedBySelectAll[number]>;
-
+  S extends ModelSelectColumnsInput<M>
+> = S extends (keyof M)[]
+  ? { [K in S[number]]: M[K] }
+  : Omit<M, ExcludedBySelectAll[number]>;
 
 export type ModelWhereInput<M extends Model> = Partial<M> | Sql | undefined;
 
@@ -155,5 +151,3 @@ export type OneBasedPagingInput =
       rpp: number;
     }
   | undefined;
-
-

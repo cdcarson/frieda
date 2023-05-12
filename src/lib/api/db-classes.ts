@@ -121,15 +121,15 @@ export class ModelDb<
     loggingOptions: DbLoggingOptions = {}
   ) {
     super(conn, schema, loggingOptions);
-    const model = schema.models.find(m => m.modelName === modelName);
-    if (! model){
-      throw new Error(`Model ${modelName} not found in schema.`)
+    const model = schema.models.find((m) => m.modelName === modelName);
+    if (!model) {
+      throw new Error(`Model ${modelName} not found in schema.`);
     }
-    this.#model = model
+    this.#model = model;
   }
 
   get model(): ModelDefinition {
-    return this.#model
+    return this.#model;
   }
 
   get tableName(): string {
@@ -174,16 +174,23 @@ export class ModelDb<
     const where = getWhere(input.where, this.tableName);
     const orderBy = getOrderBy(input.orderBy, this.tableName);
     const limit = getLimitOffset(input.paging);
-    const getSelectForFieldName = (fieldName: string ): string => {
-      const field = this.fields.find(f => f.fieldName === fieldName);
-      if (! field) {
-        throw new Error(`Invalid select: the field named ${fieldName} does not exist.`)
+    const getSelectForFieldName = (fieldName: string): string => {
+      const field = this.fields.find((f) => f.fieldName === fieldName);
+      if (!field) {
+        throw new Error(
+          `Invalid select: the field named ${fieldName} does not exist.`
+        );
       }
-      return `${bt(this.tableName, field.columnName)} as ${bt(field.fieldName)}`
-    }
+      return `${bt(this.tableName, field.columnName)} as ${bt(
+        field.fieldName
+      )}`;
+    };
     const select =
       Array.isArray(input.select) && input.select.length > 0
-        ? join(input.select.map((fieldName) => getSelectForFieldName(fieldName)), ',')
+        ? join(
+            input.select.map((fieldName) => getSelectForFieldName(fieldName)),
+            ','
+          )
         : raw('*');
     const query = sql`
         SELECT

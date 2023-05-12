@@ -1,4 +1,7 @@
-import type { ExtendedModelDefinition, ExtendedFieldDefinition } from '../../parse/types.js';
+import type {
+  ExtendedModelDefinition,
+  ExtendedFieldDefinition
+} from '../../parse/types.js';
 import { prompt } from './prompt.js';
 
 export const promptField = async (

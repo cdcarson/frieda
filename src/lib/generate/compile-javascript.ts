@@ -19,16 +19,25 @@ export const compileJavascript = async (
 
   program.emit();
 
-  const results = await Promise.all(Object.values(GENERATED_FILE_BASENAMES).flatMap(basename => {
-    return [
-      readAndPrettifyFile(join(options.outputDirectory, basename + GENERATED_FILE_EXTNAMES.js)),
-      readAndPrettifyFile(join(options.outputDirectory, basename + GENERATED_FILE_EXTNAMES.dTs)),
-      getFsPaths(join(options.outputDirectory, basename + GENERATED_FILE_EXTNAMES.jsMap))
-    ]
-  }));
-  
+  const results = await Promise.all(
+    Object.values(GENERATED_FILE_BASENAMES).flatMap((basename) => {
+      return [
+        readAndPrettifyFile(
+          join(options.outputDirectory, basename + GENERATED_FILE_EXTNAMES.js)
+        ),
+        readAndPrettifyFile(
+          join(options.outputDirectory, basename + GENERATED_FILE_EXTNAMES.dTs)
+        ),
+        getFsPaths(
+          join(
+            options.outputDirectory,
+            basename + GENERATED_FILE_EXTNAMES.jsMap
+          )
+        )
+      ];
+    })
+  );
 
-  
   for (const p of typescript) {
     await fs.rm(p.absolutePath);
   }
@@ -41,6 +50,4 @@ const readAndPrettifyFile = async (relPath: string): Promise<FsPaths> => {
     await prettifyAndSaveFile(file.relativePath, file.contents);
   }
   return file;
-}
-
-
+};

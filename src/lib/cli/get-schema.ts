@@ -8,7 +8,7 @@ import type { Connection } from '@planetscale/database';
 export const getSchema = async (
   options: ResolvedCliOptions,
   connection: Connection
-): Promise< ExtendedSchema> => {
+): Promise<ExtendedSchema> => {
   const spinner = ora('Fetching schema').start();
   const fetched = await fetchSchema(connection);
   const schema = parseSchema(fetched, options);

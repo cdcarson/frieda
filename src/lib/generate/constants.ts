@@ -1,6 +1,5 @@
 import ts from 'typescript';
 
-
 export const GENERATED_FILE_EXTNAMES = {
   ts: '.ts',
   dTs: '.d.ts',

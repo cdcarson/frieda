@@ -226,7 +226,6 @@ const showField = async (
   onUserCancelled();
 };
 
-
 const getJavascriptTypeComment = (
   schema: ExtendedSchema,
   field: ExtendedFieldDefinition

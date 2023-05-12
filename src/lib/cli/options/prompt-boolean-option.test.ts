@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import prompts from 'prompts';
-import {promptBooleanOption} from './prompt-boolean-option.js'
+import { promptBooleanOption } from './prompt-boolean-option.js';
 
 describe('promptBooleanOption', () => {
   it('works', async () => {

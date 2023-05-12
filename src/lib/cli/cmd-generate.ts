@@ -5,5 +5,5 @@ import type { CliArgs } from './types.js';
 export const cmdGenerate = async (cliArgs: Partial<CliArgs>) => {
   const { options, connection } = await getOptions(cliArgs);
   const schema = await getSchema(options, connection);
-  await generateCode(options, schema)
+  await generateCode(options, schema);
 };

@@ -1,5 +1,4 @@
-import type { CliCommand, CliOption } from './types.js';
-import { fmtVarName } from './ui/formatters.js';
+import type { CliOption } from './types.js';
 
 export const FRIEDA_RC_FILE_NAME = '.friedarc.json';
 export const ENV_DB_URL_KEYS = ['FRIEDA_DATABASE_URL', 'DATABASE_URL'] as const;
@@ -103,6 +102,5 @@ export const CLI_COMMANDS = [
     alias: 'i',
     description: COMMAND_DESCRIPTIONS.init,
     usage: '[options]'
-  },
-
+  }
 ] as const;

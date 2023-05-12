@@ -8,11 +8,11 @@ export const getSchemaTs = (
   const schema: Schema = {
     databaseName: extendedSchema.databaseName,
     cast: extendedSchema.cast,
-    models: extendedSchema.models.map(exm => {
+    models: extendedSchema.models.map((exm) => {
       const model: ModelDefinition = {
         tableName: exm.tableName,
         modelName: exm.modelName,
-        fields: exm.fields.map(exf => {
+        fields: exm.fields.map((exf) => {
           const field: FieldDefinition = {
             autoIncrement: exf.autoIncrement,
             castType: exf.castType,
@@ -27,13 +27,13 @@ export const getSchemaTs = (
             nullable: exf.nullable,
             primaryKey: exf.primaryKey,
             unique: exf.unique
-          }
+          };
           return field;
         })
-      }
+      };
       return model;
     })
-  }
+  };
   return `
     ${bannerComment}
     import type {Schema} from '@nowzoo/frieda';

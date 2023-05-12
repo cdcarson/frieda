@@ -1,13 +1,17 @@
-import type { ExtendedSchema } from "../parse/types.js";
+import type { ExtendedSchema } from '../parse/types.js';
 
-export const getTypesTs = (schema: ExtendedSchema, bannerComment: string): string => {
+export const getTypesTs = (
+  schema: ExtendedSchema,
+  bannerComment: string
+): string => {
   return `
     ${bannerComment}
     import type {ModelDb} from '@nowzoo/frieda';
     ${(schema.typeOptions.typeImports || []).join('\n')}
 
-    ${schema.models.map(m => {
-      return `
+    ${schema.models
+      .map((m) => {
+        return `
         /**
          * Types for the ${m.modelName} model.
          */
@@ -18,8 +22,9 @@ export const getTypesTs = (schema: ExtendedSchema, bannerComment: string): strin
         ${m.updateDataTypeDeclaration}
         ${m.findUniqueParamsTypeDeclaration}
         ${m.dbTypeDeclaration}
-      `
-    }).join('\n\n')}
+      `;
+      })
+      .join('\n\n')}
 
-  `
-}
+  `;
+};

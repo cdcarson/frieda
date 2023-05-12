@@ -1,6 +1,6 @@
 import ora from 'ora';
 import { getStdOutCols } from './formatters.js';
-import colors from 'kleur'
+import colors from 'kleur';
 const fromStringOrArray = (message: string | string[], indent = 2): string => {
   return (Array.isArray(message) ? message : [message])
     .map((s, i) => (i === 0 ? s : `${' '.repeat(indent)}${s}`))
@@ -20,15 +20,17 @@ const info = (message: string | string[]) => {
 
 const header = (title: string) => {
   const width = getStdOutCols();
-  const before = Math.floor((width -( title.length + 2))/2);
-  console.log(colors.dim(`${'-'.repeat(before)} ${title} ${'-'.repeat(before)}`))
-}
+  const before = Math.floor((width - (title.length + 2)) / 2);
+  console.log(
+    colors.dim(`${'-'.repeat(before)} ${title} ${'-'.repeat(before)}`)
+  );
+};
 const footer = () => {
-  console.log(colors.dim('-'.repeat(getStdOutCols())))
-}
+  console.log(colors.dim('-'.repeat(getStdOutCols())));
+};
 const message = (message: string | string[]) => {
-  console.log(fromStringOrArray(message, 0))
-}
+  console.log(fromStringOrArray(message, 0));
+};
 export default {
   empty,
   warn,

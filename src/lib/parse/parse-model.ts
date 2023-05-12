@@ -7,7 +7,7 @@ export const parseModel = (
   table: FetchedTable,
   options: TypeOptions
 ): ExtendedModelDefinition => {
-  const modelNames = getModelNames(table.name)
+  const modelNames = getModelNames(table.name);
   const {
     modelName,
     omittedBySelectAllTypeName,
@@ -70,7 +70,7 @@ export const parseModel = (
     classGetterName,
     createSql: table.createSql,
     indexes: table.indexes
-  }
+  };
 };
 
 export const getModelNames = (tableName: string): ModelNames => {

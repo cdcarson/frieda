@@ -62,5 +62,3 @@ const logModel = (model: ExtendedModelDefinition) => {
 
   log.footer();
 };
-
-

@@ -33,10 +33,14 @@ export const parseField = (
   const mysqlFullType = column.Type;
   const mysqlBaseType = getFieldMysqlBaseType(column);
 
-  const { castType, isImportedType, javascriptType, typeAnnotation, javascriptTypeComment } =
-    getFieldTypeInfo(column, options, mysqlBaseType);
+  const {
+    castType,
+    isImportedType,
+    javascriptType,
+    typeAnnotation,
+    javascriptTypeComment
+  } = getFieldTypeInfo(column, options, mysqlBaseType);
 
-  
   const javascriptTypePossiblyNull = `${javascriptType}${
     nullable ? '|null' : ''
   }`;
@@ -47,13 +51,15 @@ export const parseField = (
   }:${javascriptTypePossiblyNull}`;
 
   if (invisible) {
-    otherTypeComments.push(`invisible: Field will be undefined in ${modelNames.modelName} using SELECT *`)
+    otherTypeComments.push(
+      `invisible: Field will be undefined in ${modelNames.modelName} using SELECT *`
+    );
   }
 
   const modelPrimaryKeyTypeDeclaration = primaryKey
     ? `${fieldName}:${javascriptType}`
     : null;
-  
+
   const modelCreateDataTypeDeclaration = generatedAlways
     ? null
     : `${fieldName}${
@@ -61,12 +67,18 @@ export const parseField = (
       }:${javascriptTypePossiblyNull}`;
 
   if (generatedAlways) {
-    otherTypeComments.push(`generatedAlways: Field is omitted in ${modelNames.createDataTypeName}`)
+    otherTypeComments.push(
+      `generatedAlways: Field is omitted in ${modelNames.createDataTypeName}`
+    );
   } else if (autoIncrement) {
-    otherTypeComments.push(`autoIncrement: Field is optional in ${modelNames.createDataTypeName}`)
+    otherTypeComments.push(
+      `autoIncrement: Field is optional in ${modelNames.createDataTypeName}`
+    );
   } else if (hasDefault) {
-    otherTypeComments.push(`hasDefault: Field is optional in ${modelNames.createDataTypeName}`)
-  } 
+    otherTypeComments.push(
+      `hasDefault: Field is optional in ${modelNames.createDataTypeName}`
+    );
+  }
 
   const modelUpdateDataTypeDeclaration =
     primaryKey || generatedAlways
@@ -74,11 +86,14 @@ export const parseField = (
       : `${fieldName}?:${javascriptTypePossiblyNull}`;
 
   if (generatedAlways) {
-    otherTypeComments.push(`generatedAlways: Field is omitted in ${modelNames.updateDataTypeName}`)
+    otherTypeComments.push(
+      `generatedAlways: Field is omitted in ${modelNames.updateDataTypeName}`
+    );
   } else if (primaryKey) {
-    otherTypeComments.push(`primaryKey: Field is omitted in ${modelNames.createDataTypeName}`)
-  }  
-    
+    otherTypeComments.push(
+      `primaryKey: Field is omitted in ${modelNames.createDataTypeName}`
+    );
+  }
 
   const modelFindUniqueParamsType = unique
     ? `{${fieldName}:${javascriptType}}`
@@ -165,7 +180,11 @@ export const getFieldTypeInfo = (
   }
 
   // tinyint, which can be boolean, plus the bool types...
-  if (mysqlBaseType === 'tinyint' || mysqlBaseType === 'bool' || mysqlBaseType === 'boolean') {
+  if (
+    mysqlBaseType === 'tinyint' ||
+    mysqlBaseType === 'bool' ||
+    mysqlBaseType === 'boolean'
+  ) {
     return getTinyIntOrBoolFieldTypeInfo(column, typeOptions, mysqlBaseType);
   }
 
@@ -214,10 +233,8 @@ export const getFieldTypeInfo = (
         typeAnnotation: null,
         javascriptTypeComment: `Default type for ${column.Type} columns.`
       };
-    
   }
 
-  
   // everything else is cast to string, including time, bit, etc
   return {
     isImportedType: false,
@@ -313,7 +330,7 @@ const getTinyIntOrBoolFieldTypeInfo = (
   javascriptType: string;
   typeAnnotation: ParsedAnnotation | null;
   isImportedType: boolean;
-  javascriptTypeComment: string
+  javascriptTypeComment: string;
 } => {
   // I don't think this can happen, but whatevs
   if (mysqlBaseType === 'bool' || mysqlBaseType === 'boolean') {
@@ -407,7 +424,7 @@ const getEnumFieldTypeInfo = (
   javascriptType: string;
   typeAnnotation: ParsedAnnotation | null;
   isImportedType: boolean;
-  javascriptTypeComment: string
+  javascriptTypeComment: string;
 } => {
   const typeAnnotation = getCommentAnnotations(column).find(
     (a) => a.annotation === 'enum'

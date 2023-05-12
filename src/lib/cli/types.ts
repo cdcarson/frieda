@@ -7,11 +7,9 @@ export type ResolvedCliOptions = TypeOptions & {
 };
 
 export type CliArgs = Exclude<ResolvedCliOptions, 'typeImports'> & {
-  positionalArgs: string[]
+  positionalArgs: string[];
   help: boolean;
 };
-
-
 
 export type DatabaseUrlResult = {
   databaseUrl: string;
@@ -25,12 +23,12 @@ export type CliOption = {
   alias?: string;
   description: string;
   isRc: boolean;
-}
+};
 
 export type CliCommand = {
-  name: string,
+  name: string;
   alias: string;
   usage: string;
   description: string;
-  positionalOptions?: CliOption[]
-}
+  positionalOptions?: CliOption[];
+};

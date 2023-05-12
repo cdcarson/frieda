@@ -4,18 +4,17 @@ export const getDatabaseTs = (
   extendedSchema: ExtendedSchema,
   bannerComment: string
 ): string => {
- 
   return `
     ${bannerComment}
     import type { Transaction, Connection } from '@planetscale/database';
     import { BaseDb, ModelDb, type DbLoggingOptions } from '@nowzoo/frieda';
     import schema from './schema.js';
     import type {
-      ${extendedSchema.models.flatMap(m => {
-        return [
-          m.dbTypeName
-        ]
-      }).join(',')}
+      ${extendedSchema.models
+        .flatMap((m) => {
+          return [m.dbTypeName];
+        })
+        .join(',')}
     } from './types.js';
     export abstract class ModelsDb extends BaseDb {
       #models: Partial<{
@@ -28,8 +27,6 @@ export const getDatabaseTs = (
 
       ${extendedSchema.models
         .map((m) => {
-          
-
           return `
             get ${m.classGetterName}(): ${m.dbTypeName} {
               if (! this.#models.${m.classGetterName}) {

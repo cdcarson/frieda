@@ -8,7 +8,7 @@ describe('fetchSchema', () => {
   let connection: Connection;
   beforeEach(() => {
     connection = {} as Connection;
-  })
+  });
   it('should make the right calls', async () => {
     const ftSpy = vi
       .spyOn(fetchTableMod, 'fetchTable')

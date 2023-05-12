@@ -7,20 +7,19 @@ export const parseSchema = (
   fetchedSchema: FetchedSchema,
   typeOptions: TypeOptions
 ): ExtendedSchema => {
-
-  const models = fetchedSchema.tables.map(t => parseModel(t, typeOptions));
+  const models = fetchedSchema.tables.map((t) => parseModel(t, typeOptions));
   const cast: SchemaCastMap = models.reduce((acc, m) => {
-    const copy = {...acc};
-    m.fields.forEach(f => {
+    const copy = { ...acc };
+    m.fields.forEach((f) => {
       const key = `${m.tableName}.${f.columnName}`;
-      copy[key] = f.castType
+      copy[key] = f.castType;
     });
-    return copy
+    return copy;
   }, {} as SchemaCastMap);
   return {
     databaseName: fetchedSchema.databaseName,
     models,
     cast,
     typeOptions
-  }
+  };
 };

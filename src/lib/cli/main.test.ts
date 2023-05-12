@@ -17,35 +17,29 @@ describe('main', () => {
     cmdInitSpy = vi.spyOn(cmdInitMod, 'cmdInit').mockResolvedValue();
     cmdModelSpy = vi.spyOn(cmdModelMod, 'cmdModel').mockResolvedValue();
     cmdGenerateSpy = vi.spyOn(cmdGenMod, 'cmdGenerate').mockResolvedValue();
-   
   });
   it('command generate', async () => {
     await main(['generate']);
     expect(cmdGenerateSpy).toHaveBeenCalledTimes(1);
     await main(['g']);
     expect(cmdGenerateSpy).toHaveBeenCalledTimes(2);
-  
   });
   it('command init', async () => {
     await main(['init']);
     expect(cmdInitSpy).toHaveBeenCalledTimes(1);
     await main(['i']);
     expect(cmdInitSpy).toHaveBeenCalledTimes(2);
- 
   });
   it('command field', async () => {
     await main(['field']);
     expect(cmdFieldSpy).toHaveBeenCalledTimes(1);
     await main(['f']);
     expect(cmdFieldSpy).toHaveBeenCalledTimes(2);
-   
   });
   it('command model', async () => {
     await main(['model']);
     expect(cmdModelSpy).toHaveBeenCalledTimes(1);
     await main(['m']);
     expect(cmdModelSpy).toHaveBeenCalledTimes(2);
-    
   });
- 
 });
