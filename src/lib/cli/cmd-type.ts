@@ -13,6 +13,7 @@ import colors from 'kleur';
 import { prompt } from './ui/prompt.js';
 import { promptField } from './ui/prompt-field.js';
 import { onUserCancelled } from './ui/on-user-cancelled.js';
+import { format } from 'prettier';
 
 export const cmdType = async (
   cliArgs: Partial<CliArgs>,
@@ -85,38 +86,49 @@ const showModel = async (
     )}Db Type${' '.repeat(dbTypeWidth - 'Db Type'.length)}Notes`,
     ...fields,
     '',
-    ...model.createSql.split('\n').map((s) => fmtVal(s))
+    ...model.createSql.split('\n').map((s) => colors.gray(s))
   ]);
 
+  log.message([
+    '',
+    colors.dim('Model Types'),
+    ...format(model.modelTypeDeclaration.trim(), {filepath: 'test.ts'}).split('\n').map(s => colors.gray(s)),
+    ...model.fields.flatMap(f => f.otherTypeComments.map(s => fmtVarName(f.fieldName) + ` ${s}`)).map(s => ` - ${s}`)
+    // ...format(model.primaryKeyTypeDeclaration.trim(), {filepath: 'test.ts'}).split('\n').map(s => colors.gray(s)),
+    // ...format(model.createDataTypeDeclaration.trim(), {filepath: 'test.ts'}).split('\n').map(s => colors.gray(s)),
+    // ...format(model.updateDataTypeDeclaration.trim(), {filepath: 'test.ts'}).split('\n').map(s => colors.gray(s)),
+    
+  ])
+
   log.footer();
-  const nextStep = await prompt<'field' | 'model' | 'exit'>({
-    type: 'select',
-    name: 'nextStep',
-    message: 'Action',
-    choices: [
-      {
-        title: `Show field in ${colors.bold(model.modelName)}`,
-        value: 'field'
-      },
-      {
-        title: `Show another model`,
-        value: 'model'
-      },
-      {
-        title: 'Exit',
-        value: 'exit'
-      }
-    ]
-  });
-  if (nextStep === 'field') {
-    const field = await promptField(model, '');
-    return await showField(schema, model, field);
-  }
-  if (nextStep === 'model') {
-    const otherModel = await promptModel(schema.models);
-    return await showModel(schema, otherModel);
-  }
-  onUserCancelled();
+  // const nextStep = await prompt<'field' | 'model' | 'exit'>({
+  //   type: 'select',
+  //   name: 'nextStep',
+  //   message: 'Action',
+  //   choices: [
+  //     {
+  //       title: `Show field in ${colors.bold(model.modelName)}`,
+  //       value: 'field'
+  //     },
+  //     {
+  //       title: `Show another model`,
+  //       value: 'model'
+  //     },
+  //     {
+  //       title: 'Exit',
+  //       value: 'exit'
+  //     }
+  //   ]
+  // });
+  // if (nextStep === 'field') {
+  //   const field = await promptField(model, '');
+  //   return await showField(schema, model, field);
+  // }
+  // if (nextStep === 'model') {
+  //   const otherModel = await promptModel(schema.models);
+  //   return await showModel(schema, otherModel);
+  // }
+  // onUserCancelled();
 };
 
 const showField = async (
@@ -158,10 +170,8 @@ const showField = async (
     } else if (k === 'nullable') {
       extra = colors.gray(` (Null: ${field.Null})`);
     } else if (k === 'javascriptType') {
-      const comment = getJavascriptTypeComment(schema, field);
-      if (comment) {
-        extra = colors.gray(` (${comment})`);
-      }
+      extra = colors.gray(` (${field.javascriptTypeComment})`);
+      
     }
 
     return `${fmtVarName(k)}:${' '.repeat(maxKey - k.length)} ${fmtVal(
@@ -226,61 +236,4 @@ const showField = async (
   onUserCancelled();
 };
 
-const getJavascriptTypeComment = (
-  schema: ExtendedSchema,
-  field: ExtendedFieldDefinition
-): string | null => {
-  if ('bigint' === field.mysqlBaseType) {
-    const { typeBigIntAsString } = schema.typeOptions;
-    const str = `Option ${fmtVarName('typeBigIntAsString')} = ${fmtVal(
-      JSON.stringify(typeBigIntAsString)
-    )}.`;
-    if (typeBigIntAsString) {
-      if ('bigint' === field.castType) {
-        return str + ` Using ${fmtVal('@bigint')} type annotation.`;
-      } else {
-        return str;
-      }
-    } else {
-      return str;
-    }
-  }
-  if (
-    'tinyint' === field.mysqlBaseType &&
-    'tinyint(1)' === field.mysqlFullType
-  ) {
-    const { typeTinyIntOneAsBoolean } = schema.typeOptions;
-    return `Option ${fmtVarName('typeTinyIntOneAsBoolean')} = ${fmtVal(
-      JSON.stringify(typeTinyIntOneAsBoolean)
-    )}.`;
-  }
-  if ('json' === field.mysqlBaseType) {
-    if (field.typeAnnotation) {
-      return `Using imported type ${fmtVal(
-        field.typeAnnotation.argument as string
-      )} from ${fmtVal('@json')} type annotation.`;
-    } else {
-      return `No ${fmtVal('@json')} type annotation found.`;
-    }
-  }
-  if (
-    'enum' === field.mysqlBaseType &&
-    field.isImportedType &&
-    field.typeAnnotation &&
-    field.typeAnnotation.argument
-  ) {
-    return `Using imported type ${fmtVal(
-      field.typeAnnotation.argument as string
-    )} from ${fmtVal('@enum')} type annotation.`;
-  }
-  if ('set' === field.mysqlBaseType && field.typeAnnotation) {
-    if (field.typeAnnotation.argument) {
-      return `Using imported type ${fmtVal(
-        field.typeAnnotation.argument as string
-      )} from ${fmtVal('@set')} type annotation.`;
-    } else {
-      return `Using ${fmtVal('@set')} type annotation.`;
-    }
-  }
-  return null;
-};
+
