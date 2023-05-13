@@ -70,33 +70,54 @@ export const CAST_TYPES = [
 ] as const;
 export type CastType = (typeof CAST_TYPES)[number];
 
-export type FieldDefinition = {
-  fieldName: string;
-  columnName: string;
-  castType: CastType;
-  hasDefault: boolean;
-  autoIncrement: boolean;
-  generatedAlways: boolean;
-  invisible: boolean;
-  nullable: boolean;
-  primaryKey: boolean;
-  unique: boolean;
-  javascriptType: string;
-  mysqlBaseType: MysqlBaseType | null;
-  mysqlFullType: string;
+/**
+ * A row from a `SHOW FULL COLUMNS FROM TableName` query.
+ * see https://dev.mysql.com/doc/refman/8.0/en/show-columns.html
+ */
+export type Column = {
+  Field: string;
+  Type: string;
+  Null: 'YES' | 'NO';
+  Collation: string | null;
+  Key: string;
+  Default: string | null;
+  Extra: string;
+  Comment: string;
+  Privileges: string;
 };
 
-export type ModelDefinition = {
-  modelName: string;
-  tableName: string;
-  fields: FieldDefinition[];
+/**
+ * A row from `SHOW INDEXES FROM FROM TableName`
+ */
+export type Index = {
+  Table: string;
+  Non_unique: number;
+  Key_name: string;
+  Seq_in_index: number;
+  Column_name: string | null;
+  Collation: string | null;
+  Cardinality: string;
+  Sub_part: string | null;
+  Packed: string | null;
+  Null: string;
+  Index_type: string;
+  Comment: string;
+  Index_comment: string;
+  Visible: string;
+  Expression: string | null;
 };
+
+export type Table = {
+  name: string;
+  columns: Column[];
+  indexes: Index[]
+}
 
 export type Schema = {
   databaseName: string;
-  models: ModelDefinition[];
+  tables: Table[];
   cast: SchemaCastMap;
-};
+}
 
 export type CustomModelCast<M extends Model> = {
   [K in keyof M]?: CastType;

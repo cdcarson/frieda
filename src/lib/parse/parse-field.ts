@@ -13,7 +13,7 @@ import {
 } from '../api/types.js';
 import camelcase from 'camelcase';
 import { DEFAULT_JSON_FIELD_TYPE } from '../constants.js';
-import { getParenthesizedArgs } from './parsers.js';
+import { getParenthesizedArgs } from './field-parsers.js';
 
 export const parseField = (
   column: ColumnRow,
