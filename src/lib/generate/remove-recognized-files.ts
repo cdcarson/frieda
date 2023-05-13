@@ -14,6 +14,7 @@ export const removeRecognizedFiles = async (
   outputDirectory: string
 ): Promise<void> => {
   const outPath = getFsPaths(outputDirectory);
+  await fs.ensureDir(outPath.absolutePath)
   const paths = await fs.readdir(outPath.absolutePath);
   const recognized: string[] = [
     ...Object.values(OTHER_ALLOWED_FILENAMES),

@@ -6,7 +6,7 @@ import type {
 } from '../types.js';
 import { readFriedarc } from './read-friedarc.js';
 
-import { fmtPath, fmtVarName, squishWords } from '../ui/formatters.js';
+import { fmtPath, fmtVal, fmtVarName, squishWords } from '../ui/formatters.js';
 import { FRIEDA_RC_FILE_NAME, OPTION_DESCRIPTIONS } from '../constants.js';
 import { prettifyAndSaveFile } from '../../fs/prettify-and-save-file.js';
 import log from '../ui/log.js';
@@ -19,7 +19,7 @@ import { promptDirectoryNotEmpty } from './prompt-directory-not-empty.js';
 import { prompt } from '../ui/prompt.js';
 import type { DirectoryResult } from '../../fs/types.js';
 import { type Connection, connect } from '@planetscale/database';
-
+import colors from 'kleur';
 export const getOptions = async (
   cliArgs: Partial<CliArgs>,
   promptAlways = false
@@ -118,24 +118,33 @@ export const getOptions = async (
   spinner.succeed('Current options read.');
 
   if (databaseUrlResult === undefined || promptAlways) {
+    console.log();
     if (envFileError) {
       log.error(envFileError.message);
+      console.log();
     }
-    log.info([
-      fmtVarName('envFile'),
-      ...squishWords(OPTION_DESCRIPTIONS.envFile).split('\n')
-    ]);
+    log.info(
+      squishWords(
+        `${fmtVarName('envFile')}: ${OPTION_DESCRIPTIONS.envFile}`
+      ).split('\n')
+    );
+
     databaseUrlResult = await promptEnvFile(envFile, rc.envFile);
   }
 
   if (outputDirectoryResult === undefined || promptAlways) {
+    console.log();
     if (outputDirectoryError) {
       log.error(outputDirectoryError.message);
+      console.log();
     }
-    log.info([
-      fmtVarName('outputDirectory'),
-      ...squishWords(OPTION_DESCRIPTIONS.outputDirectory).split(`\n`)
-    ]);
+    log.info(
+      squishWords(
+        `${fmtVarName('outputDirectory')}: ${
+          OPTION_DESCRIPTIONS.outputDirectory
+        }`
+      ).split('\n')
+    );
     outputDirectoryResult = await promptDirectory(
       'outputDirectory',
       outputDirectory,
@@ -160,45 +169,60 @@ export const getOptions = async (
   }
 
   if (promptAlways) {
-    log.info([
-      fmtVarName('compileJs'),
-      ...squishWords(OPTION_DESCRIPTIONS.compileJs).split('\n')
-    ]);
+    console.log();
+    log.info(
+      squishWords(
+        `${fmtVarName('compileJs')}: ${
+          OPTION_DESCRIPTIONS.compileJs
+        }`
+      ).split('\n')
+    );
     compileJs = await promptBooleanOption('compileJs', compileJs);
 
-    log.info([
-      fmtVarName('typeBigIntAsString'),
-      ...squishWords(OPTION_DESCRIPTIONS.typeBigIntAsString).split('\n')
-    ]);
+    console.log();
+    log.info(
+      squishWords(
+        `${fmtVarName('typeBigIntAsString')}: ${
+          OPTION_DESCRIPTIONS.typeBigIntAsString
+        }`
+      ).split('\n')
+    );
+
     typeBigIntAsString = await promptBooleanOption(
       'typeBigIntAsString',
       typeBigIntAsString
     );
 
-    log.info([
-      fmtVarName('typeTinyIntOneAsBoolean'),
-      ...squishWords(OPTION_DESCRIPTIONS.typeTinyIntOneAsBoolean).split('\n')
-    ]);
+    console.log();
+
+    log.info(
+      squishWords(
+        `${fmtVarName('typeTinyIntOneAsBoolean')}: ${
+          OPTION_DESCRIPTIONS.typeTinyIntOneAsBoolean
+        }`
+      ).split('\n')
+    );
+
     typeTinyIntOneAsBoolean = await promptBooleanOption(
       'typeTinyIntOneAsBoolean',
       typeTinyIntOneAsBoolean
     );
-    if (promptAlways) {
-      log.info([
-        fmtVarName('typeImports'),
-        squishWords(
-          `Note that you can edit the ${fmtVarName(
-            'typeImports'
-          )} array directly in ${fmtPath(FRIEDA_RC_FILE_NAME)}.`
-        )
-      ]);
-    }
+    console.log();
+    log.info(
+      squishWords(
+        `${fmtVarName('typeImports')}: ${
+          OPTION_DESCRIPTIONS.typeImports
+        } Note that you can edit this array directly in ${fmtPath(
+          FRIEDA_RC_FILE_NAME
+        )}.`
+      ).split('\n')
+    );
   }
 
   const options: ResolvedCliOptions = {
-    compileJs,
     envFile: databaseUrlResult.envFile,
     outputDirectory: outputDirectoryResult.relativePath,
+    compileJs,
     typeBigIntAsString,
     typeImports,
     typeTinyIntOneAsBoolean
@@ -212,6 +236,27 @@ export const getOptions = async (
     return options[key] !== rc[key];
   });
 
+  if (changedKeys.length > 0 || promptAlways) {
+    console.log();
+    log.info(colors.bold('Options'));
+    log.table([
+      ['Option', 'Value', 'Changed'],
+      ...(Object.keys(options) as (keyof ResolvedCliOptions)[]).map((k) => {
+        const valueString =
+          k === 'typeImports'
+            ? colors.gray(`${options[k].length} import(s)`)
+            : k === 'outputDirectory' || k === 'envFile'
+            ? fmtPath(options[k])
+            : fmtVal(JSON.stringify(options[k]));
+        return [
+          fmtVarName(k),
+          valueString,
+          colors.dim(changedKeys.includes(k) ? 'yes' : 'no')
+        ];
+      })
+    ]);
+  }
+
   if (changedKeys.length > 0) {
     log.info(
       `Changed options: ${changedKeys.map((k) => fmtVarName(k)).join(', ')}`
@@ -219,7 +264,8 @@ export const getOptions = async (
     const save = await prompt({
       type: 'confirm',
       message: `Save changes to ${fmtPath(FRIEDA_RC_FILE_NAME)}`,
-      name: 'save'
+      name: 'save',
+      initial: true
     });
     if (save) {
       const spinner = ora(`Saving ${fmtPath(FRIEDA_RC_FILE_NAME)}`);
@@ -230,6 +276,7 @@ export const getOptions = async (
       );
       spinner.succeed();
     }
+    console.log();
   }
 
   return {

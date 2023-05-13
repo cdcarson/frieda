@@ -19,7 +19,7 @@ export const promptEnvFile = async (
 
   try {
     const databaseUrl = await validateEnvFile(envFile);
-    spinner.succeed();
+    spinner.succeed(`${fmtVarName('envFile')} valid.`);
     return databaseUrl;
   } catch (error) {
     spinner.fail((error as Error).message);

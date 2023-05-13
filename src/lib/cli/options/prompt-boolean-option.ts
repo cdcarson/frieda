@@ -9,6 +9,7 @@ export const promptBooleanOption = async (
     type: 'confirm',
     name: key,
     initial: currentValue,
-    message: fmtVarName(key)
+    message: fmtVarName(key),
+    instructions: 'hello'
   });
 };

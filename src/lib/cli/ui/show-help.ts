@@ -30,17 +30,16 @@ export const showHelp = () => {
     'frieda <command> -h',
     colors.dim('to see options for a particular command.')
   );
+  console.log();
 };
 export const showHelpForCommand = (cmd: CliCommand) => {
-  log.header(`Help: frieda ${cmd.name}`);
-  console.log(colors.dim('Description'));
-  console.log(squishWords(cmd.description));
   console.log();
   console.log(colors.dim('Usage'));
   console.log(`frieda ${colors.bold(cmd.name)} ${cmd.usage}`);
-  console.log(
-    `frieda ${colors.bold(cmd.alias)} ${cmd.usage}  ${colors.dim('[alias]')}`
-  );
+  console.log(`frieda ${colors.bold(cmd.alias)} ${cmd.usage}`);
+  console.log();
+  console.log(colors.dim('Description'));
+  console.log(squishWords(cmd.description));
 
   console.log();
   console.log(colors.dim('Options'));
@@ -50,7 +49,7 @@ export const showHelpForCommand = (cmd: CliCommand) => {
     console.log();
   });
   logOptions(CLI_OPTIONS);
-  log.footer();
+  console.log();
 };
 
 const logOptions = (opts: CliOption[]) => {
@@ -58,9 +57,10 @@ const logOptions = (opts: CliOption[]) => {
     const name = colors.bold(`--${o.name}`);
     const alias = o.alias ? colors.bold(`-${o.alias}`) + ', ' : '';
     const type = colors.dim(`[${o.type}]`);
-    const inFriedaRc = o.isRc
-      ? ` ${fmtVarName(o.name)} in ${fmtPath(FRIEDA_RC_FILE_NAME)}`
-      : '';
+    // const inFriedaRc = o.isRc
+    //   ? ` ${fmtVarName(o.name)} in ${fmtPath(FRIEDA_RC_FILE_NAME)}`
+    //   : '';
+    const inFriedaRc = '';
     console.log(`${alias}${name} ${type}${inFriedaRc}`);
     console.log(squishWords(o.description));
     if (i < opts.length - 1) {

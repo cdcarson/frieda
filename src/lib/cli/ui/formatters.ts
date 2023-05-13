@@ -57,3 +57,5 @@ export const maskDatabaseURLPassword = (urlStr: string): string => {
     `${protocol}//${username}:${colors.gray('<PASSWORD>')}@${hostname}`
   );
 };
+
+export const spaces = (length: number) => ' '.repeat(length)

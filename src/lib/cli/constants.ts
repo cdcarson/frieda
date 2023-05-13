@@ -1,25 +1,37 @@
 import type { CliOption } from './types.js';
-
+import colors from 'kleur';
+import { fmtPath, fmtVal, fmtVarName } from './ui/formatters.js';
 export const FRIEDA_RC_FILE_NAME = '.friedarc.json';
 export const ENV_DB_URL_KEYS = ['FRIEDA_DATABASE_URL', 'DATABASE_URL'] as const;
 
-
 export const OPTION_DESCRIPTIONS = {
-  envFile: `The path to an environment variables file containing either ${ENV_DB_URL_KEYS.join(
-    ' or '
-  )}. Valid URL format: mysql://<user>:<password>@<host>.`,
+  envFile: `The path to an environment variables file containing either ${ENV_DB_URL_KEYS.map(
+    (s) => fmtVarName(s)
+  ).join(' or ')}. Valid URL format: ${colors.cyan(
+    'mysql://<user>:<password>@<host>'
+  )}.`,
   outputDirectory: `The relative path to a directory where generated code will be placed.This should be a dedicated directory, separate from your own code or other assets.`,
-  compileJs: `Whether to compile and output javascript code rather than typescript files. Default: false.`,
-  typeBigIntAsString: `Whether to type bigint columns as javascript string. Default: true.`,
-  typeTinyIntOneAsBoolean: `Whether to type tinyint(1) columns as javascript boolean. Default: true.`
+  compileJs: `Whether to compile and output javascript code rather than typescript files. Default: ${fmtVal(
+    'false'
+  )}.`,
+  typeBigIntAsString: `Whether to type ${fmtVal(
+    'bigint'
+  )} columns as javascript  ${fmtVal('string')}. Default: ${fmtVal('true')}.`,
+  typeTinyIntOneAsBoolean: `
+    Whether to type ${fmtVal('tinyint(1)')} columns as javascript ${fmtVal(
+    'boolean'
+  )}. Default: ${fmtVal('true')}.`,
+  typeImports: `An array of import statements corresponding 
+    to the types in ${colors.red('@json(MyType)')},
+    ${colors.red('@enum(MyType)')}
+    and ${colors.red('@set(MyType)')} annotations.
+  `
 };
 
 export const COMMAND_DESCRIPTIONS = {
   generate: 'Generate code.',
   type: `Show type details and other information about models and fields.`,
-  model: `Show type details and other information about a model.`,
-  field: `Show type details for a model field.`,
-  init: `(Re-)initialize options in ${FRIEDA_RC_FILE_NAME}.`
+  init: `(Re-)initialize options in ${fmtPath(FRIEDA_RC_FILE_NAME)}.`
 };
 
 export const CLI_OPTIONS: CliOption[] = [
@@ -80,13 +92,13 @@ export const CLI_COMMANDS = [
     positionalOptions: [
       {
         name: 'model',
-        description: `Optional. The name of the model or underlying table.`,
+        description: `Optional. The name of the model or database table.`,
         isRc: false,
         type: 'string'
       },
       {
         name: 'field',
-        description: `Optional. The name of the field or underlying column.`,
+        description: `Optional. The name of the field or database column.`,
         isRc: false,
         type: 'string'
       }

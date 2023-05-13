@@ -50,57 +50,39 @@ const showModel = async (
   schema: ExtendedSchema,
   model: ExtendedModelDefinition
 ): Promise<void> => {
-  const fieldWidth =
-    Math.max(...model.fields.map((f) => f.fieldName.length), 'Field'.length) +
-    4;
-  const typeWidth =
-    Math.max(
-      ...model.fields.map((f) => f.javascriptType.length),
-      'JS Type'.length
-    ) + 4;
-  const dbTypeWidth =
-    Math.max(
-      ...model.fields.map((f) => f.mysqlFullType.length),
-      'Db Type'.length
-    ) + 4;
+  console.log();
+  log.info(colors.dim(`Model: ${model.modelName}`));
 
-  const fields = model.fields.flatMap((f) => {
-    const spacesAfterName = ' '.repeat(fieldWidth - f.fieldName.length);
-    const spacesAfterType = ' '.repeat(typeWidth - f.javascriptType.length);
-    const spacesAfterDbType = ' '.repeat(dbTypeWidth - f.mysqlFullType.length);
-
-    return `${fmtVarName(f.fieldName)}${spacesAfterName}${fmtVal(
-      f.javascriptType
-    )}${spacesAfterType}${colors.dim(f.mysqlFullType)}${spacesAfterDbType}${
-      f.javascriptTypeComment
-    }`;
-  });
-
-  log.header(`Model: ${model.modelName}`);
-  log.message([
-    `Model name: ${fmtVal(model.modelName)}`,
-    `Table name: ${fmtVal(model.tableName)}`,
-    '',
-    `Field${' '.repeat(fieldWidth - 'Field'.length)}JS Type${' '.repeat(
-      typeWidth - 'JS Type'.length
-    )}Db Type${' '.repeat(dbTypeWidth - 'Db Type'.length)}Notes`,
-    ...fields,
-    '',
-    ...model.createSql.split('\n').map((s) => colors.gray(s))
-  ]);
-
-  log.message([
-    '',
-    colors.dim('Model Types'),
-    ...format(model.modelTypeDeclaration.trim(), {filepath: 'test.ts'}).split('\n').map(s => colors.gray(s)),
-    ...model.fields.flatMap(f => f.otherTypeComments.map(s => fmtVarName(f.fieldName) + ` ${s}`)).map(s => ` - ${s}`)
-    // ...format(model.primaryKeyTypeDeclaration.trim(), {filepath: 'test.ts'}).split('\n').map(s => colors.gray(s)),
-    // ...format(model.createDataTypeDeclaration.trim(), {filepath: 'test.ts'}).split('\n').map(s => colors.gray(s)),
-    // ...format(model.updateDataTypeDeclaration.trim(), {filepath: 'test.ts'}).split('\n').map(s => colors.gray(s)),
+  log.table(
+    [
+      [fmtVarName('modelName'), fmtVal(model.modelName)],
+      [fmtVarName('tableName'), fmtVal(model.tableName)]
+    ],
     
-  ])
+  );
+  console.log()
 
-  log.footer();
+  log.info(colors.dim(`Fields (${model.fields.length})`));
+
+  log.table([
+    ...model.fields.map(f => [fmtVarName(f.fieldName),fmtVal( f.javascriptType), colors.dim(f.mysqlFullType)])
+  ], ['Field', 'Javascript Type', 'Column Type'])
+  console.log()
+
+  log.info([ ...model.createSql.split('\n').map(s => colors.dim(s))]);
+
+  // log.message([
+  //   '',
+  //   colors.dim('Model Types'),
+  //   ...format(model.modelTypeDeclaration.trim(), {filepath: 'test.ts'}).split('\n').map(s => colors.gray(s)),
+  //   ...model.fields.flatMap(f => f.otherTypeComments.map(s => fmtVarName(f.fieldName) + ` ${s}`)).map(s => ` - ${s}`)
+  //   // ...format(model.primaryKeyTypeDeclaration.trim(), {filepath: 'test.ts'}).split('\n').map(s => colors.gray(s)),
+  //   // ...format(model.createDataTypeDeclaration.trim(), {filepath: 'test.ts'}).split('\n').map(s => colors.gray(s)),
+  //   // ...format(model.updateDataTypeDeclaration.trim(), {filepath: 'test.ts'}).split('\n').map(s => colors.gray(s)),
+
+  // ])
+
+  // log.footer();
   // const nextStep = await prompt<'field' | 'model' | 'exit'>({
   //   type: 'select',
   //   name: 'nextStep',
@@ -171,7 +153,6 @@ const showField = async (
       extra = colors.gray(` (Null: ${field.Null})`);
     } else if (k === 'javascriptType') {
       extra = colors.gray(` (${field.javascriptTypeComment})`);
-      
     }
 
     return `${fmtVarName(k)}:${' '.repeat(maxKey - k.length)} ${fmtVal(
@@ -235,5 +216,3 @@ const showField = async (
   }
   onUserCancelled();
 };
-
-

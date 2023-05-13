@@ -15,7 +15,7 @@ export const TS_COMPILER_OPTIONS = {
   declaration: true,
   isolatedModules: true,
   preserveValueImports: true,
-  lib: ['esnext'],
+  // lib: ['esnext'],
   moduleResolution: ts.ModuleResolutionKind.NodeNext,
   module: ts.ModuleKind.ESNext,
   target: ts.ScriptTarget.ESNext,
@@ -25,6 +25,6 @@ export const TS_COMPILER_OPTIONS = {
   forceConsistentCasingInFileNames: true,
   resolveJsonModule: true,
   skipLibCheck: true,
-  sourceMap: false,
+  sourceMap: true,
   strict: true
 };
