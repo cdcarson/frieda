@@ -19,8 +19,10 @@ export const getSchema = async (
     spinner.succeed('Schema fetched.');
     return schema;
   } catch (error) {
-    spinner.fail(kleur.red('Error fetcthing schema. Fetch said: ') +( error instanceof Error ? error.message : 'Unknown error') );
+    spinner.fail(
+      kleur.red('Error fetcthing schema. Fetch said: ') +
+        (error instanceof Error ? error.message : 'Unknown error')
+    );
     return onUserCancelled();
   }
-  
 };

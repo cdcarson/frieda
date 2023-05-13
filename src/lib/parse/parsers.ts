@@ -112,8 +112,33 @@ export const getCastType = (
       (a) => a.annotation === 'set'
     );
     if (typeAnnotation) {
-      return 'set'
+      return 'set';
     }
     return 'string';
   }
+
+  if ('enum' === mysqlBaseType) {
+    return 'enum';
+  }
+
+  switch (mysqlBaseType) {
+    case 'int':
+    case 'integer':
+    case 'smallint':
+    case 'mediumint':
+    case 'year':
+      return 'int';
+    case 'float':
+    case 'double':
+    case 'decimal':
+    case 'numeric':
+    case 'real':
+      return 'float';
+    case 'date':
+    case 'datetime':
+    case 'timestamp':
+      return 'date';
+  }
+  // everything else is cast to string, including time, bit, etc
+  return 'string';
 };

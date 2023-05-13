@@ -9,5 +9,3 @@ export const cmdGenerate = async (cliArgs: Partial<CliArgs>) => {
   await generateCode(options, schema);
   console.log();
 };
-
-

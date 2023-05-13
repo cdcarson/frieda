@@ -67,19 +67,23 @@ const logTypeOptions = async (
     'typeImports'
   ];
   log.header('Type Options');
-  log.table([
-    ['Option', 'Current Value'],
-    ...shownKeys.map(k => [k, JSON.stringify(options[k])])
-  ], [fmtVarName, fmtVal])
+  log.table(
+    [
+      ['Option', 'Current Value'],
+      ...shownKeys.map((k) => [k, JSON.stringify(options[k])])
+    ],
+    [fmtVarName, fmtVal]
+  );
 
   console.log();
-  shownKeys.forEach(k => {
-   
+  shownKeys.forEach((k) => {
     log.info([
-      ...squishWords(colors.dim(`${fmtVarName(k)}: ${OPTION_DESCRIPTIONS[k]}`)).split('\n')
-    ])
-  })
-  
+      ...squishWords(
+        colors.dim(`${fmtVarName(k)}: ${OPTION_DESCRIPTIONS[k]}`)
+      ).split('\n')
+    ]);
+  });
+
   log.footer();
   return await nextStep(schema, options);
 };
@@ -94,13 +98,13 @@ const exploreModels = async (
 };
 
 const logModels = (schema: ExtendedSchema) => {
-
-  log.table([
-
-    ['Model', 'Table'],
-    ...schema.models.map(m => [m.modelName, m.tableName])
-  ], [fmtVarName, colors.dim])
- 
+  log.table(
+    [
+      ['Model', 'Table'],
+      ...schema.models.map((m) => [m.modelName, m.tableName])
+    ],
+    [fmtVarName, colors.dim]
+  );
 };
 
 const exploreModel = async (
@@ -112,19 +116,23 @@ const exploreModel = async (
   log.table([
     ['Model Name', 'Table Name'],
     [model.modelName, model.tableName]
-  ])
+  ]);
   console.log();
-  log.message([
-    ...model.createSql.split('\n').map(s => colors.dim(s))
-])
+  log.message([...model.createSql.split('\n').map((s) => colors.dim(s))]);
   console.log();
 
-  log.table([
-    ['Field', 'Javascript Type', 'Column Type'],
-    ...model.fields.map(f => [f.fieldName, f.javascriptType, f.mysqlFullType])
-    
-  ], [fmtVarName, fmtVal, colors.dim])
- 
+  log.table(
+    [
+      ['Field', 'Javascript Type', 'Column Type'],
+      ...model.fields.map((f) => [
+        f.fieldName,
+        f.javascriptType,
+        f.mysqlFullType
+      ])
+    ],
+    [fmtVarName, fmtVal, colors.dim]
+  );
+
   log.footer();
   await prompt({
     name: 'next',

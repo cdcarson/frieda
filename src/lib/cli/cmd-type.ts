@@ -53,23 +53,27 @@ const showModel = async (
   console.log();
   log.info(colors.dim(`Model: ${model.modelName}`));
 
-  log.table(
-    [
-      [fmtVarName('modelName'), fmtVal(model.modelName)],
-      [fmtVarName('tableName'), fmtVal(model.tableName)]
-    ],
-    
-  );
-  console.log()
+  log.table([
+    [fmtVarName('modelName'), fmtVal(model.modelName)],
+    [fmtVarName('tableName'), fmtVal(model.tableName)]
+  ]);
+  console.log();
 
   log.info(colors.dim(`Fields (${model.fields.length})`));
 
-  log.table([
-    ...model.fields.map(f => [fmtVarName(f.fieldName),fmtVal( f.javascriptType), colors.dim(f.mysqlFullType)])
-  ], ['Field', 'Javascript Type', 'Column Type'])
-  console.log()
+  log.table(
+    [
+      ...model.fields.map((f) => [
+        fmtVarName(f.fieldName),
+        fmtVal(f.javascriptType),
+        colors.dim(f.mysqlFullType)
+      ])
+    ],
+    ['Field', 'Javascript Type', 'Column Type']
+  );
+  console.log();
 
-  log.info([ ...model.createSql.split('\n').map(s => colors.dim(s))]);
+  log.info([...model.createSql.split('\n').map((s) => colors.dim(s))]);
 
   // log.message([
   //   '',

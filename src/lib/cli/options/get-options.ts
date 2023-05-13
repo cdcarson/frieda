@@ -172,9 +172,7 @@ export const getOptions = async (
     console.log();
     log.info(
       squishWords(
-        `${fmtVarName('compileJs')}: ${
-          OPTION_DESCRIPTIONS.compileJs
-        }`
+        `${fmtVarName('compileJs')}: ${OPTION_DESCRIPTIONS.compileJs}`
       ).split('\n')
     );
     compileJs = await promptBooleanOption('compileJs', compileJs);

@@ -34,48 +34,48 @@ const message = (message: string | string[]) => {
   console.log(fromStringOrArray(message, 0));
 };
 
-const table = (data: string[][], header?: string[] ) => {
-  const numCols = Math.max(...data.map(arr => arr.length, header ? header.length : 0));
+const table = (data: string[][], header?: string[]) => {
+  const numCols = Math.max(
+    ...data.map((arr) => arr.length, header ? header.length : 0)
+  );
   const colWidths: number[] = [];
-  for(let i = 0; i < numCols; i++) {
-    let max = header ? ( header[i] || '').length : 0;
-    for(let j = 0; j < data.length; j++) {
+  for (let i = 0; i < numCols; i++) {
+    let max = header ? (header[i] || '').length : 0;
+    for (let j = 0; j < data.length; j++) {
       const str: string = data[j][i] || '';
       if (max < stripAnsi(str).length) {
-        max = stripAnsi(str).length
+        max = stripAnsi(str).length;
       }
     }
-    colWidths.push(max + 4)
+    colWidths.push(max + 4);
   }
 
   if (header) {
     let headerStr = '  ';
-    for(let i = 0; i < numCols; i++) {
-      const str = header[i] || ''
+    for (let i = 0; i < numCols; i++) {
+      const str = header[i] || '';
       headerStr += colors.underline(str);
-      
+
       if (i < numCols - 1) {
         headerStr += spaces(colWidths[i] - str.length);
       }
     }
     message(headerStr);
   }
-  
-  
-  
-  for(let i = 0; i < data.length; i++) {
+
+  for (let i = 0; i < data.length; i++) {
     let rowStr = '  ';
-    const row = data[i]
-    for(let j = 0; j < numCols; j++) {
-      const str = row[j] || ''
+    const row = data[i];
+    for (let j = 0; j < numCols; j++) {
+      const str = row[j] || '';
       rowStr += str;
       if (j < numCols - 1) {
         rowStr += spaces(colWidths[j] - stripAnsi(str).length);
       }
     }
-    message(rowStr)
+    message(rowStr);
   }
-}
+};
 export default {
   empty,
   warn,
