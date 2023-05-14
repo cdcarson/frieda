@@ -110,14 +110,29 @@ export type Index = {
 export type Table = {
   name: string;
   columns: Column[];
-  indexes: Index[]
-}
+  indexes: Index[];
+};
+
+export type FieldDefinition = {
+  fieldName: string;
+  columnName: string;
+  isPrimaryKey: boolean;
+  isAutoIncrement: boolean;
+  castType: CastType;
+};
+
+export type ModelDefinition = {
+  modelName: string;
+  tableName: string;
+  fields: FieldDefinition[];
+};
 
 export type Schema = {
   databaseName: string;
-  tables: Table[];
+  models: ModelDefinition[];
   cast: SchemaCastMap;
-}
+  typeOptions: TypeOptions;
+};
 
 export type CustomModelCast<M extends Model> = {
   [K in keyof M]?: CastType;

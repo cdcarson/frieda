@@ -1,47 +1,34 @@
-import type { ResolvedCliOptions } from '../cli/types.js';
-import type { FsPaths } from '../fs/types.js';
 import ts from 'typescript';
-import { TS_COMPILER_OPTIONS, GENERATED_FILE_EXTNAMES } from './constants.js';
-import { join } from 'node:path';
-import fs from 'fs-extra';
-import { getFile } from '../fs/get-file.js';
-import { prettifyAndSaveFile } from '../fs/prettify-and-save-file.js';
-import { GENERATED_FILE_BASENAMES } from './types.js';
-import { getFsPaths } from '$lib/fs/get-fs-paths.js';
-export const compileJavascript = async (
-  options: ResolvedCliOptions,
-  typescript: FsPaths[]
-): Promise<FsPaths[]> => {
+import { TS_COMPILER_OPTIONS } from './constants.js';
+import { basename } from 'node:path';
+import {
+  JAVASCRIPT_FILES,
+  TYPESCRIPT_FILES,
+  type JavascriptCode,
+  type JavascriptFileName,
+  type TypescriptCode,
+  type TypescriptFileName
+} from './types.js';
+import type { FsPaths } from '$lib/fs/types.js';
+
+export const compileJavascript = (
+  typescriptFiles: FsPaths[]
+): Partial<JavascriptCode> => {
+  const code: Partial<JavascriptCode> = {};
+
+  const host = ts.createCompilerHost(TS_COMPILER_OPTIONS);
+  host.writeFile = (fileName: string, text: string) => {
+    if (JAVASCRIPT_FILES.includes(basename(fileName) as JavascriptFileName)) {
+      console.log(basename(fileName), text.length);
+      code[basename(fileName) as JavascriptFileName] = text;
+    }
+  };
+
   const program = ts.createProgram(
-    typescript.map((p) => p.relativePath),
-    { ...TS_COMPILER_OPTIONS }
+    typescriptFiles.map((f) => f.relativePath),
+    { ...TS_COMPILER_OPTIONS },
+    host
   );
-
   program.emit();
-
-  // const results = await Promise.all(
-  //   Object.values(GENERATED_FILE_BASENAMES).flatMap((basename) => {
-  //     return [
-  //       readAndPrettifyFile(
-  //         join(options.outputDirectory, basename + GENERATED_FILE_EXTNAMES.js)
-  //       ),
-  //       readAndPrettifyFile(
-  //         join(options.outputDirectory, basename + GENERATED_FILE_EXTNAMES.dTs)
-  //       )
-  //     ];
-  //   })
-  // );
-
-  // for (const p of typescript) {
-  //   await fs.rm(p.absolutePath);
-  // }
-  return [];
-};
-
-const readAndPrettifyFile = async (relPath: string): Promise<FsPaths> => {
-  const file = await getFile(relPath);
-  if (file.contents) {
-    await prettifyAndSaveFile(file.relativePath, file.contents);
-  }
-  return file;
+  return code;
 };

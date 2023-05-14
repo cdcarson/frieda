@@ -1,27 +1,33 @@
-import type { ExtendedSchema } from '../parse/types.js';
+import type { FetchedSchema } from '$lib/fetch/types.js';
+import type { TypeOptions } from '../api/types.js';
+import { getModelName } from '../parse/model-parsers.js';
+import { getModelTypeDeclarations } from './get-model-type-declarations.js';
 
 export const getTypesTs = (
-  schema: ExtendedSchema,
+  schema: FetchedSchema,
+  typeOptions: TypeOptions,
   bannerComment: string
 ): string => {
   return `
     ${bannerComment}
     import type {ModelDb} from '@nowzoo/frieda';
-    ${(schema.typeOptions.typeImports || []).join('\n')}
+    ${typeOptions.typeImports.join('\n')}
 
-    ${schema.models
-      .map((m) => {
+    ${schema.tables
+      .map((t) => {
+        const types = getModelTypeDeclarations(t, typeOptions);
+        const modelName = getModelName(t);
         return `
         /**
-         * Types for the ${m.modelName} model.
+         * Types for the ${modelName} model.
          */
-        ${m.modelTypeDeclaration}
-        ${m.omittedBySelectAllTypeDeclaration}
-        ${m.primaryKeyTypeDeclaration}
-        ${m.createDataTypeDeclaration}
-        ${m.updateDataTypeDeclaration}
-        ${m.findUniqueParamsTypeDeclaration}
-        ${m.dbTypeDeclaration}
+        ${types.model}
+        ${types.omittedBySelectAll}
+        ${types.primaryKey}
+        ${types.createData}
+        ${types.updateData}
+        ${types.findUniqueParams}
+        ${types.db}
       `;
       })
       .join('\n\n')}

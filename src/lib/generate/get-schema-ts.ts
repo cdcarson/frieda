@@ -1,37 +1,42 @@
-import type { FieldDefinition, ModelDefinition, Schema } from '../api/types.js';
-import type { ExtendedSchema } from '../parse/types.js';
+import type { FetchedSchema } from '$lib/fetch/types.js';
+import {
+  getCastType,
+  getFieldName,
+  isAutoIncrement,
+  isPrimaryKey
+} from '$lib/parse/field-parsers.js';
+import { getModelName } from '$lib/parse/model-parsers.js';
+import type { FieldDefinition, Schema, TypeOptions } from '../api/types.js';
+import { getSchemaCastMap } from './get-schema-cast-map.js';
 
 export const getSchemaTs = (
-  extendedSchema: ExtendedSchema,
+  fetched: FetchedSchema,
+  typeOptions: TypeOptions,
   bannerComment: string
 ): string => {
   const schema: Schema = {
-    databaseName: extendedSchema.databaseName,
-    cast: extendedSchema.cast,
-    models: extendedSchema.models.map((exm) => {
-      const model: ModelDefinition = {
-        tableName: exm.tableName,
-        modelName: exm.modelName,
-        fields: exm.fields.map((exf) => {
-          const field: FieldDefinition = {
-            autoIncrement: exf.autoIncrement,
-            castType: exf.castType,
-            columnName: exf.columnName,
-            fieldName: exf.fieldName,
-            generatedAlways: exf.generatedAlways,
-            hasDefault: exf.hasDefault,
-            invisible: exf.invisible,
-            javascriptType: exf.javascriptType,
-            mysqlBaseType: exf.mysqlBaseType,
-            mysqlFullType: exf.mysqlFullType,
-            nullable: exf.nullable,
-            primaryKey: exf.primaryKey,
-            unique: exf.unique
-          };
-          return field;
-        })
+    databaseName: fetched.databaseName,
+    typeOptions: {
+      typeBigIntAsString: typeOptions.typeBigIntAsString,
+      typeImports: typeOptions.typeImports,
+      typeTinyIntOneAsBoolean: typeOptions.typeTinyIntOneAsBoolean
+    },
+    cast: getSchemaCastMap(fetched, typeOptions),
+    models: fetched.tables.map((t) => {
+      const fields: FieldDefinition[] = t.columns.map((c) => {
+        return {
+          castType: getCastType(c, typeOptions),
+          columnName: c.Field,
+          fieldName: getFieldName(c),
+          isAutoIncrement: isAutoIncrement(c),
+          isPrimaryKey: isPrimaryKey(c)
+        };
+      });
+      return {
+        modelName: getModelName(t),
+        tableName: t.name,
+        fields
       };
-      return model;
     })
   };
   return `

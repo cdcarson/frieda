@@ -63,9 +63,7 @@ export const getMysqlBaseType = (column: Column): MysqlBaseType | null => {
   return null;
 };
 
-export const getCommentAnnotations = (
-  column: Column
-): ParsedAnnotation[] => {
+export const getCommentAnnotations = (column: Column): ParsedAnnotation[] => {
   const rx = /(?:^|\s+)@(bigint|enum|set|json)(?:\((.*)\))?/gi;
   const result = Array.from(column.Comment.matchAll(rx)).map((r) => {
     return {
@@ -99,7 +97,7 @@ export const getCastType = (
   }
   if (
     'tinyint' === mysqlBaseType &&
-    getParenthesizedArgs(column.Type, 'tinyint').trim() !== '1'
+    getParenthesizedArgs(column.Type, 'tinyint').trim() === '1'
   ) {
     if (options.typeTinyIntOneAsBoolean === false) {
       return 'int';
@@ -126,6 +124,7 @@ export const getCastType = (
   }
 
   switch (mysqlBaseType) {
+    case 'tinyint':
     case 'int':
     case 'integer':
     case 'smallint':
@@ -218,9 +217,7 @@ export const getJavascriptType = (
   }
 };
 
-export const getModelFieldPresence = (
-  column: Column
-): ModelFieldPresence => {
+export const getModelFieldPresence = (column: Column): ModelFieldPresence => {
   return isInvisible(column)
     ? ModelFieldPresence.undefinedForSelectAll
     : ModelFieldPresence.present;
@@ -253,44 +250,3 @@ export const getUpdateModelFieldPresence = (
 
   return UpdateModelFieldPresence.optional;
 };
-
-export const getModelFieldTypeDeclaration = (
-  column: Column,
-  jsType: string
-): string => {
-  const opt =
-    getModelFieldPresence(column) === ModelFieldPresence.undefinedForSelectAll
-      ? '?'
-      : '';
-  const orNull = isNullable(column) ? '|null' : '';
-  const name = getFieldName(column);
-  return `${name}${opt}:${jsType}${orNull}`;
-};
-export const getModelCreateFieldTypeDeclaration = (
-  column: Column,
-  jsType: string
-): string|null => {
-  const presence = getCreateModelFieldPresence(column);
-  if (presence === CreateModelFieldPresence.omittedGenerated) {
-    return null;
-  }
-  const opt = presence !== CreateModelFieldPresence.required;
-  const orNull = isNullable(column) ? '|null' : '';
-  const name = getFieldName(column);
-  return `${name}${opt}:${jsType}${orNull}`;
-}
-
-export const getModelUpdateFieldTypeDeclaration = (
-  column: Column,
-  jsType: string
-): string|null => {
-  const presence = getUpdateModelFieldPresence(column);
-  if (presence !== UpdateModelFieldPresence.optional) {
-    return null;
-  }
-  // all fields are optional
-  const opt = '?'
-  const orNull = isNullable(column) ? '|null' : '';
-  const name = getFieldName(column);
-  return `${name}${opt}:${jsType}${orNull}`;
-}
