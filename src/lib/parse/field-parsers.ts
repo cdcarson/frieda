@@ -101,7 +101,7 @@ export const getCastType = (
   }
 
   if ('set' === mysqlBaseType) {
-    const typeAnnotation = getSetAnnotation(column)
+    const typeAnnotation = getSetAnnotation(column);
     if (typeAnnotation) {
       return 'set';
     }

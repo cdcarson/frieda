@@ -6,13 +6,15 @@ export const getFullTextSearchIndexesTs = (
   fetched: FetchedSchema,
   bannerComment: string
 ): string => {
-  type IMap = {[key: string]: FullTextSearchIndex}
-  const indexes: FullTextSearchIndex[] = fetched.tables.flatMap(t => getFullTextSearchIndexes(t))
-  const map:IMap = indexes.reduce((acc: IMap, index: FullTextSearchIndex) => {
-    const copy = {...acc};
+  type IMap = { [key: string]: FullTextSearchIndex };
+  const indexes: FullTextSearchIndex[] = fetched.tables.flatMap((t) =>
+    getFullTextSearchIndexes(t)
+  );
+  const map: IMap = indexes.reduce((acc: IMap, index: FullTextSearchIndex) => {
+    const copy = { ...acc };
     copy[index.key] = index;
     return copy;
-  }, {} as IMap)
+  }, {} as IMap);
   return `
     ${bannerComment}
     import type {FullTextSearchIndex} from '@nowzoo/frieda';

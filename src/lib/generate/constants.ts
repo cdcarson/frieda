@@ -1,4 +1,3 @@
-
 export const TS_COMPILER_OPTIONS = {
   declaration: true
   // isolatedModules: true,

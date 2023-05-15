@@ -4,13 +4,13 @@ import { fetchSchema as dbFetchSchema } from '../fetch/fetch-schema.js';
 import type { FetchedSchema } from '$lib/fetch/types.js';
 import colors from 'kleur';
 import { onUserCancelled } from './ui/on-user-cancelled.js';
-import type {  ResolvedCliOptions } from './types.js';
+import type { ResolvedCliOptions } from './types.js';
 import { generate } from '$lib/generate/generate.js';
 
 import type { FsPaths } from '$lib/fs/types.js';
 export const generateCode = async (
   schema: FetchedSchema,
-  options: ResolvedCliOptions,
+  options: ResolvedCliOptions
 ): Promise<FsPaths[]> => {
   const spinner = ora('Generating code').start();
   const files = await generate(

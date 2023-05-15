@@ -15,5 +15,4 @@ export const cmdGenerate = async (cliArgs: Partial<CliArgs>) => {
     kleur.bold('Files'),
     ...files.map((f) => `- ${fmtPath(f.relativePath)}`)
   ]);
-  
 };

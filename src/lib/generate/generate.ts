@@ -27,7 +27,10 @@ export const generate = async (
     'database.ts': getDatabaseTs(schema, bannerComment),
     'schema.ts': getSchemaTs(schema, typeOptions, bannerComment),
     'types.ts': getTypesTs(schema, typeOptions, bannerComment),
-    'full-text-search-indexes.ts': getFullTextSearchIndexesTs(schema, bannerComment)
+    'full-text-search-indexes.ts': getFullTextSearchIndexesTs(
+      schema,
+      bannerComment
+    )
   };
 
   let out: TypescriptCode | JavascriptCode = typescript;

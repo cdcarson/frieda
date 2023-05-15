@@ -4,7 +4,7 @@ import { basename } from 'node:path';
 import {
   JAVASCRIPT_FILES,
   type JavascriptCode,
-  type JavascriptFileName,
+  type JavascriptFileName
 } from './types.js';
 import type { FsPaths } from '$lib/fs/types.js';
 

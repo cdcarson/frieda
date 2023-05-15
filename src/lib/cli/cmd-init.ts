@@ -4,7 +4,7 @@ import type { CliArgs } from './types.js';
 import { prompt } from './ui/prompt.js';
 
 export const cmdInit = async (cliArgs: Partial<CliArgs>) => {
-  const { connection, options, databaseUrlResult } = await getOptions(cliArgs, true);
+  const { connection, options } = await getOptions(cliArgs, true);
   console.log();
   const gen = await prompt({
     type: 'confirm',

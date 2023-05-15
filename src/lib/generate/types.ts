@@ -1,5 +1,3 @@
-import type { FsPaths } from '../fs/types.js';
-
 export const TYPESCRIPT_FILES = [
   'database.ts',
   'schema.ts',
@@ -22,7 +20,6 @@ export const JAVASCRIPT_FILES = [
   'full-text-search-indexes.js',
   'full-text-search-indexes.d.ts',
   'full-text-search-indexes.js.map'
-
 ] as const;
 export type JavascriptFileName = (typeof JAVASCRIPT_FILES)[number];
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { removeRecognizedFiles } from './remove-recognized-files.js';
 import fs from 'fs-extra';
 describe('removeRecognizedFiles', () => {

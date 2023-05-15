@@ -1,11 +1,6 @@
-import {
-  CLI_COMMANDS,
-  CLI_OPTIONS,
-  FRIEDA_RC_FILE_NAME
-} from '../constants.js';
+import { CLI_COMMANDS, CLI_OPTIONS } from '../constants.js';
 import type { CliCommand, CliOption } from '../types.js';
-import { fmtPath, fmtVarName, squishWords } from './formatters.js';
-import log from './log.js';
+import { squishWords } from './formatters.js';
 import colors from 'kleur';
 export const showHelp = () => {
   const col1Width = Math.max(...CLI_COMMANDS.map((cmd) => cmd.name.length)) + 4;

@@ -1,5 +1,4 @@
 import type { FetchedSchema, FetchedTable } from '$lib/fetch/types.js';
-import type { FsPaths } from '$lib/fs/types.js';
 import {
   getCastType,
   getFieldName,
@@ -308,10 +307,11 @@ export class Explainer {
       [
         ...table.indexes.map((index) => [
           kleur.red(index.Key_name),
-          kleur.gray(index.Index_type)
+          kleur.gray(index.Index_type),
+          fmtVal(JSON.stringify(index.Non_unique === 0))
         ])
       ],
-      ['Key', 'Type']
+      ['Key', 'Type', 'Unique']
     );
     log.footer();
   }

@@ -34,7 +34,6 @@
     "@types/fs-extra": "^11.0.1",
     "@types/prettier": "^2.7.2",
     "@types/prompts": "^2.4.4",
-    "@types/yargs": "^17.0.24",
     "@types/yargs-parser": "^21.0.0",
     "@typescript-eslint/eslint-plugin": "^5.59.6",
     "@typescript-eslint/parser": "^5.59.6",
@@ -65,7 +64,6 @@
     "sql-template-tag": "^5.0.3",
     "strip-ansi": "^7.0.1",
     "typescript": "^5.0.4",
-    "yargs": "^17.7.2",
     "yargs-parser": "^21.1.1"
   }
 }
