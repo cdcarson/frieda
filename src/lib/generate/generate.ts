@@ -8,6 +8,7 @@ import { getDatabaseTs } from './get-database-ts.js';
 import { getSchemaTs } from './get-schema-ts.js';
 import { getTypesTs } from './get-types-ts.js';
 import { writeFiles } from './write-files.js';
+import { getFullTextSearchIndexesTs } from './get-full-text-search-indexes-ts.js';
 export const generate = async (
   schema: FetchedSchema,
   typeOptions: TypeOptions,
@@ -25,7 +26,8 @@ export const generate = async (
   const typescript: TypescriptCode = {
     'database.ts': getDatabaseTs(schema, bannerComment),
     'schema.ts': getSchemaTs(schema, typeOptions, bannerComment),
-    'types.ts': getTypesTs(schema, typeOptions, bannerComment)
+    'types.ts': getTypesTs(schema, typeOptions, bannerComment),
+    'full-text-search-indexes.ts': getFullTextSearchIndexesTs(schema, bannerComment)
   };
 
   let out: TypescriptCode | JavascriptCode = typescript;

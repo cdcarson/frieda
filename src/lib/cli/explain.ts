@@ -17,6 +17,7 @@ import {
   getUpdateModelFieldPresence
 } from '$lib/parse/field-parsers.js';
 import {
+  getFullTextSearchIndexes,
   getModelCreateDataTypeName,
   getModelFindUniqueParamsTypeName,
   getModelName,
@@ -46,6 +47,8 @@ type ModelNextStep =
   | 'modelCreateType'
   | 'modelUpdateType'
   | 'modelFindUniqueType'
+  | 'indexes'
+  | 'searchIndexes'
   | 'showAnotherModel'
   | 'typeOptions'
   | 'quickstart'
@@ -211,6 +214,14 @@ export class Explainer {
         value: 'modelFindUniqueType'
       },
       {
+        title: `Indexes`,
+        value: 'indexes'
+      },
+      {
+        title: `Full Text Search Indexes`,
+        value: 'searchIndexes'
+      },
+      {
         title: `CREATE TABLE`,
         value: 'createTable'
       },
@@ -231,7 +242,10 @@ export class Explainer {
         value: 'exit'
       }
     ];
-    const initial = Math.max(choices.findIndex(c => c.value === this.modelNextStep), 0);
+    const initial = Math.max(
+      choices.findIndex((c) => c.value === this.modelNextStep),
+      0
+    );
 
     this.modelNextStep = await prompt<ModelNextStep>({
       type: 'select',
@@ -270,6 +284,14 @@ export class Explainer {
         this.showModelCreateSql(table);
         console.log();
         return await this.promptModelScreen(table);
+      case 'searchIndexes':
+        this.showModelSearchIndexes(table);
+        console.log();
+        return await this.promptModelScreen(table);
+      case 'indexes':
+        this.showModelIndexes(table);
+        console.log();
+        return await this.promptModelScreen(table);
       case 'showAnotherModel':
         return await this.promptModel(table.name);
       case 'typeOptions':
@@ -277,6 +299,37 @@ export class Explainer {
       case 'quickstart':
         return await this.quickStartScreen();
     }
+  }
+
+  showModelIndexes(table: FetchedTable) {
+    log.header(`Indexes | Model: ${getModelName(table)}`);
+    log.info(kleur.bold(`Indexes (${table.indexes.length})`));
+    log.table(
+      [
+        ...table.indexes.map((index) => [
+          kleur.red(index.Key_name),
+          kleur.gray(index.Index_type)
+        ])
+      ],
+      ['Key', 'Type']
+    );
+    log.footer();
+  }
+
+  showModelSearchIndexes(table: FetchedTable) {
+    const searchIndexes = getFullTextSearchIndexes(table);
+    log.header(`Full Text Search Indexes | Model: ${getModelName(table)}`);
+    log.info(kleur.bold(`Search Indexes (${searchIndexes.length})`));
+    log.table(
+      [
+        ...searchIndexes.map((index) => [
+          kleur.red(index.key),
+          index.indexedFields.map((k) => fmtVarName(k)).join(', ')
+        ])
+      ],
+      ['Key', 'Indexed Fields']
+    );
+    log.footer();
   }
 
   showModelFieldTypes(table: FetchedTable) {

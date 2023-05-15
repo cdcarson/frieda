@@ -87,7 +87,7 @@ export type Column = {
 };
 
 /**
- * A row from `SHOW INDEXES FROM FROM TableName`
+ * A row from `SHOW INDEXES FROM TableName`
  */
 export type Index = {
   Table: string;
@@ -187,3 +187,9 @@ export type OneBasedPagingInput =
       rpp: number;
     }
   | undefined;
+
+export type FullTextSearchIndex = {
+  tableName: string;
+  indexedFields: string[];
+  key: string;
+};

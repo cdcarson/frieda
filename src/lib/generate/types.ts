@@ -3,7 +3,8 @@ import type { FsPaths } from '../fs/types.js';
 export const TYPESCRIPT_FILES = [
   'database.ts',
   'schema.ts',
-  'types.ts'
+  'types.ts',
+  'full-text-search-indexes.ts'
 ] as const;
 
 export type TypescriptFileName = (typeof TYPESCRIPT_FILES)[number];
@@ -17,7 +18,11 @@ export const JAVASCRIPT_FILES = [
   'schema.js.map',
   'types.js',
   'types.d.ts',
-  'types.js.map'
+  'types.js.map',
+  'full-text-search-indexes.js',
+  'full-text-search-indexes.d.ts',
+  'full-text-search-indexes.js.map'
+
 ] as const;
 export type JavascriptFileName = (typeof JAVASCRIPT_FILES)[number];
 

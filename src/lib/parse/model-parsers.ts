@@ -1,4 +1,5 @@
-import type { Table } from '../api/types.js';
+import type { FetchedTable } from '$lib/fetch/types.js';
+import type { FullTextSearchIndex, Table } from '../api/types.js';
 import camelcase from 'camelcase';
 
 export const getModelName = (table: Table): string => {
@@ -30,4 +31,26 @@ export const getModelDbTypeName = (table: Table): string => {
 
 export const getModelClassGetterName = (table: Table): string => {
   return camelcase(table.name);
+};
+
+export const getFullTextSearchIndexes = (
+  table: FetchedTable
+): FullTextSearchIndex[] => {
+  const names = Array.from(
+    new Set(
+      table.indexes
+        .filter((index) => index.Index_type === 'FULLTEXT')
+        .map((index) => index.Key_name)
+    )
+  );
+  return names.map((name) => {
+    return {
+      key: name,
+      tableName: table.name,
+      indexedFields: table.indexes
+        .filter((index) => index.Key_name === name)
+        .map((index) => index.Column_name || '')
+        .filter((s) => s.length > 0)
+    };
+  });
 };
