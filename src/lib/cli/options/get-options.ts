@@ -23,7 +23,11 @@ import colors from 'kleur';
 export const getOptions = async (
   cliArgs: Partial<CliArgs>,
   promptAlways = false
-): Promise<{ options: ResolvedCliOptions; connection: Connection }> => {
+): Promise<{
+  options: ResolvedCliOptions;
+  connection: Connection;
+  databaseUrlResult: DatabaseUrlResult;
+}> => {
   const spinner = ora('Reading current options').start();
   const { rc } = await readFriedarc();
   let envFile: string;
@@ -279,6 +283,7 @@ export const getOptions = async (
 
   return {
     options,
-    connection: connect({ url: databaseUrlResult.databaseUrl })
+    connection: connect({ url: databaseUrlResult.databaseUrl }),
+    databaseUrlResult
   };
 };

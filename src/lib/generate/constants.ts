@@ -1,4 +1,3 @@
-import ts from 'typescript';
 
 export const TS_COMPILER_OPTIONS = {
   declaration: true

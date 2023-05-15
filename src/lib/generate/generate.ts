@@ -33,6 +33,7 @@ export const generate = async (
 
   if (compileJs) {
     out = compileJavascript(files) as JavascriptCode;
+    await removeRecognizedFiles(outputDirectory);
   }
 
   return await writeFiles(out, outputDirectory);

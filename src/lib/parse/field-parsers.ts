@@ -87,18 +87,9 @@ export const getCastType = (
     if (options.typeBigIntAsString === false) {
       return 'bigint';
     }
-    const typeAnnotation = getCommentAnnotations(column).find(
-      (a) => a.annotation === 'bigint'
-    );
-    if (typeAnnotation) {
-      return 'bigint';
-    }
-    return 'string';
+    return getBigIntAnnotation(column) ? 'bigint' : 'string';
   }
-  if (
-    'tinyint' === mysqlBaseType &&
-    getParenthesizedArgs(column.Type, 'tinyint').trim() === '1'
-  ) {
+  if (isTinyIntOne(column)) {
     if (options.typeTinyIntOneAsBoolean === false) {
       return 'int';
     }
@@ -110,9 +101,7 @@ export const getCastType = (
   }
 
   if ('set' === mysqlBaseType) {
-    const typeAnnotation = getCommentAnnotations(column).find(
-      (a) => a.annotation === 'set'
-    );
+    const typeAnnotation = getSetAnnotation(column)
     if (typeAnnotation) {
       return 'set';
     }
@@ -153,23 +142,13 @@ export const getJavascriptType = (
 ): string => {
   const castType = getCastType(column, options);
   if ('json' === castType) {
-    const typeAnnotation = getCommentAnnotations(column).find(
-      (a) => a.annotation === 'json'
-    );
-    if (!typeAnnotation) {
-      return DEFAULT_JSON_FIELD_TYPE;
-    }
-    if (!typeAnnotation.argument) {
-      return DEFAULT_JSON_FIELD_TYPE;
-    }
-    return typeAnnotation.argument;
+    const annotation = getValidJsonAnnotation(column);
+    return annotation ? annotation.argument.trim() : DEFAULT_JSON_FIELD_TYPE;
   }
 
   if ('set' === castType) {
     // castType is only set if the annotation exists, so this is safe
-    const typeAnnotation = getCommentAnnotations(column).find(
-      (a) => a.annotation === 'set'
-    ) as ParsedAnnotation;
+    const typeAnnotation = getSetAnnotation(column) as ParsedAnnotation;
 
     if (typeAnnotation.argument && typeAnnotation.argument.trim().length > 0) {
       return `Set<${typeAnnotation.argument.trim()}>`;
@@ -183,14 +162,8 @@ export const getJavascriptType = (
   }
 
   if ('enum' === castType) {
-    const typeAnnotation = getCommentAnnotations(column).find(
-      (a) => a.annotation === 'enum'
-    );
-    if (
-      typeAnnotation &&
-      typeAnnotation.argument &&
-      typeAnnotation.argument.trim().length > 0
-    ) {
+    const typeAnnotation = getValidEnumAnnotation(column);
+    if (typeAnnotation) {
       return typeAnnotation.argument.trim();
     }
     const strings = getParenthesizedArgs(column.Type, 'enum')
@@ -249,4 +222,57 @@ export const getUpdateModelFieldPresence = (
   }
 
   return UpdateModelFieldPresence.optional;
+};
+
+export const getValidJsonAnnotation = (
+  column: Column
+): Required<ParsedAnnotation> | undefined => {
+  const typeAnnotation = getCommentAnnotations(column).find(
+    (a) => a.annotation === 'json'
+  );
+  if (
+    !typeAnnotation ||
+    !typeAnnotation.argument ||
+    typeAnnotation.argument.trim().length === 0
+  ) {
+    return;
+  }
+
+  return typeAnnotation as Required<ParsedAnnotation>;
+};
+
+export const getBigIntAnnotation = (
+  column: Column
+): ParsedAnnotation | undefined => {
+  return getCommentAnnotations(column).find((a) => a.annotation === 'bigint');
+};
+
+export const getSetAnnotation = (
+  column: Column
+): ParsedAnnotation | undefined => {
+  return getCommentAnnotations(column).find((a) => a.annotation === 'set');
+};
+
+export const getValidEnumAnnotation = (
+  column: Column
+): Required<ParsedAnnotation> | undefined => {
+  const typeAnnotation = getCommentAnnotations(column).find(
+    (a) => a.annotation === 'enum'
+  );
+  if (
+    !typeAnnotation ||
+    !typeAnnotation.argument ||
+    typeAnnotation.argument.trim().length === 0
+  ) {
+    return;
+  }
+
+  return typeAnnotation as Required<ParsedAnnotation>;
+};
+
+export const isTinyIntOne = (column: Column): boolean => {
+  return (
+    'tinyint' === getMysqlBaseType(column) &&
+    getParenthesizedArgs(column.Type, 'tinyint').trim() === '1'
+  );
 };

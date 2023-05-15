@@ -30,7 +30,7 @@ export const OPTION_DESCRIPTIONS = {
 
 export const COMMAND_DESCRIPTIONS = {
   generate: 'Generate code.',
-  type: `Show type details and other information about models and fields.`,
+  explain: `Explain model/field types and other information about the parsed schema.`,
   init: `(Re-)initialize options in ${fmtPath(FRIEDA_RC_FILE_NAME)}.`
 };
 
@@ -85,20 +85,14 @@ export const CLI_COMMANDS = [
     usage: '[options]'
   },
   {
-    name: 'type',
-    alias: 't',
-    description: COMMAND_DESCRIPTIONS.type,
-    usage: '[model] [field] [otherOptions]',
+    name: 'explain',
+    alias: 'e',
+    description: COMMAND_DESCRIPTIONS.explain,
+    usage: '[model] [otherOptions]',
     positionalOptions: [
       {
         name: 'model',
-        description: `Optional. The name of the model or database table.`,
-        isRc: false,
-        type: 'string'
-      },
-      {
-        name: 'field',
-        description: `Optional. The name of the field or database column.`,
+        description: `Optional. The name of a model or database table.`,
         isRc: false,
         type: 'string'
       }
