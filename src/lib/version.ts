@@ -1,1 +1,1 @@
-export const FRIEDA_VERSION = '0.0.28';
+export const FRIEDA_VERSION = '0.0.29';
