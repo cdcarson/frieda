@@ -193,3 +193,6 @@ export type FullTextSearchIndex = {
   indexedFields: string[];
   key: string;
 };
+export type ModelWithSearchRelevance<M extends Model> = M & {
+  _searchRelevance?: number;
+};

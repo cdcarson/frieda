@@ -1,7 +1,9 @@
 import type {
+  FullTextSearchIndex,
   Model,
   ModelOrderByInput,
   ModelWhereInput,
+  ModelWithSearchRelevance,
   OneBasedPagingInput
 } from './types.js';
 import sql, { raw, join, Sql, empty } from 'sql-template-tag';
@@ -89,4 +91,29 @@ export const getLimitOffset = (paging: OneBasedPagingInput): Sql => {
     return empty;
   }
   return raw(`LIMIT ${paging.rpp} OFFSET ${(paging.page - 1) * paging.rpp}`);
+};
+
+export const getSearchSql = <M extends Model>(
+  indices: FullTextSearchIndex[],
+  searchTerm: string
+): {
+  searchRelevanceColumn: Sql;
+  searchOrderBy: Sql;
+  searchWhere: Sql;
+  searchSortParams: ModelOrderByInput<ModelWithSearchRelevance<M>>;
+} => {
+  const against = sql`${searchTerm} IN NATURAL LANGUAGE MODE`;
+  const matches: Sql[] = indices.map((index) => {
+    const cols = join(index.indexedFields.map((f) => bt(index.tableName, f)));
+    return sql`MATCH(${cols}) AGAINST ( ${against} )`;
+  });
+  const searchRelevanceColumn = sql`(${join(matches, ' + ')}) AS _searchRelevance`;
+  const searchWhere = sql`(${join(matches, ' OR ')})`;
+  const searchOrderBy = sql`ORDER BY (${join(matches, ' + ')}) desc`;
+  return {
+    searchRelevanceColumn,
+    searchOrderBy,
+    searchWhere,
+    searchSortParams:  { col: '_searchRelevance', dir: 'desc' }
+  };
 };
