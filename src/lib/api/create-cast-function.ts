@@ -1,4 +1,4 @@
-import type { Cast, Field } from '@planetscale/database';
+import  { type Cast, type Field, cast as defaultCast } from '@planetscale/database';
 import {
   CAST_TYPES,
   type CastType,
@@ -53,44 +53,9 @@ export const createCastFunction = <M extends Model>(
       case 'string':
       case 'enum':
         return decode(value);
-      default:
-        // At this point the is  undefined,
-        // so just fall through to the default handling below
-        break;
     }
 
-    switch (field.type) {
-      case 'DATETIME':
-        return new Date(value);
-      case 'INT8':
-      case 'INT16':
-      case 'INT24':
-      case 'INT32':
-      case 'UINT8':
-      case 'UINT16':
-      case 'UINT24':
-      case 'UINT32':
-      case 'YEAR':
-        return parseInt(value, 10);
-      case 'FLOAT32':
-      case 'FLOAT64':
-        return parseFloat(value);
-      case 'DECIMAL':
-      case 'INT64':
-      case 'UINT64':
-      case 'DATE':
-      case 'TIME':
-      case 'TIMESTAMP':
-      case 'BLOB':
-      case 'BIT':
-      case 'VARBINARY':
-      case 'BINARY':
-        return value;
-      case 'JSON':
-        return JSON.parse(decode(value));
-      default:
-        return decode(value);
-    }
+    return defaultCast(field, value)
   };
   return fn;
 };

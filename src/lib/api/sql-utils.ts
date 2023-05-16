@@ -76,7 +76,7 @@ export const getOrderBy = <M extends Model>(
     const ticked = tableName ? bt(tableName, c.col) : bt(c.col);
     return sql`${ticked} ${raw(c.dir)}`;
   });
-  return orders.length > 0 ? join(orders) : empty;
+  return orders.length > 0 ? sql`ORDER BY ${join(orders)}` : empty;
 };
 
 /**

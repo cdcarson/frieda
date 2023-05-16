@@ -9,6 +9,8 @@ import { getSchemaTs } from './get-schema-ts.js';
 import { getTypesTs } from './get-types-ts.js';
 import { writeFiles } from './write-files.js';
 import { getFullTextSearchIndexesTs } from './get-full-text-search-indexes-ts.js';
+import { saveFile } from '$lib/fs/save-file.js';
+import {join} from 'node:path'
 export const generate = async (
   schema: FetchedSchema,
   typeOptions: TypeOptions,
@@ -40,6 +42,8 @@ export const generate = async (
     out = compileJavascript(files) as JavascriptCode;
     await removeRecognizedFiles(outputDirectory);
   }
+
+  await saveFile(join(outputDirectory, 'schema-debug.json'), JSON.stringify(schema, null, 2))
 
   return await writeFiles(out, outputDirectory);
 };

@@ -192,14 +192,14 @@ export class ModelDb<
     const where = getWhere(input.where, this.tableName);
     const orderBy = getOrderBy(input.orderBy, this.tableName);
     const limit = getLimitOffset(input.paging);
-    const getSelectForFieldName = (fieldName: string): string => {
+    const getSelectForFieldName = (fieldName: string): Sql => {
       const field = this.fields.find((f) => f.fieldName === fieldName);
       if (!field) {
         throw new Error(
           `Invalid select: the field named ${fieldName} does not exist.`
         );
       }
-      return `${bt(this.tableName, field.columnName)} as ${bt(
+      return sql`${bt(this.tableName, field.columnName)} as ${bt(
         field.fieldName
       )}`;
     };
@@ -211,10 +211,10 @@ export class ModelDb<
           )
         : raw('*');
     const query = sql`
-        SELECT
-          ${select}
-        FROM
-          ${bt(this.tableName)} 
+        SELECT 
+        ${select} 
+        FROM 
+        ${bt(this.tableName)} 
         ${where} 
         ${orderBy} 
         ${limit}`;
@@ -265,12 +265,7 @@ export class ModelDb<
   }
   async countBigInt(input: { where: ModelWhereInput<M> }): Promise<bigint> {
     const where = getWhere(input.where, this.tableName);
-    const query = sql`
-      SELECT 
-        COUNT(*) AS \`ct\` 
-      FROM ${bt(this.tableName)}  
-      ${where}
-    `;
+    const query = sql`SELECT COUNT(*) AS \`ct\` FROM ${bt(this.tableName)} ${where}`;
     const result = await this.executeSelect<{ ct: bigint }>(query, {
       ct: 'bigint'
     });

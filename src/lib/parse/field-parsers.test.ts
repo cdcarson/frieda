@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Column, TypeOptions } from '../api/types.js';
 import {
+  getBigIntAnnotation,
   getCastType,
   getCommentAnnotations,
   getCreateModelFieldPresence,
@@ -9,13 +10,17 @@ import {
   getModelFieldPresence,
   getMysqlBaseType,
   getParenthesizedArgs,
+  getSetAnnotation,
   getUpdateModelFieldPresence,
+  getValidEnumAnnotation,
+  getValidJsonAnnotation,
   hasDefault,
   isAutoIncrement,
   isGeneratedAlways,
   isInvisible,
   isNullable,
   isPrimaryKey,
+  isTinyIntOne,
   isUnique
 } from './field-parsers.js';
 import { MYSQL_TYPES } from '../api/types.js';
@@ -508,5 +513,28 @@ describe('field-parsers', () => {
       UpdateModelFieldPresence.omittedPrimaryKey
     );
   });
+
+  it('isTinyIntOne', () => {
+    expect(isTinyIntOne({...column, Type: 'tinyint(1)'})).toBe(true)
+    expect(isTinyIntOne({...column, Type: 'tinyint'})).toBe(false)
+    expect(isTinyIntOne({...column, Type: 'int(1)'})).toBe(false)
+  })
+  it('getValidEnumAnnotation', () => {
+    expect(getValidEnumAnnotation({...column, Comment: '@enum(Foo)'})).toBeTruthy()
+    expect(getValidEnumAnnotation({...column, Comment: '@enum'})).toBeUndefined()
+  })
+  it('getValidJsonAnnotation', () => {
+    expect(getValidJsonAnnotation({...column, Comment: '@json(Foo)'})).toBeTruthy()
+    expect(getValidJsonAnnotation({...column, Comment: '@json'})).toBeUndefined()
+  })
+  it('getBigIntAnnotation', () => {
+    expect(getBigIntAnnotation({...column, Comment: '@bigint'})).toBeTruthy()
+    expect(getBigIntAnnotation({...column, Comment: '@json'})).toBeUndefined()
+  })
+  it('getSetAnnotation', () => {
+    expect(getSetAnnotation({...column, Comment: '@set'})).toBeTruthy()
+    expect(getSetAnnotation({...column, Comment: '@set(Foo)'})).toBeTruthy()
+    expect(getSetAnnotation({...column, Comment: '@json'})).toBeUndefined()
+  })
   //
 });
