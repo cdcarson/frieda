@@ -85,6 +85,13 @@ export const CLI_COMMANDS = [
     usage: '[options]'
   },
   {
+    name: 'type',
+    alias: 't',
+    description: 'Type a field',
+    usage: '[model] [field] [otherOptions]'
+  },
+
+  {
     name: 'explain',
     alias: 'e',
     description: COMMAND_DESCRIPTIONS.explain,
