@@ -31,13 +31,14 @@ import { DEFAULT_JSON_FIELD_TYPE } from '$lib/constants.js';
 import { prompt } from './ui/prompt.js';
 import { dirname, basename } from 'node:path';
 import type { DatabaseUrlResult, ResolvedCliOptions } from './types.js';
-import { format } from 'prettier';
+import prettier from 'prettier';
 import {
   CreateModelFieldPresence,
   ModelFieldPresence,
   UpdateModelFieldPresence
 } from '$lib/parse/types.js';
 import { getModelTypeDeclarations } from '$lib/generate/get-model-type-declarations.js';
+const {format} = prettier;
 type ModelNextStep =
   | 'fieldTypes'
   | 'createTable'
