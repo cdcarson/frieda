@@ -9,33 +9,38 @@ import log from './ui/log.js';
 import { fmtVal, fmtVarName } from './ui/formatters.js';
 import { prompt } from './ui/prompt.js';
 
-
 export const cmdType = async (
   cliArgs: Partial<CliArgs>,
   positionalArgs: string[]
 ) => {
   const { connection, options, databaseUrlResult } = await getOptions(cliArgs);
   const schema = await fetchSchema(connection);
-  const explorer = new Explorer(schema, options, databaseUrlResult, connection)
+  const explorer = new Explorer(schema, options, databaseUrlResult, connection);
   const [modelName, fieldName] = positionalArgs;
-  console.log()
+  console.log();
   const table = await explorer.getModel(modelName);
   const column = await explorer.getField(table, fieldName);
- 
+
   const explanation = explorer.explainJsType(column);
 
-  log.info( 'Field ' + fmtVarName(getFieldName(column)) + ' in ' + kleur.bold(getModelName(table)))
-  log.table([
-    [fmtVarName(getFieldName(column)), fmtVal(getJavascriptType(column, options)), kleur.dim(column.Type)]
-  
-  ], ['Field', 'Javascript Type', 'Column Type']);
-  log.info(`Typed: ${explanation}`)
+  log.info(
+    'Field ' +
+      fmtVarName(getFieldName(column)) +
+      ' in ' +
+      kleur.bold(getModelName(table))
+  );
+  log.table(
+    [
+      [
+        fmtVarName(getFieldName(column)),
+        fmtVal(getJavascriptType(column, options)),
+        kleur.dim(column.Type)
+      ]
+    ],
+    ['Field', 'Javascript Type', 'Column Type']
+  );
+  log.info(`Typed: ${explanation}`);
   console.log();
 
-  await explorer.modifyField(table, column)
-
-  
- 
+  await explorer.modifyField(table, column);
 };
-
-

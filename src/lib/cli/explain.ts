@@ -38,7 +38,7 @@ import {
   UpdateModelFieldPresence
 } from '$lib/parse/types.js';
 import { getModelTypeDeclarations } from '$lib/generate/get-model-type-declarations.js';
-const {format} = prettier;
+const { format } = prettier;
 type ModelNextStep =
   | 'fieldTypes'
   | 'createTable'

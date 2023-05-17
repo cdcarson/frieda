@@ -55,13 +55,13 @@ describe('ModelDb', () => {
       rows: [{}, {}]
     });
     const result = await db.findMany({});
-    expect(result.length).toBe(2)
+    expect(result.length).toBe(2);
     expect(executeSpy).toHaveBeenCalledWith(
       expect.stringMatching(/SELECT\s+\*/),
       [],
       { as: 'object', cast: expect.any(Function) }
     );
-  })
+  });
 
   it('findMany with selecting cols', async () => {
     schema.models = [
@@ -91,14 +91,14 @@ describe('ModelDb', () => {
     executeSpy.mockResolvedValue({
       rows: [{}, {}]
     });
-    const result = await db.findMany({select: ['name']});
-    expect(result.length).toBe(2)
+    const result = await db.findMany({ select: ['name'] });
+    expect(result.length).toBe(2);
     expect(executeSpy).toHaveBeenCalledWith(
       expect.stringMatching(/SELECT\s+`User`\.`name`/),
       [],
       { as: 'object', cast: expect.any(Function) }
     );
-  })
+  });
 
   it('findFirstOrThrow succeeds', async () => {
     schema.models = [
@@ -128,9 +128,9 @@ describe('ModelDb', () => {
     executeSpy.mockResolvedValue({
       rows: [{}]
     });
-    const result = await db.findFirstOrThrow({where: {id: '1'}})
-    expect(result).toEqual({})
-  })
+    const result = await db.findFirstOrThrow({ where: { id: '1' } });
+    expect(result).toEqual({});
+  });
 
   it('findFirstOrThrow throws', async () => {
     schema.models = [
@@ -160,8 +160,10 @@ describe('ModelDb', () => {
     executeSpy.mockResolvedValue({
       rows: []
     });
-    await expect(() => db.findFirstOrThrow({where: {id: '1'}})).rejects.toThrow()
-  })
+    await expect(() =>
+      db.findFirstOrThrow({ where: { id: '1' } })
+    ).rejects.toThrow();
+  });
 
   it('findUniqueOrThrow throws', async () => {
     schema.models = [
@@ -191,8 +193,10 @@ describe('ModelDb', () => {
     executeSpy.mockResolvedValue({
       rows: []
     });
-    await expect(() => db.findUniqueOrThrow({where: {id: '1'}})).rejects.toThrow()
-  })
+    await expect(() =>
+      db.findUniqueOrThrow({ where: { id: '1' } })
+    ).rejects.toThrow();
+  });
 
   it('findUnique works', async () => {
     schema.models = [
@@ -222,10 +226,9 @@ describe('ModelDb', () => {
     executeSpy.mockResolvedValue({
       rows: []
     });
-    const result = await db.findUnique({where: {id: '1'}})
-    expect(result).toBeNull()
-  })
-
+    const result = await db.findUnique({ where: { id: '1' } });
+    expect(result).toBeNull();
+  });
 
   it('simple create test', async () => {
     schema.models = [
@@ -292,7 +295,7 @@ describe('ModelDb', () => {
     executeSpy.mockResolvedValue({
       insertId: '333'
     });
-    await db.update({ data: { name: 'foo bar' }, where: {id: '1'} });
+    await db.update({ data: { name: 'foo bar' }, where: { id: '1' } });
     expect(executeSpy).toHaveBeenCalledWith(
       'UPDATE `User` SET `User`.`name` = ? WHERE `User`.`id` = ?',
       ['foo bar', '1'],
@@ -364,10 +367,10 @@ describe('ModelDb', () => {
     executeSpy.mockResolvedValue({
       insertId: '333'
     });
-    await db.update({ data: { name: null }, where: {id: '1'} });
+    await db.update({ data: { name: null }, where: { id: '1' } });
     expect(executeSpy).toHaveBeenCalledWith(
       'UPDATE `User` SET `User`.`name` = NULL WHERE `User`.`id` = ?',
-      [ '1'],
+      ['1'],
       { as: 'object', cast: expect.any(Function) }
     );
   });
@@ -399,11 +402,11 @@ describe('ModelDb', () => {
     executeSpy.mockResolvedValue({
       insertId: '333'
     });
-    const result = await db.create({ data: { foo: {a: 8} } });
+    const result = await db.create({ data: { foo: { a: 8 } } });
     expect(result).toEqual({ id: '333' });
     expect(executeSpy).toHaveBeenCalledWith(
       'INSERT INTO `User` (`User`.`foo`) VALUES (?)',
-      [JSON.stringify({a: 8})],
+      [JSON.stringify({ a: 8 })],
       { as: 'object', cast: expect.any(Function) }
     );
   });
@@ -435,13 +438,12 @@ describe('ModelDb', () => {
     executeSpy.mockResolvedValue({
       insertId: '333'
     });
-    await db.update({ data: { foo: {a: 8} }, where: {id: '1'} });
+    await db.update({ data: { foo: { a: 8 } }, where: { id: '1' } });
     expect(executeSpy).toHaveBeenCalledWith(
       'UPDATE `User` SET `User`.`foo` = ? WHERE `User`.`id` = ?',
-      [JSON.stringify({a: 8}), '1'],
+      [JSON.stringify({ a: 8 }), '1'],
       { as: 'object', cast: expect.any(Function) }
     );
-   
   });
   it('create with set values', async () => {
     schema.models = [
@@ -507,7 +509,7 @@ describe('ModelDb', () => {
     executeSpy.mockResolvedValue({
       insertId: '333'
     });
-    await db.update({ data: { foo: new Set(['a', 'b']) }, where: {id: '1'} });
+    await db.update({ data: { foo: new Set(['a', 'b']) }, where: { id: '1' } });
     expect(executeSpy).toHaveBeenCalledWith(
       'UPDATE `User` SET `User`.`foo` = ? WHERE `User`.`id` = ?',
       ['a,b', '1'],
@@ -542,7 +544,7 @@ describe('ModelDb', () => {
     executeSpy.mockResolvedValue({
       insertId: '333'
     });
-    const result = await db.create({ data: {  } });
+    const result = await db.create({ data: {} });
     expect(result).toEqual({ id: '333' });
     expect(executeSpy).toHaveBeenCalledWith(
       'INSERT INTO `User` () VALUES ()',
@@ -582,9 +584,10 @@ describe('ModelDb', () => {
     ];
 
     const db = new ModelDb('AccountPermission', connection, schema);
-    executeSpy.mockResolvedValue({
+    executeSpy.mockResolvedValue({});
+    const result = await db.create({
+      data: { userId: '1', accountId: '2', permission: 'foo' }
     });
-    const result = await db.create({ data: {userId: '1', accountId: '2', permission: 'foo'  } });
     expect(result).toEqual({ userId: '1', accountId: '2' });
     expect(executeSpy).toHaveBeenCalledWith(
       'INSERT INTO `account_permission` (`account_permission`.`userId`,`account_permission`.`accountId`,`account_permission`.`permission`) VALUES (?,?,?)',
@@ -621,10 +624,10 @@ describe('ModelDb', () => {
     executeSpy.mockResolvedValue({
       insertId: '333'
     });
-    await db.delete({ where: {id: '1'} });
+    await db.delete({ where: { id: '1' } });
     expect(executeSpy).toHaveBeenCalledWith(
       'DELETE FROM `User` WHERE `User`.`id` = ?',
-      [ '1'],
+      ['1'],
       { as: 'object', cast: expect.any(Function) }
     );
   });
@@ -655,12 +658,12 @@ describe('ModelDb', () => {
 
     const db = new ModelDb('T', connection, schema);
     executeSpy.mockResolvedValue({
-      rows: [{ct: 8}]
+      rows: [{ ct: 8 }]
     });
     await db.count({ where: {} });
     expect(executeSpy).toHaveBeenCalledWith(
       'SELECT COUNT(*) AS `ct` FROM `t` ',
-      [ ],
+      [],
       { as: 'object', cast: expect.any(Function) }
     );
   });
@@ -690,16 +693,16 @@ describe('ModelDb', () => {
 
     const db = new ModelDb('T', connection, schema);
     executeSpy.mockResolvedValue({
-      rows: [{ct: 8}]
+      rows: [{ ct: 8 }]
     });
-    await db.count({ where: {id: '1'} });
+    await db.count({ where: { id: '1' } });
     expect(executeSpy).toHaveBeenCalledWith(
       'SELECT COUNT(*) AS `ct` FROM `t` WHERE `t`.`id` = ?',
-      [ '1'],
+      ['1'],
       { as: 'object', cast: expect.any(Function) }
     );
   });
-  it('count throws if the result > MAX SAFE INT',async () => {
+  it('count throws if the result > MAX SAFE INT', async () => {
     schema.models = [
       {
         modelName: 'T',
@@ -724,13 +727,12 @@ describe('ModelDb', () => {
     ];
 
     const db = new ModelDb('T', connection, schema);
-    const bi = BigInt(Number.MAX_SAFE_INTEGER)  + 1n;
+    const bi = BigInt(Number.MAX_SAFE_INTEGER) + 1n;
     executeSpy.mockResolvedValue({
-      rows: [{ct: bi.toString()}]
+      rows: [{ ct: bi.toString() }]
     });
-   await expect(() => db.count({where: {}})).rejects.toThrow();
-  })
-
+    await expect(() => db.count({ where: {} })).rejects.toThrow();
+  });
 });
 
 describe('BaseDb.execute', () => {
@@ -756,23 +758,27 @@ describe('BaseDb.execute', () => {
     };
   });
   it('throws if the query throws', async () => {
-    const db = new BaseDb(connection, schema)
+    const db = new BaseDb(connection, schema);
     executeSpy.mockRejectedValue(new Error('bad'));
-    await expect(() => db.execute(sql`Some bad`)).rejects.toThrowError('Internal server error.')
-  })
+    await expect(() => db.execute(sql`Some bad`)).rejects.toThrowError(
+      'Internal server error.'
+    );
+  });
   it('executeSelectFirstOrThrow throws', async () => {
-    const db = new BaseDb(connection, schema)
+    const db = new BaseDb(connection, schema);
     executeSpy.mockResolvedValue({
       rows: []
     });
-    await expect(() => db.executeSelectFirstOrThrow(sql`query`)).rejects.toThrowError('executeSelectFirstOrThrow')
-  })
+    await expect(() =>
+      db.executeSelectFirstOrThrow(sql`query`)
+    ).rejects.toThrowError('executeSelectFirstOrThrow');
+  });
   it('executeSelectFirstOrThrow succeeds', async () => {
-    const db = new BaseDb(connection, schema)
+    const db = new BaseDb(connection, schema);
     executeSpy.mockResolvedValue({
       rows: [{}]
     });
-    const result = await db.executeSelectFirstOrThrow(sql`query`)
-    expect(result).toEqual({})
-  })
-})
+    const result = await db.executeSelectFirstOrThrow(sql`query`);
+    expect(result).toEqual({});
+  });
+});

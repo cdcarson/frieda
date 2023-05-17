@@ -107,13 +107,16 @@ export const getSearchSql = <M extends Model>(
     const cols = join(index.indexedFields.map((f) => bt(index.tableName, f)));
     return sql`MATCH(${cols}) AGAINST ( ${against} )`;
   });
-  const searchRelevanceColumn = sql`(${join(matches, ' + ')}) AS _searchRelevance`;
+  const searchRelevanceColumn = sql`(${join(
+    matches,
+    ' + '
+  )}) AS _searchRelevance`;
   const searchWhere = sql`(${join(matches, ' OR ')})`;
   const searchOrderBy = sql`ORDER BY (${join(matches, ' + ')}) desc`;
   return {
     searchRelevanceColumn,
     searchOrderBy,
     searchWhere,
-    searchSortParams:  { col: '_searchRelevance', dir: 'desc' }
+    searchSortParams: { col: '_searchRelevance', dir: 'desc' }
   };
 };

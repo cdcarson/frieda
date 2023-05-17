@@ -1,15 +1,23 @@
 # Frieda
 
-Database schema things designed for the PlanetScale Serverless Driver.
+Typescript / javascript code generator for the PlanetScale serverless driver.
 
-- A simple migration manager that tries to play well with PlanetScale branches and deploy requests.
-- Javascript models derived from the database schema (i.e. without a full-on bespoke schema language.)
-- A `FreidaDb` class that provides, among other things, simple, typesafe CrUD access to those models.
+- Defines a reasonable set of rules to map MySql column types to javascript types.
+- Given a database URL, introspects the schema, and generates some database classes, some helpers and some types.
 
-## Design goals and intentional limitations.
+Frieda is not an ORM or a query builder. It assumes you're cool with (1) the schema and migration management provided by PlanetScale and (2) writing more complex queries in SQL. If not, or if you need the flexibility to suddenly switch to Postgres, you can check out Prisma or Kysely.
 
-- Roll your own SQL. Frieda is neither a fully featured ORM (a la Prisma) nor a query builder (a la Kysely.) Other than simple `SELECT`s and CrUD statements, Frieda doesn't write queries.
-- Frieda is designed to work with the Planetscale/Vitess/MySQL stack. The `FriedaDb` class uses PlanetScale's Serverless Driver.
+Frieda's goal is to provide a dead-simple developer experience for javascript and typescript projects using PlanetScale.
+
+- The source of truth about the schema, is, well, ahem, the schema itself. There is no separate schema file or data definition language. Extra type definitions, where necessary, are placed in SQL comments.
+- Frieda takes care of CrUD and simple SELECT queries, and provides type safety and casting for more complex queries.
+
+## Quick Start
+
+```bash
+npm i -D @nowzoo/frieda
+
+```
 
 ## CLI
 

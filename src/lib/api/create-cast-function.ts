@@ -1,4 +1,8 @@
-import  { type Cast, type Field, cast as defaultCast } from '@planetscale/database';
+import {
+  type Cast,
+  type Field,
+  cast as defaultCast
+} from '@planetscale/database';
 import {
   CAST_TYPES,
   type CastType,
@@ -55,7 +59,7 @@ export const createCastFunction = <M extends Model>(
         return decode(value);
     }
 
-    return defaultCast(field, value)
+    return defaultCast(field, value);
   };
   return fn;
 };

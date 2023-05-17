@@ -515,26 +515,36 @@ describe('field-parsers', () => {
   });
 
   it('isTinyIntOne', () => {
-    expect(isTinyIntOne({...column, Type: 'tinyint(1)'})).toBe(true)
-    expect(isTinyIntOne({...column, Type: 'tinyint'})).toBe(false)
-    expect(isTinyIntOne({...column, Type: 'int(1)'})).toBe(false)
-  })
+    expect(isTinyIntOne({ ...column, Type: 'tinyint(1)' })).toBe(true);
+    expect(isTinyIntOne({ ...column, Type: 'tinyint' })).toBe(false);
+    expect(isTinyIntOne({ ...column, Type: 'int(1)' })).toBe(false);
+  });
   it('getValidEnumAnnotation', () => {
-    expect(getValidEnumAnnotation({...column, Comment: '@enum(Foo)'})).toBeTruthy()
-    expect(getValidEnumAnnotation({...column, Comment: '@enum'})).toBeUndefined()
-  })
+    expect(
+      getValidEnumAnnotation({ ...column, Comment: '@enum(Foo)' })
+    ).toBeTruthy();
+    expect(
+      getValidEnumAnnotation({ ...column, Comment: '@enum' })
+    ).toBeUndefined();
+  });
   it('getValidJsonAnnotation', () => {
-    expect(getValidJsonAnnotation({...column, Comment: '@json(Foo)'})).toBeTruthy()
-    expect(getValidJsonAnnotation({...column, Comment: '@json'})).toBeUndefined()
-  })
+    expect(
+      getValidJsonAnnotation({ ...column, Comment: '@json(Foo)' })
+    ).toBeTruthy();
+    expect(
+      getValidJsonAnnotation({ ...column, Comment: '@json' })
+    ).toBeUndefined();
+  });
   it('getBigIntAnnotation', () => {
-    expect(getBigIntAnnotation({...column, Comment: '@bigint'})).toBeTruthy()
-    expect(getBigIntAnnotation({...column, Comment: '@json'})).toBeUndefined()
-  })
+    expect(getBigIntAnnotation({ ...column, Comment: '@bigint' })).toBeTruthy();
+    expect(
+      getBigIntAnnotation({ ...column, Comment: '@json' })
+    ).toBeUndefined();
+  });
   it('getSetAnnotation', () => {
-    expect(getSetAnnotation({...column, Comment: '@set'})).toBeTruthy()
-    expect(getSetAnnotation({...column, Comment: '@set(Foo)'})).toBeTruthy()
-    expect(getSetAnnotation({...column, Comment: '@json'})).toBeUndefined()
-  })
+    expect(getSetAnnotation({ ...column, Comment: '@set' })).toBeTruthy();
+    expect(getSetAnnotation({ ...column, Comment: '@set(Foo)' })).toBeTruthy();
+    expect(getSetAnnotation({ ...column, Comment: '@json' })).toBeUndefined();
+  });
   //
 });
