@@ -7,6 +7,7 @@ import { parseArgs } from './parse-args.js';
 import { cmdExplain } from './cmd-explain.js';
 import { cmdInit } from './cmd-init.js';
 import { cmdType } from './cmd-type.js';
+import { cmdModel } from './cmd-model.js';
 export const main = async (argv: string[]) => {
   console.log(colors.bold('frieda'), colors.dim(`v${FRIEDA_VERSION}`), '🦮');
   const { command, cliArgs, positionalArgs } = parseArgs(argv);
@@ -24,6 +25,9 @@ export const main = async (argv: string[]) => {
       break;
     case 'explain':
       await cmdExplain(cliArgs as Partial<CliArgs>, positionalArgs);
+      break;
+    case 'model':
+      await cmdModel(cliArgs as Partial<CliArgs>, positionalArgs);
       break;
     case 'type':
       await cmdType(cliArgs as Partial<CliArgs>, positionalArgs);

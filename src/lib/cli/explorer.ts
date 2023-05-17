@@ -13,7 +13,12 @@ import {
   isUnique,
   getModelFieldPresence,
   getCreateModelFieldPresence,
-  getUpdateModelFieldPresence
+  getUpdateModelFieldPresence,
+  isPrimaryKey,
+  isAutoIncrement,
+  hasDefault,
+  isGeneratedAlways,
+  isInvisible
 } from '$lib/parse/field-parsers.js';
 import {
   getFullTextSearchIndexes,
@@ -45,12 +50,37 @@ import type { Connection } from '@planetscale/database';
 import ora from 'ora';
 import { fetchSchema } from './shared.js';
 import { generateCode } from './shared.js';
+import { edit } from 'external-editor';
+
 const { format } = prettier;
+
+type ShowModelNextStep =
+  | 'basicInfo'
+  | 'fieldTypes'
+  | 'modelTypes'
+  | 'indexes'
+  | 'createSql'
+  | 'typeOptions'
+  | 'fieldInfo'
+  | 'modifyField'
+  | 'anotherModel'
+  | 'exit';
 
 type MigrationType =
   | 'addEnumTypeAnnotation'
   | 'editEnumTypeAnnotation'
-  | 'removeEnumTypeAnnotation';
+  | 'removeEnumTypeAnnotation'
+  | 'addSetTypeAnnotation'
+  | 'editSetTypeAnnotation'
+  | 'removeSetTypeAnnotation'
+  | 'editJsonTypeAnnotation'
+  | 'removeJsonTypeAnnotation'
+  | 'addJsonTypeAnnotation'
+  | 'addBigIntTypeAnnotation'
+  | 'removeBigIntTypeAnnotation'
+  | 'typeTinyIntAsBoolean'
+  | 'typeTinyIntAsInt'
+  | 'editManually';
 
 type MigrationChoice = {
   value: MigrationType;
@@ -58,6 +88,7 @@ type MigrationChoice = {
 };
 
 export class Explorer {
+  private showModelNextStep: ShowModelNextStep | null = null;
   constructor(
     public schema: FetchedSchema,
     public options: ResolvedCliOptions,
@@ -165,13 +196,17 @@ export class Explorer {
     return column;
   }
 
-  getMigrationChoices(column: Column): MigrationChoice[] {
-    const options: MigrationChoice[] = [];
+  async modifyField(
+    table: FetchedTable,
+    column: Column
+  ): Promise<{ table: FetchedTable; column: Column }> {
+    //const choices: MigrationChoice[] = [];
+    const choices: MigrationChoice[] = [];
     const mysqlType = getMysqlBaseType(column);
     if ('enum' === mysqlType) {
       const annotation = getValidEnumAnnotation(column);
       if (annotation) {
-        options.push(
+        choices.push(
           {
             value: 'editEnumTypeAnnotation',
             title: `Edit @enum type annotation`
@@ -182,17 +217,84 @@ export class Explorer {
           }
         );
       } else {
-        options.push({
+        choices.push({
           value: 'addEnumTypeAnnotation',
           title: `Add @enum type annotation`
         });
       }
     }
-    return options;
-  }
+    if ('set' === mysqlType) {
+      const annotation = getSetAnnotation(column);
+      if (annotation) {
+        choices.push(
+          {
+            value: 'editSetTypeAnnotation',
+            title: `Edit @set type annotation`
+          },
+          {
+            value: 'removeSetTypeAnnotation',
+            title: 'Remove @set type annotation'
+          }
+        );
+      } else {
+        choices.push({
+          value: 'addSetTypeAnnotation',
+          title: `Add @set type annotation`
+        });
+      }
+    }
+    if ('json' === mysqlType) {
+      const annotation = getValidJsonAnnotation(column);
+      if (annotation) {
+        choices.push(
+          {
+            value: 'editJsonTypeAnnotation',
+            title: `Edit @json type annotation`
+          },
+          {
+            value: 'removeJsonTypeAnnotation',
+            title: 'Remove @json type annotation'
+          }
+        );
+      } else {
+        choices.push({
+          value: 'addJsonTypeAnnotation',
+          title: `Add @json type annotation`
+        });
+      }
+    }
+    if ('bigint' === mysqlType) {
+      const annotation = getBigIntAnnotation(column);
+      if (annotation) {
+        choices.push({
+          value: 'removeBigIntTypeAnnotation',
+          title: 'Remove @bigint type annotation'
+        });
+      } else {
+        choices.push({
+          value: 'addBigIntTypeAnnotation',
+          title: `Add @bigint type annotation`
+        });
+      }
+    }
+    if ('tinyint' === mysqlType) {
+      if (isTinyIntOne(column)) {
+        choices.push({
+          value: 'typeTinyIntAsInt',
+          title: `Type as integer`
+        });
+      } else {
+        choices.push({
+          value: 'typeTinyIntAsBoolean',
+          title: `Type as boolean`
+        });
+      }
+    }
 
-  async modifyField(table: FetchedTable, column: Column): Promise<void> {
-    const choices = this.getMigrationChoices(column);
+    choices.push({
+      title: 'Edit field manually',
+      value: 'editManually'
+    });
     const migrate = await prompt<MigrationType>({
       message: 'Modify field',
       name: 'migrate',
@@ -201,63 +303,299 @@ export class Explorer {
     });
     console.log();
 
-    //const foo = table.createSql.
+    let statement: Sql;
+    switch (migrate) {
+      case 'editEnumTypeAnnotation':
+      case 'addEnumTypeAnnotation':
+        statement = await this.getEditEnumTypeAnnotationSql(table, column);
+        break;
+      case 'removeEnumTypeAnnotation':
+        statement = this.getRemoveEnumTypeAnnotationSql(table, column);
+        break;
+      case 'addBigIntTypeAnnotation':
+        statement = this.getAddBigIntTypeAnnotationSql(table, column);
+        break;
+      case 'removeBigIntTypeAnnotation':
+        statement = this.getRemoveBigIntTypeAnnotationSql(table, column);
+        break;
 
-    if (
-      migrate === 'addEnumTypeAnnotation' ||
-      migrate === 'editEnumTypeAnnotation'
-    ) {
-      const type = await prompt({
-        type: 'text',
-        name: 't',
-        message: 'Enter type:',
-        initial: getValidEnumAnnotation(column)?.argument || ''
-      });
-      console.log();
-      let comment = column.Comment;
-      const annotations = getCommentAnnotations(column).filter(
-        (a) => a.annotation === 'enum'
-      );
-      annotations.forEach((a) => {
-        comment = comment.replace(a.fullAnnotation, '');
-      });
-      comment = comment.trim();
-      comment = [comment, `@enum(${type})`].join(' ').trim();
-      const statement = join(
-        [
-          sql`ALTER TABLE ${bt(table.name)}`,
-          sql`   MODIFY COLUMN ${bt(column.Field)} ${raw(column.Type)} `,
-          sql`   ${raw(isNullable(column) ? 'NULL' : 'NOT NULL')}`,
-          sql`   COMMENT "${raw(comment)}";`
-        ],
-        '\n'
-      );
+      case 'addSetTypeAnnotation':
+      case 'editSetTypeAnnotation':
+        statement = await this.getEditSetTypeAnnotationSql(table, column);
+        break;
+      case 'removeSetTypeAnnotation':
+        statement = this.getRemoveSetTypeAnnotationSql(table, column);
+        break;
+      case 'addJsonTypeAnnotation':
+      case 'editJsonTypeAnnotation':
+        statement = await this.getEditJsonTypeAnnotationSql(table, column);
+        break;
+      case 'removeJsonTypeAnnotation':
+        statement = this.getRemoveJsonTypeAnnotationSql(table, column);
+        break;
+      case 'typeTinyIntAsBoolean':
+        statement = this.getTypeAsBooleanSql(table, column, true);
+        break;
+      case 'typeTinyIntAsInt':
+        statement = this.getTypeAsBooleanSql(table, column, false);
+        break;
+      case 'editManually':
+        statement = this.getColumnEditSql(table, column);
+        break;
+    }
 
-      await this.runMigration(statement);
-    }
-    if (migrate === 'removeEnumTypeAnnotation') {
-      let comment = column.Comment;
-      const annotations = getCommentAnnotations(column).filter(
-        (a) => a.annotation === 'enum'
-      );
-      annotations.forEach((a) => {
-        comment = comment.replace(a.fullAnnotation, '');
-      });
-      comment = comment.trim();
-      const lines = [
-        sql`ALTER TABLE ${bt(table.name)}`,
-        sql`   MODIFY COLUMN ${bt(column.Field)} ${raw(column.Type)} `,
-        sql`   ${raw(isNullable(column) ? 'NULL' : 'NOT NULL')}`
-      ];
-      if (comment.length > 0) {
-        lines.push(sql`   COMMENT "${raw(comment)}"`);
-      }
-      const statement = join(lines, '\n');
-      await this.runMigration(statement);
-    }
+    return await this.runMigration(statement, table, column);
   }
 
-  async runMigration(statement: Sql): Promise<void> {
+  getColumnEditSql(table: FetchedTable, column: Column): Sql {
+    const comment = column.Comment.trim();
+    const lines = [
+      sql`ALTER TABLE ${bt(table.name)}`,
+      sql`   MODIFY COLUMN ${bt(column.Field)} ${raw(column.Type)} `,
+      sql`   ${raw(isNullable(column) ? 'NULL' : 'NOT NULL')}`
+    ];
+    if (comment.length > 0) {
+      lines.push(sql`   COMMENT "${raw(comment)}"`);
+    }
+    const statement = join(lines, '\n');
+    const text = edit(statement.sql);
+    return raw(text);
+  }
+
+  getTypeAsBooleanSql(
+    table: FetchedTable,
+    column: Column,
+    asBool: boolean
+  ): Sql {
+    const comment = column.Comment.trim();
+    const lines = [
+      sql`ALTER TABLE ${bt(table.name)}`,
+      sql`   MODIFY COLUMN ${bt(column.Field)} ${raw(
+        asBool ? 'tinyint(1)' : 'tinyint'
+      )} `,
+      sql`   ${raw(isNullable(column) ? 'NULL' : 'NOT NULL')}`
+    ];
+    if (comment.length > 0) {
+      lines.push(sql`   COMMENT "${raw(comment)}"`);
+    }
+    return join(lines, '\n');
+  }
+
+  getRemoveSetTypeAnnotationSql(table: FetchedTable, column: Column): Sql {
+    let comment = column.Comment;
+    const annotations = getCommentAnnotations(column).filter(
+      (a) => a.annotation === 'set'
+    );
+    annotations.forEach((a) => {
+      comment = comment.replace(a.fullAnnotation, '');
+    });
+    comment = comment.trim();
+    const lines = [
+      sql`ALTER TABLE ${bt(table.name)}`,
+      sql`   MODIFY COLUMN ${bt(column.Field)} ${raw(column.Type)} `,
+      sql`   ${raw(isNullable(column) ? 'NULL' : 'NOT NULL')}`
+    ];
+    if (comment.length > 0) {
+      lines.push(sql`   COMMENT "${raw(comment)}"`);
+    }
+    const statement = join(lines, '\n');
+    return statement;
+  }
+
+  getRemoveJsonTypeAnnotationSql(table: FetchedTable, column: Column): Sql {
+    let comment = column.Comment;
+    const annotations = getCommentAnnotations(column).filter(
+      (a) => a.annotation === 'set'
+    );
+    annotations.forEach((a) => {
+      comment = comment.replace(a.fullAnnotation, '');
+    });
+    comment = comment.trim();
+    const lines = [
+      sql`ALTER TABLE ${bt(table.name)}`,
+      sql`   MODIFY COLUMN ${bt(column.Field)} ${raw(column.Type)} `,
+      sql`   ${raw(isNullable(column) ? 'NULL' : 'NOT NULL')}`
+    ];
+    if (comment.length > 0) {
+      lines.push(sql`   COMMENT "${raw(comment)}"`);
+    }
+    const statement = join(lines, '\n');
+    return statement;
+  }
+
+  async getEditJsonTypeAnnotationSql(
+    table: FetchedTable,
+    column: Column
+  ): Promise<Sql> {
+    let jsonType = await prompt<string>({
+      type: 'text',
+      name: 't',
+      message: 'Enter type:',
+      initial: getValidJsonAnnotation(column)?.argument || ''
+    });
+    jsonType = jsonType.trim();
+    if (jsonType.length === 0) {
+      return this.getRemoveJsonTypeAnnotationSql(table, column);
+    }
+    let comment = column.Comment;
+    const annotations = getCommentAnnotations(column).filter(
+      (a) => a.annotation === 'json'
+    );
+    annotations.forEach((a) => {
+      comment = comment.replace(a.fullAnnotation, '');
+    });
+    comment = comment.trim();
+    comment = [comment, `@json(${jsonType})`].join(' ').trim();
+    const statement = join(
+      [
+        sql`ALTER TABLE ${bt(table.name)}`,
+        sql`   MODIFY COLUMN ${bt(column.Field)} ${raw(column.Type)} `,
+        sql`   ${raw(isNullable(column) ? 'NULL' : 'NOT NULL')}`,
+        sql`   COMMENT "${raw(comment)}";`
+      ],
+      '\n'
+    );
+    return statement;
+  }
+
+  async getEditSetTypeAnnotationSql(
+    table: FetchedTable,
+    column: Column
+  ): Promise<Sql> {
+    let setType = await prompt<string>({
+      type: 'text',
+      name: 't',
+      message: "Enter type, or leave blank to use the column's set definition",
+      initial: getSetAnnotation(column)?.argument || ''
+    });
+    setType = setType.trim();
+
+    let comment = column.Comment;
+    const annotations = getCommentAnnotations(column).filter(
+      (a) => a.annotation === 'set'
+    );
+    annotations.forEach((a) => {
+      comment = comment.replace(a.fullAnnotation, '');
+    });
+    comment = comment.trim();
+    comment = [comment, setType.length > 0 ? `@set(${setType})` : '@set']
+      .join(' ')
+      .trim();
+    const statement = join(
+      [
+        sql`ALTER TABLE ${bt(table.name)}`,
+        sql`   MODIFY COLUMN ${bt(column.Field)} ${raw(column.Type)} `,
+        sql`   ${raw(isNullable(column) ? 'NULL' : 'NOT NULL')}`,
+        sql`   COMMENT "${raw(comment)}";`
+      ],
+      '\n'
+    );
+    return statement;
+  }
+
+  getRemoveBigIntTypeAnnotationSql(table: FetchedTable, column: Column): Sql {
+    let comment = column.Comment;
+    const annotations = getCommentAnnotations(column).filter(
+      (a) => a.annotation === 'bigint'
+    );
+    annotations.forEach((a) => {
+      comment = comment.replace(a.fullAnnotation, '');
+    });
+    comment = comment.trim();
+    const lines = [
+      sql`ALTER TABLE ${bt(table.name)}`,
+      sql`   MODIFY COLUMN ${bt(column.Field)} ${raw(column.Type)} `,
+      sql`   ${raw(isNullable(column) ? 'NULL' : 'NOT NULL')}`
+    ];
+    if (comment.length > 0) {
+      lines.push(sql`   COMMENT "${raw(comment)}"`);
+    }
+    const statement = join(lines, '\n');
+    return statement;
+  }
+
+  getAddBigIntTypeAnnotationSql(table: FetchedTable, column: Column): Sql {
+    let comment = column.Comment;
+    const annotations = getCommentAnnotations(column).filter(
+      (a) => a.annotation === 'bigint'
+    );
+    annotations.forEach((a) => {
+      comment = comment.replace(a.fullAnnotation, '');
+    });
+    comment = comment.trim();
+    comment = [comment, `@bigint`].join(' ').trim();
+    const statement = join(
+      [
+        sql`ALTER TABLE ${bt(table.name)}`,
+        sql`   MODIFY COLUMN ${bt(column.Field)} ${raw(column.Type)} `,
+        sql`   ${raw(isNullable(column) ? 'NULL' : 'NOT NULL')}`,
+        sql`   COMMENT "${raw(comment)}";`
+      ],
+      '\n'
+    );
+    return statement;
+  }
+
+  async getEditEnumTypeAnnotationSql(
+    table: FetchedTable,
+    column: Column
+  ): Promise<Sql> {
+    let enumType = await prompt<string>({
+      type: 'text',
+      name: 't',
+      message: 'Enter type:',
+      initial: getValidEnumAnnotation(column)?.argument || ''
+    });
+    enumType = enumType.trim();
+    if (enumType.length === 0) {
+      return this.getRemoveEnumTypeAnnotationSql(table, column);
+    }
+    let comment = column.Comment;
+    const annotations = getCommentAnnotations(column).filter(
+      (a) => a.annotation === 'enum'
+    );
+    annotations.forEach((a) => {
+      comment = comment.replace(a.fullAnnotation, '');
+    });
+    comment = comment.trim();
+    comment = [comment, `@enum(${enumType})`].join(' ').trim();
+    const statement = join(
+      [
+        sql`ALTER TABLE ${bt(table.name)}`,
+        sql`   MODIFY COLUMN ${bt(column.Field)} ${raw(column.Type)} `,
+        sql`   ${raw(isNullable(column) ? 'NULL' : 'NOT NULL')}`,
+        sql`   COMMENT "${raw(comment)}";`
+      ],
+      '\n'
+    );
+    return statement;
+  }
+  getRemoveEnumTypeAnnotationSql(table: FetchedTable, column: Column): Sql {
+    let comment = column.Comment;
+    const annotations = getCommentAnnotations(column).filter(
+      (a) => a.annotation === 'enum'
+    );
+    annotations.forEach((a) => {
+      comment = comment.replace(a.fullAnnotation, '');
+    });
+    comment = comment.trim();
+    const lines = [
+      sql`ALTER TABLE ${bt(table.name)}`,
+      sql`   MODIFY COLUMN ${bt(column.Field)} ${raw(column.Type)} `,
+      sql`   ${raw(isNullable(column) ? 'NULL' : 'NOT NULL')}`
+    ];
+    if (comment.length > 0) {
+      lines.push(sql`   COMMENT "${raw(comment)}"`);
+    }
+    const statement = join(lines, '\n');
+    return statement;
+  }
+
+  async runMigration(
+    statement: Sql,
+    table: FetchedTable,
+    column: Column
+  ): Promise<{ table: FetchedTable; column: Column }> {
     log.info([
       kleur.bold('SQL'),
       ...statement.sql.split('\n').map((s) => kleur.red(s))
@@ -269,7 +607,7 @@ export class Explorer {
       type: 'confirm'
     });
     if (!run) {
-      return;
+      return { table, column };
     }
     console.log();
     const spinner = ora('Running SQL');
@@ -292,6 +630,127 @@ export class Explorer {
       ...files.map((f) => `- ${fmtPath(f.relativePath)}`)
     ]);
     console.log();
+    const newTable = this.schema.tables.find(
+      (t) => t.name === table.name
+    ) as FetchedTable;
+    const newCol = newTable.columns.find(
+      (c) => c.Field === column.Field
+    ) as Column;
+    return { table: newTable, column: newCol };
+  }
+
+  async showModel(table: FetchedTable) {
+    this.showModelBasicInfo(table, true);
+    console.log();
+    this.showModelNextStep = 'basicInfo';
+    return await this.promptShowModelNextStep(table);
+  }
+  async promptShowModelNextStep(table: FetchedTable): Promise<void> {
+    type Choice = { title: string; value: ShowModelNextStep };
+    const choices: Choice[] = [
+      {
+        title: 'Info',
+        value: 'basicInfo'
+      },
+      {
+        title: 'Field types',
+        value: 'fieldTypes'
+      },
+      {
+        title: 'Model types',
+        value: 'modelTypes'
+      },
+      {
+        title: 'Indexes',
+        value: 'indexes'
+      },
+      {
+        title: 'Create table SQL',
+        value: 'createSql'
+      },
+      {
+        title: 'Show detailed field info',
+        value: 'fieldInfo'
+      },
+      {
+        title: 'Modify field',
+        value: 'modifyField'
+      },
+      {
+        title: 'Type options',
+        value: 'typeOptions'
+      },
+      {
+        title: 'Another model',
+        value: 'anotherModel'
+      },
+      {
+        title: 'Exit',
+        value: 'exit'
+      }
+    ];
+    const initial = Math.max(
+      choices.findIndex((c) => c.value === this.showModelNextStep),
+      0
+    );
+    const nextStep = await prompt<ShowModelNextStep>({
+      type: 'autocomplete',
+      message: `Model: ${getModelName(table)} | Show:`,
+      name: 'next',
+      choices,
+      initial
+    });
+    console.log();
+    if ('anotherModel' === nextStep) {
+      const newTable = await this.promptModel(getModelName(table));
+      console.log();
+      return await this.showModel(newTable);
+    }
+    if ('modifyField' === nextStep) {
+      const column = await this.promptField(table);
+      console.log();
+      const { table: newTable, column: newCol } = await this.modifyField(
+        table,
+        column
+      );
+
+      this.showFieldInfo(newTable, newCol, true);
+      this.showModelNextStep = nextStep;
+      return await this.promptShowModelNextStep(newTable);
+    }
+    if ('fieldInfo' === nextStep) {
+      const column = await this.promptField(table);
+      console.log();
+      this.showFieldInfo(table, column, true);
+      this.showModelNextStep = nextStep;
+      return await this.promptShowModelNextStep(table);
+    }
+    if ('exit' === nextStep) {
+      return;
+    }
+    this.showModelNextStep = nextStep;
+    switch (nextStep) {
+      case 'basicInfo':
+        this.showModelBasicInfo(table, true);
+        break;
+      case 'fieldTypes':
+        this.showModelFieldTypes(table, true);
+        break;
+      case 'modelTypes':
+        this.showModelTypes(table, true);
+        break;
+      case 'indexes':
+        this.showModelIndexes(table, true);
+        break;
+      case 'createSql':
+        this.showModelCreateSql(table, true);
+        break;
+
+      case 'typeOptions':
+        this.showTypeOptions(true);
+    }
+    console.log();
+    return await this.promptShowModelNextStep(table);
   }
 
   explainJsType(column: Column): string {
@@ -355,8 +814,30 @@ export class Explorer {
     return `Default type for ${fmtVal(mysqlType)} columns.`;
   }
 
-  showModelIndexes(table: FetchedTable) {
-    log.header(`Indexes | Model: ${getModelName(table)}`);
+  showModelBasicInfo(table: FetchedTable, showHeader: boolean) {
+    if (showHeader) {
+      log.header(`Model: ${getModelName(table)}`);
+    }
+    log.table([
+      ['Model Name', fmtVal(getModelName(table))],
+      ['Table Name', fmtVal(table.name)],
+      ['Columns', fmtVal(table.columns.length.toString())],
+      ['Indexes', fmtVal(table.indexes.length.toString())],
+      [
+        'Search Indexes',
+        fmtVal(getFullTextSearchIndexes(table).length.toString())
+      ]
+    ]);
+    if (showHeader) {
+      log.footer();
+    }
+  }
+
+  showModelIndexes(table: FetchedTable, showHeader: boolean) {
+    if (showHeader) {
+      log.header(`Indexes | Model: ${getModelName(table)}`);
+    }
+
     log.info(kleur.bold(`Indexes (${table.indexes.length})`));
     log.table(
       [
@@ -368,12 +849,8 @@ export class Explorer {
       ],
       ['Key', 'Type', 'Unique']
     );
-    log.footer();
-  }
-
-  showModelSearchIndexes(table: FetchedTable) {
     const searchIndexes = getFullTextSearchIndexes(table);
-    log.header(`Full Text Search Indexes | Model: ${getModelName(table)}`);
+    console.log();
     log.info(kleur.bold(`Search Indexes (${searchIndexes.length})`));
     log.table(
       [
@@ -384,45 +861,29 @@ export class Explorer {
       ],
       ['Key', 'Indexed Fields']
     );
-    log.footer();
+
+    if (showHeader) {
+      log.footer();
+    }
   }
 
-  showModelFieldTypes(table: FetchedTable) {
-    log.header(`Field Types | Model: ${getModelName(table)}`);
-    log.info(kleur.bold(`Fields (${table.columns.length})`));
-    log.table(
-      [
-        ...table.columns.map((c) => [
-          fmtVarName(getFieldName(c)),
-          fmtVal(
-            getJavascriptType(c, this.options) + (isNullable(c) ? '|null' : '')
-          ),
-          kleur.dim(getCastType(c, this.options)),
-          kleur.dim(c.Type)
-        ])
-      ],
-      ['Field', 'Javascript Type', 'Cast', 'Column Type']
-    );
-
-    console.log();
-    log.info([kleur.bold(`Field Type Notes`)]);
-    log.table(
-      [
-        ...table.columns.map((c) => [
-          fmtVarName(getFieldName(c)),
-          fmtVal(getJavascriptType(c, this.options)),
-          this.explainJsType(c)
-        ])
-      ],
-      ['Field', 'Type', 'Note']
-    );
-    log.footer();
-  }
-
-  showModelBaseType(table: FetchedTable) {
-    log.header(`Model Type | Model: ${getModelName(table)}`);
+  showModelTypes(table: FetchedTable, showHeader: boolean) {
+    const formatCode = (code: string): string[] => {
+      return format(code, {
+        filepath: 'x.ts',
+        useTabs: false,
+        printWidth: getStdOutCols() - 4,
+        singleQuote: true
+      })
+        .trim()
+        .split('\n')
+        .map((s) => kleur.red(s));
+    };
+    if (showHeader) {
+      log.header(`Model Types | Model: ${getModelName(table)}`);
+    }
     const typeDecls = getModelTypeDeclarations(table, this.options);
-    const notes = table.columns
+    const baseTypeNotes = table.columns
       .filter(
         (c) =>
           getModelFieldPresence(c) === ModelFieldPresence.undefinedForSelectAll
@@ -434,59 +895,24 @@ export class Explorer {
           'SELECT *'
         )}. ${kleur.dim('(Column is INVISIBLE.)')}`;
       });
-    if (notes.length > 0) {
-      notes.unshift(kleur.italic('Notes:'));
+    if (baseTypeNotes.length > 0) {
+      baseTypeNotes.unshift(kleur.italic('Notes:'));
     }
-    const code = format(typeDecls.model, {
-      filepath: 'x.ts',
-      useTabs: false,
-      printWidth: getStdOutCols() - 4
-    })
-      .trim()
-      .split('\n')
-      .map((s) => kleur.red(s));
     log.info([
       kleur.bold('Model Type:') + ' ' + fmtVal(getModelName(table)),
-      ...code,
-      ...notes
+      ...formatCode(typeDecls.model),
+      ...baseTypeNotes
     ]);
-    log.footer();
-  }
-
-  showModelPrimaryKeyType(table: FetchedTable) {
-    log.header(`Primary Key Type | Model: ${getModelName(table)}`);
-    const typeDecls = getModelTypeDeclarations(table, this.options);
-
-    const primaryKeyCode = format(typeDecls.primaryKey, {
-      filepath: 'x.ts',
-      useTabs: false,
-      printWidth: getStdOutCols() - 4
-    })
-      .trim()
-      .split('\n')
-      .map((s) => kleur.red(s));
+    console.log();
 
     log.info([
       kleur.bold('Primary Key Type:') +
         ' ' +
         fmtVal(getModelPrimaryKeyTypeName(table)),
-      ...primaryKeyCode
+      ...formatCode(typeDecls.primaryKey)
     ]);
-    log.footer();
-  }
+    console.log();
 
-  showModelCreateDataType(table: FetchedTable) {
-    log.header(`Create Data Type | Model: ${getModelName(table)}`);
-    const typeDecls = getModelTypeDeclarations(table, this.options);
-
-    const createDataCode = format(typeDecls.createData, {
-      filepath: 'x.ts',
-      useTabs: false,
-      printWidth: getStdOutCols() - 4
-    })
-      .trim()
-      .split('\n')
-      .map((s) => kleur.red(s));
     const createDataNotes = table.columns
       .map((c) => {
         const p = getCreateModelFieldPresence(c);
@@ -516,24 +942,10 @@ export class Explorer {
       kleur.bold('Create Data Type:') +
         ' ' +
         fmtVal(getModelCreateDataTypeName(table)),
-      ...createDataCode,
+      ...formatCode(typeDecls.createData),
       ...createDataNotes
     ]);
-    log.footer();
-  }
-
-  showModelUpdateDataType(table: FetchedTable) {
-    log.header(`Update Data Type | Model: ${getModelName(table)}`);
-    const typeDecls = getModelTypeDeclarations(table, this.options);
-
-    const updateDataCode = format(typeDecls.updateData, {
-      filepath: 'x.ts',
-      useTabs: false,
-      printWidth: getStdOutCols() - 4
-    })
-      .trim()
-      .split('\n')
-      .map((s) => kleur.red(s));
+    console.log();
 
     const updateDataNotes = table.columns
       .map((c) => {
@@ -561,24 +973,10 @@ export class Explorer {
       kleur.bold('Update Data Type:') +
         ' ' +
         fmtVal(getModelUpdateDataTypeName(table)),
-      ...updateDataCode,
+      ...formatCode(typeDecls.updateData),
       ...updateDataNotes
     ]);
-    log.footer();
-  }
-
-  showModelFindUniqueType(table: FetchedTable) {
-    log.header(`Find Unique Type | Model: ${getModelName(table)}`);
-    const typeDecls = getModelTypeDeclarations(table, this.options);
-    const uniqueCode = format(typeDecls.findUniqueParams, {
-      filepath: 'x.ts',
-      useTabs: false,
-      printWidth: getStdOutCols() - 4,
-      singleQuote: true
-    })
-      .trim()
-      .split('\n')
-      .map((s) => kleur.red(s));
+    console.log();
 
     const uniqueNotes = table.columns
       .filter((c) => isUnique(c))
@@ -595,25 +993,82 @@ export class Explorer {
       kleur.bold('Find Unique Type:') +
         ' ' +
         fmtVal(getModelFindUniqueParamsTypeName(table)),
-      ...uniqueCode,
+      ...formatCode(typeDecls.findUniqueParams),
       ...uniqueNotes
     ]);
-    log.footer();
+
+    if (showHeader) {
+      log.footer();
+    }
   }
 
-  showModelCreateSql(table: FetchedTable) {
-    log.header(`Create Table | Model: ${getModelName(table)}`);
+  showModelFieldTypes(table: FetchedTable, showHeader: boolean) {
+    if (showHeader) {
+      log.header(`Field Types | Model: ${getModelName(table)}`);
+    }
+
+    log.info(kleur.bold(`Fields (${table.columns.length})`));
+    log.table(
+      [
+        ...table.columns.map((c) => [
+          fmtVarName(getFieldName(c)),
+          fmtVal(
+            getJavascriptType(c, this.options) + (isNullable(c) ? '|null' : '')
+          ),
+          kleur.dim(getCastType(c, this.options)),
+          kleur.dim(c.Field),
+          kleur.dim(c.Type)
+        ])
+      ],
+      ['Field', 'Javascript Type', 'Cast', 'Column', 'Type']
+    );
+    console.log();
+    const primaryKeys = table.columns.filter(c => isPrimaryKey(c))
+    log.info(kleur.bold(`Primary Key${primaryKeys.length !== 1 ? 's' : ''}: ${primaryKeys.map(c => fmtVarName(getFieldName(c))).join(', ')}`));
+
+
+
+    console.log();
+    log.info([kleur.bold(`Field Type Notes`)]);
+    log.table(
+      [
+        ...table.columns.map((c) => [
+          fmtVarName(getFieldName(c)),
+          fmtVal(getJavascriptType(c, this.options)),
+          this.explainJsType(c)
+        ])
+      ],
+      ['Field', 'Type', 'Note']
+    );
+    if (showHeader) {
+      log.footer();
+    }
+  }
+
+  showModelCreateSql(table: FetchedTable, showHeader: boolean) {
+    if (showHeader) {
+      log.header(`Create Table | Model: ${getModelName(table)}`);
+    }
     log.info([
-      kleur.bold('Model: ') +
-        fmtVal(getModelName(table)) +
-        kleur.dim(` (table: ${table.name})`),
+      kleur.bold('Create Table: '),
       ...table.createSql.split('\n').map((s) => kleur.red(`${s}`))
     ]);
-    log.footer();
+    if (showHeader) {
+      log.footer();
+    }
   }
 
-  showTypeOptions() {
-    log.header(`Type Options`);
+  showTypeOptions(showHeader: boolean) {
+    if (showHeader) {
+      log.header(`Type Options`);
+    }
+    const typeImports =
+      this.options.typeImports.length === 0
+        ? [[fmtVarName('typeImports'), kleur.dim('none')]]
+        : this.options.typeImports.map((s, i) => [
+            i === 0 ? fmtVarName('typeImports') : '',
+            fmtVal(s)
+          ]);
     log.table([
       [
         fmtVarName('typeBigIntAsString'),
@@ -623,11 +1078,57 @@ export class Explorer {
         fmtVarName('typeTinyIntOneAsBoolean'),
         fmtVal(JSON.stringify(this.options.typeTinyIntOneAsBoolean))
       ],
-      [
-        fmtVarName('typeImports'),
-        fmtVal(JSON.stringify(this.options.typeImports))
-      ]
+      ...typeImports
     ]);
-    log.footer();
+    if (showHeader) {
+      log.footer();
+    }
+  }
+
+  showFieldInfo(table: FetchedTable, column: Column, showHeader: boolean) {
+    if (showHeader) {
+      log.header(
+        `Field: ${getFieldName(column)} | Model: ${getModelName(table)}`
+      );
+    }
+    const keys = Object.keys(column) as (keyof Column)[];
+    const data = {
+      isPrimaryKey: isPrimaryKey(column),
+      isAutoIncrement: isAutoIncrement(column),
+      isUnique: isUnique(column),
+      isNullable: isNullable(column),
+      hasDefault: hasDefault(column),
+      isGeneratedAlways: isGeneratedAlways(column),
+      isInvisible: isInvisible(column)
+    };
+    log.info(kleur.bold(`Field Details: ${getFieldName(column)}`));
+    log.table([
+      ['Field Name', fmtVal(getFieldName(column))],
+      ['Column Name', fmtVal(column.Field)],
+      ['Javscript Type', fmtVal(getJavascriptType(column, this.options))],
+      ['Type Note', this.explainJsType(column)],
+      ['Cast Type', fmtVal(getCastType(column, this.options))],
+      ...Object.keys(data).map((k) => [
+        k,
+        fmtVal(JSON.stringify(data[k as keyof typeof data]))
+      ])
+    ]);
+    console.log();
+    log.info(kleur.bold(`MySql Column`));
+    log.table([
+      ...keys.map((k) => [
+        fmtVarName(k),
+        fmtVal(
+          (typeof column[k] === 'string'
+            ? column[k]
+            : column[k] === null
+            ? 'null'
+            : JSON.stringify(column[k])) as string
+        )
+      ])
+    ]);
+    if (showHeader) {
+      log.footer();
+    }
   }
 }

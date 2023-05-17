@@ -85,6 +85,20 @@ export const CLI_COMMANDS = [
     usage: '[options]'
   },
   {
+    name: 'model',
+    alias: 'm',
+    description: 'Show information about a model',
+    usage: '[modelName] [otherOptions]',
+    positionalOptions: [
+      {
+        name: 'modelName',
+        description: `Optional. The name of a model or database table.`,
+        isRc: false,
+        type: 'string'
+      }
+    ]
+  },
+  {
     name: 'type',
     alias: 't',
     description: 'Type a field',
