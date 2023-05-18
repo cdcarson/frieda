@@ -2,154 +2,89 @@
 
 Typescript / javascript code generator for the PlanetScale serverless driver.
 
-- Defines a reasonable set of rules to map MySql column types to javascript types.
-- Given a database URL, introspects the schema, and generates some database classes, some helpers and some types.
 
-Frieda is not an ORM or a query builder. It assumes you're cool with (1) the schema and migration management provided by PlanetScale and (2) writing more complex queries in SQL. If not, or if you need the flexibility to suddenly switch to Postgres, you can check out Prisma or Kysely.
+## Motivation
+Frieda's goal is to provide a dead-simple developer experience for javascript and typescript projects using PlanetScale. The focus is on generating useful, solid application code, not on managing migrations or abstracting away SQL. Frieda is not an ORM or a query builder. Those types of tools seem great, but they tend to try to be all things to all people, sacrificing simplicity in exchange for certain (ahem) benefits.
 
-Frieda's goal is to provide a dead-simple developer experience for javascript and typescript projects using PlanetScale.
+Frieda may be for you if:
 
-- The source of truth about the schema, is, well, ahem, the schema itself. There is no separate schema file or data definition language. Extra type definitions, where necessary, are placed in SQL comments.
-- Frieda takes care of CrUD and simple SELECT queries, and provides type safety and casting for more complex queries.
+- You're using PlanetScale and the serverless driver.
+- Your project is in typescript or javascript.
+- You don't need schema / migration management beyond that provided by PlanetScale.
+- You're cool with writing some queries by hand.
+ 
+## What Frieda does
+
+- Defines a reasonable set of rules to map MySQL column types to javascript types.
+- Given a database URL, introspects the schema, and generates:
+  - Javascript model types for each table, including the base model type and types for creating and updating models.
+  - Casting logic (e.g. `parseFloat` vs `parseInt` vs `JSON.parse`, etc.)
+  - An `AppDb` class. This class provides CrUD methods (`db.user.create`, `db.account.update` and so on) and simple (single table) select methods (`db.user.findFirst`, etc.). `AppDb` also provides `select` and `execute` methods for running queries outside the context of a single table/model.
+  - Some other useful helpers for constructing queries.
+
 
 ## Quick Start
 
 ```bash
 npm i -D @nowzoo/frieda
-
 ```
 
-## CLI
 
-### Quick start
+## Type Logic
 
-```bash
-frieda init
-```
+There is no schema file or separate data modeling language. The source of truth about the schema, is, well, the schema itself.
 
-### Commands
+### Column/field type disambiguation
 
-#### fetch
+For the most part MySQL column types can be reasonably mapped directly to javascript types. The three salient exceptions are:
 
-```bash
-frieda fetch
-# or
-frieda f
-```
+1. How javascript `boolean` fields are to be represented in the database.
+1. How MySQL `bigint` columns should be typed in javascript.
+1. Providing useful javascript types for MySQL `json` columns.
 
-Fetch the current database schema. The output is a series of `CREATE TABLE`
+Frieda takes care of these cases as follows:
 
-- schema | s
-- migrate | m
+#### Javascript `boolean`s
 
-### Settings
+- Any column with the exact type `tinyint(1)` is typed as javascript `boolean` and cast into javascript with `parseInt(value) !== 0`.
+- All other flavors of `tinyint` (e.g. just `tinyint`) are typed as javascript `number` and cast as `parseInt(value)`.
 
-Most settings reside in a `.friedarc` JSON file in the project root directory. The exception is the database URL, which needs to be provided as an environment variable, since `.friedarc` can and should be committed to git.
 
-Example `.friedarc`:
+#### MySQL `bigint` columns
 
-```json
-{
-  "schemaDirectory": "schema",
-  "generatedCodeDirectory": "src/db/_generated",
-  "externalImports": [
-    "import type Stripe from 'stripe'",
-    "import type { Foo } from '../../lib/types.js'"
-  ]
-}
-```
+MySQL `bigint` columns are typed by default as javascript `string`. You can override this behavior for a particular column
+by adding the `@bigint` annotation to the column's `COMMENT`. Example:
 
-#### schemaDirectory
-
-_Required._ The relative path to a dedicated directory meant to contain the current schema, the current migration, and the migration history.
-
-#### generatedCodeDirectory
-
-_Required._ The relative path to a directory meant to contain the code Frieda generates. It should be a dedicated folder, conveniently near, but not containing your own source code. For example, `src/db/_generated` in the structure below:
-
-```
-src
-├── db
-│   ├── _generated
-│   │   ├── database.ts
-│   │   ├── model-definitions.ts
-│   │   ├── schema-cast.ts
-│   │   └── types.ts
-│   └── your-db-code.ts
-└── index.ts
-```
-
-#### envFilePath (Database URL)
-
-_Optional._ Default: `.env`
-
-The relative path to an environment variables file where the database URL can be found as either
-
-- `FRIEDA_DATABASE_URL` or
-- `DATABASE_URL`.
-
-`FRIEDA_DATABASE_URL` will be used if both are present.
-
-The environment variable should be in the format `mysql://user:password@host`.
-
-Notes:
-
-- The database URL should probably point to a dev branch of your database, not the production branch.
-- The file at `.env` (or whatever `envFilePath` is) should be added to `.gitignore`, since the URL contains the password.
-
-#### jsonTypeImports
-
-_Optional._ Default: `[]`
-
-An array of import statements that correspond to the types you have assigned to `json` columns. Frieda includes these _as is_ at in `<generatedCodeDirectory>/types.ts`. Note that the import paths are not validated, so it's up to you to provide paths that resolve correctly from `generatedCodeDirectory`, according to your project setup. (E.g., type aliases you have defined will work.)
-
-#### typeTinyIntOneAsBoolean
-
-_Optional._ Default: `true`
-
-If `true` (default, recommended) Frieda will type fields with the column type `tinyint(1)` as javascript `boolean`. You can turn this behavior off for an individual `tinyint` column by specifying a "column width" other than `1`. (This has no effect on the range of integer values that can be stored.)
-
-Examples:
 
 ```sql
--- will be typed as javascript boolean...
-ALTER TABLE `Triangle`
-  MODIFY COLUMN `isPointy` tinyint(1) NOT NULL DEFAULT 1;
-
--- will be typed as javascript number...
-ALTER TABLE `Triangle`
-  MODIFY COLUMN `numSides` tinyint(2) NOT NULL DEFAULT 3;
-```
-
-Setting `typeTinyIntOneAsBoolean` to `false` will turn off this behavior globally. All `tinyint` columns will be typed as `number`.
-
-#### typeBigIntAsString
-
-_Optional._ Default: `true`
-
-If `true` (default, recommended) Frieda types and casts `bigint` columns as `string`. Reasoning: The bulk of `bigint` columns are likely to be primary or secondary keys, and it's just simpler to deal with strings in that context (JSON serialization, interoperability with other javascript APIs.)
-
-You can opt out of this behavior on an individual field by setting the `@bigint` column comment annotation:
-
-```sql
--- will be typed as and cast to javascript bigint
 ALTER TABLE `CatPerson`
   MODIFY COLUMN `numCats` bigint unsigned NOT NULL COMMENT '@bigint';
 ```
 
-Setting `typeTinyIntOneAsBoolean` to `false` will turn off this behavior globally. All `bigint` columns will be typed as (and cast to) javascript `bigint`.
+#### MySQL `json` columns
 
-## Migration workflow
+By default MySQL `json` columns are typed unhelpfully as `unknown`. You can overcome this by providing a type using the `@bigint` annotation to the column's `COMMENT`. Examples:
 
-- `migrationsDirectory`: The relative path where Frieda will place migration and introspection files.
-- `generatedModelsDirectory`: The relative path where Frieda will create model code.
-- `jsonTypeImports`: If the schema contains `json` columns that you want to type, enter an array of import statements here. Frieda will include these import statements where necessary in the generated code, but does not check that they are valid. You can use whatever type aliases you have defined, e.g.: `"import type { Foo } from '$lib/types.js'"` rather than `"import type { Foo } from '../../lib/types.js'"`.
+```sql
+-- with an inline type as valid typescript
+ALTER TABLE `FabulousOffer` 
+  MODIFY COLUMN `pricing` json  NOT NULL
+    COMMENT '@json({price; number; discounts: {price: number; quantity: number}[]}';
 
-### Other
+-- with an imported type
+ALTER TABLE `FabulousOffer` 
+  MODIFY COLUMN `pricing` json  NOT NULL
+    COMMENT '@json(FabulousPricing)';
+-- add "import type { FabulousPricing } from '../wherever/api'" to typeImports in .friedarc.json
+```
 
-In order to connect securely with mysql2, the program needs to read a `.pem` certificate file from your machine.
-The default is `/etc/ssl/cert.pem`. This **should** work out of the box, but if it doesn't you can specify a different path
 
-- The current migration in `<schema-directory>/current-migration.sql`
-- The current schema definition in `<schema-directory>/current-schema.sql`
-- Migration history in `<schema-directory>/history`
+
+
+
+
+
+
+
+
+

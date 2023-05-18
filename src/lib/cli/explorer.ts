@@ -29,7 +29,12 @@ import {
   getModelUpdateDataTypeName
 } from '$lib/parse/model-parsers.js';
 import kleur from 'kleur';
-import type { Column, Table } from '../api/types.js';
+import {
+  MYSQL_TYPES,
+  type Column,
+  type Table,
+  type MysqlBaseType
+} from '../api/types.js';
 import { fmtPath, fmtVal, fmtVarName, getStdOutCols } from './ui/formatters.js';
 import log from './ui/log.js';
 import { DEFAULT_JSON_FIELD_TYPE } from '$lib/constants.js';
@@ -55,15 +60,12 @@ import { edit } from 'external-editor';
 const { format } = prettier;
 
 type ShowModelNextStep =
-  | 'basicInfo'
-  | 'fieldTypes'
-  | 'modelTypes'
-  | 'indexes'
-  | 'createSql'
-  | 'typeOptions'
-  | 'fieldInfo'
+  | 'simple'
+  | 'detailed'
   | 'modifyField'
+  | 'addField'
   | 'anotherModel'
+  | 'typeOptions'
   | 'exit';
 
 type MigrationType =
@@ -80,6 +82,9 @@ type MigrationType =
   | 'removeBigIntTypeAnnotation'
   | 'typeTinyIntAsBoolean'
   | 'typeTinyIntAsInt'
+  | 'markInvisible'
+  | 'unmarkInvisible'
+  | 'renameColumn'
   | 'editManually';
 
 type MigrationChoice = {
@@ -199,7 +204,7 @@ export class Explorer {
   async modifyField(
     table: FetchedTable,
     column: Column
-  ): Promise<{ table: FetchedTable; column: Column }> {
+  ): Promise<FetchedTable | undefined> {
     //const choices: MigrationChoice[] = [];
     const choices: MigrationChoice[] = [];
     const mysqlType = getMysqlBaseType(column);
@@ -291,10 +296,28 @@ export class Explorer {
       }
     }
 
-    choices.push({
-      title: 'Edit field manually',
-      value: 'editManually'
-    });
+    if (isInvisible(column)) {
+      choices.push({
+        title: 'Remove INVISIBLE',
+        value: 'unmarkInvisible'
+      });
+    } else {
+      choices.push({
+        title: `Mark as INVISIBLE`,
+        value: 'markInvisible'
+      });
+    }
+
+    choices.push(
+      {
+        title: 'Rename column',
+        value: 'renameColumn'
+      },
+      {
+        title: 'Edit field manually',
+        value: 'editManually'
+      }
+    );
     const migrate = await prompt<MigrationType>({
       message: 'Modify field',
       name: 'migrate',
@@ -339,24 +362,45 @@ export class Explorer {
       case 'typeTinyIntAsInt':
         statement = this.getTypeAsBooleanSql(table, column, false);
         break;
+      case 'markInvisible':
+        statement = this.getMarkColumnInvisibleSql(table, column, true);
+        break;
+      case 'unmarkInvisible':
+        statement = this.getMarkColumnInvisibleSql(table, column, false);
+        break;
+      case 'renameColumn':
+        statement = await this.getColumnRenameSql(table, column);
+        break;
       case 'editManually':
         statement = this.getColumnEditSql(table, column);
         break;
     }
 
-    return await this.runMigration(statement, table, column);
+    return await this.runMigration(statement, table);
+  }
+
+  async getColumnRenameSql(table: FetchedTable, column: Column): Promise<Sql> {
+    const name = await prompt<string>({
+      message: `Rename column ${column.Field}`,
+      type: 'text',
+      name: 'name'
+    });
+    const lines = [
+      sql`ALTER TABLE ${bt(table.name)}`,
+      sql`   RENAME COLUMN ${bt(column.Field)} TO  ${bt(name)}`
+    ];
+    return join(lines, '\n');
   }
 
   getColumnEditSql(table: FetchedTable, column: Column): Sql {
-    const comment = column.Comment.trim();
+    const colDef = this.getColumnDef(table, column);
+
     const lines = [
       sql`ALTER TABLE ${bt(table.name)}`,
-      sql`   MODIFY COLUMN ${bt(column.Field)} ${raw(column.Type)} `,
-      sql`   ${raw(isNullable(column) ? 'NULL' : 'NOT NULL')}`
+      sql`   MODIFY COLUMN  `,
+      sql`   ${raw(colDef)}`
     ];
-    if (comment.length > 0) {
-      lines.push(sql`   COMMENT "${raw(comment)}"`);
-    }
+
     const statement = join(lines, '\n');
     const text = edit(statement.sql);
     return raw(text);
@@ -591,11 +635,64 @@ export class Explorer {
     return statement;
   }
 
+  getMarkColumnInvisibleSql(
+    table: FetchedTable,
+    column: Column,
+    invisible: boolean
+  ): Sql {
+    const colDef = this.getColumnDef(table, column);
+    const rx = /\/\*\!80023 INVISIBLE \*\//;
+    let modified = colDef.replace(rx, '');
+    if (invisible) {
+      modified += ' INVISIBLE';
+    }
+    const lines = [
+      sql`ALTER TABLE ${bt(table.name)}`,
+      sql`   MODIFY COLUMN  `,
+      sql`   ${raw(modified)}`
+    ];
+
+    return join(lines, '\n');
+  }
+
+  async getAddColumnSql(table: FetchedTable): Promise<Sql> {
+    const name = await prompt<string>({
+      type: 'text',
+      name: 'name',
+      message: 'Column name'
+    });
+    const mysqlType = await prompt<MysqlBaseType>({
+      type: 'autocomplete',
+      name: 'type',
+      message: 'MySql type',
+      choices: MYSQL_TYPES.map((t) => {
+        return {
+          title: t,
+          value: t
+        };
+      })
+    });
+    const nullable = await prompt<string>({
+      type: 'select',
+      name: 'type',
+      message: 'Null',
+      choices: [
+        { title: 'NOT NULL', value: 'NOT NULL' },
+        { title: 'NULL', value: 'NULL' }
+      ]
+    });
+
+    const lines = [
+      sql`ALTER TABLE ${bt(table.name)}`,
+      sql`   ADD COLUMN ${bt(name)} ${raw(mysqlType)} ${raw(nullable)}`
+    ];
+    return join(lines, '\n');
+  }
+
   async runMigration(
     statement: Sql,
-    table: FetchedTable,
-    column: Column
-  ): Promise<{ table: FetchedTable; column: Column }> {
+    table: FetchedTable
+  ): Promise<FetchedTable | undefined> {
     log.info([
       kleur.bold('SQL'),
       ...statement.sql.split('\n').map((s) => kleur.red(s))
@@ -607,7 +704,7 @@ export class Explorer {
       type: 'confirm'
     });
     if (!run) {
-      return { table, column };
+      return table;
     }
     console.log();
     const spinner = ora('Running SQL');
@@ -630,127 +727,287 @@ export class Explorer {
       ...files.map((f) => `- ${fmtPath(f.relativePath)}`)
     ]);
     console.log();
-    const newTable = this.schema.tables.find(
-      (t) => t.name === table.name
-    ) as FetchedTable;
-    const newCol = newTable.columns.find(
-      (c) => c.Field === column.Field
-    ) as Column;
-    return { table: newTable, column: newCol };
+    return this.schema.tables.find((t) => t.name === table.name);
   }
 
-  async showModel(table: FetchedTable) {
-    this.showModelBasicInfo(table, true);
+
+
+  async showModel(table: FetchedTable, detailed: boolean) {
+    log.header(`Model: ${getModelName(table)}`);
+
+    log.table([
+      ['Model', fmtVal(getModelName(table))],
+      ['Table', kleur.dim(table.name)],
+    ])
     console.log();
-    this.showModelNextStep = 'basicInfo';
+
+    log.info(kleur.bold(`Fields (${table.columns.length})`));
+
+    log.table(
+      [
+        ...table.columns.map((c) => [
+          fmtVarName(getFieldName(c)) ,
+          kleur.dim(c.Type),
+          fmtVal(
+            getJavascriptType(c, this.options) + (isNullable(c) ? '|null' : '')
+          ) + ` (${this.explainJsType(c)})`
+        ])
+      ],
+      ['Field', 'Column Type', 'Javascript Type']
+    );
+
+   
+
+    console.log();
+    const primaryKeys = table.columns.filter((c) => isPrimaryKey(c));
+    log.info(
+      kleur.bold(
+        `Primary Key${primaryKeys.length !== 1 ? 's' : ''}: ${primaryKeys
+          .map((c) => fmtVarName(getFieldName(c)))
+          .join(', ')}`
+      )
+    );
+    if (detailed) {
+      console.log();
+      log.info([
+        kleur.bold('Create Table: '),
+        ...table.createSql.split('\n').map((s) => kleur.red(`${s}`))
+      ]);
+      console.log();
+
+      const formatCode = (code: string): string[] => {
+        return format(code, {
+          filepath: 'x.ts',
+          useTabs: false,
+          printWidth: getStdOutCols() - 4,
+          singleQuote: true
+        })
+          .trim()
+          .split('\n')
+          .map((s) => kleur.red(s));
+      };
+
+      const typeDecls = getModelTypeDeclarations(table, this.options);
+      const baseTypeNotes = table.columns
+        .filter(
+          (c) =>
+            getModelFieldPresence(c) ===
+            ModelFieldPresence.undefinedForSelectAll
+        )
+        .map((c) => {
+          return `- ${fmtVarName(getFieldName(c))} will be ${fmtVal(
+            'undefined'
+          )} in ${fmtVal(getModelName(table))} using ${kleur.red(
+            'SELECT *'
+          )}. ${kleur.dim('(Column is INVISIBLE.)')}`;
+        });
+      if (baseTypeNotes.length > 0) {
+        baseTypeNotes.unshift(kleur.italic('Notes:'));
+      }
+      log.info([
+        kleur.bold('Model Type:') + ' ' + fmtVal(getModelName(table)),
+        ...formatCode(typeDecls.model),
+        ...baseTypeNotes
+      ]);
+      console.log();
+
+      log.info([
+        kleur.bold('Primary Key Type:') +
+          ' ' +
+          fmtVal(getModelPrimaryKeyTypeName(table)),
+        ...formatCode(typeDecls.primaryKey)
+      ]);
+      console.log();
+
+      const createDataNotes = table.columns
+        .map((c) => {
+          const p = getCreateModelFieldPresence(c);
+          if (p === CreateModelFieldPresence.omittedGenerated) {
+            return `- ${fmtVarName(getFieldName(c))} is omitted in ${fmtVal(
+              getModelCreateDataTypeName(table)
+            )}. ${kleur.dim('(Column is GENERATED.)')}`;
+          }
+          if (p === CreateModelFieldPresence.optionalAutoIncrement) {
+            return `- ${fmtVarName(getFieldName(c))} is optional in ${fmtVal(
+              getModelCreateDataTypeName(table)
+            )}. ${kleur.dim('(Column is auto_increment.)')}`;
+          }
+          if (p === CreateModelFieldPresence.optionalHasDefault) {
+            return `- ${fmtVarName(getFieldName(c))} is optional in ${fmtVal(
+              getModelCreateDataTypeName(table)
+            )}. ${kleur.dim('(Column has default value.)')}`;
+          }
+          return '';
+        })
+        .filter((s) => s.length > 0);
+
+      if (createDataNotes.length > 0) {
+        createDataNotes.unshift(kleur.italic('Notes:'));
+      }
+      log.info([
+        kleur.bold('Create Data Type:') +
+          ' ' +
+          fmtVal(getModelCreateDataTypeName(table)),
+        ...formatCode(typeDecls.createData),
+        ...createDataNotes
+      ]);
+      console.log();
+
+      const updateDataNotes = table.columns
+        .map((c) => {
+          const p = getUpdateModelFieldPresence(c);
+          if (p === UpdateModelFieldPresence.omittedGenerated) {
+            return `- ${fmtVarName(getFieldName(c))} is omitted in ${fmtVal(
+              getModelUpdateDataTypeName(table)
+            )}. ${kleur.dim('(Column is GENERATED.)')}`;
+          }
+          if (p === UpdateModelFieldPresence.omittedPrimaryKey) {
+            return `- ${fmtVarName(getFieldName(c))} is omitted in ${fmtVal(
+              getModelUpdateDataTypeName(table)
+            )}. ${kleur.dim('(Column is primary key.)')}`;
+          }
+
+          return '';
+        })
+        .filter((s) => s.length > 0);
+
+      if (updateDataNotes.length > 0) {
+        updateDataNotes.unshift(kleur.italic('Notes:'));
+      }
+
+      log.info([
+        kleur.bold('Update Data Type:') +
+          ' ' +
+          fmtVal(getModelUpdateDataTypeName(table)),
+        ...formatCode(typeDecls.updateData),
+        ...updateDataNotes
+      ]);
+      console.log();
+
+      const uniqueNotes = table.columns
+        .filter((c) => isUnique(c))
+        .map((c) => {
+          return `- ${fmtVarName(getFieldName(c))} is unique. ${kleur.dim(
+            '(Key: UNI)'
+          )}`;
+        });
+
+      if (uniqueNotes.length > 0) {
+        uniqueNotes.unshift(kleur.italic('Notes:'));
+      }
+      log.info([
+        kleur.bold('Find Unique Type:') +
+          ' ' +
+          fmtVal(getModelFindUniqueParamsTypeName(table)),
+        ...formatCode(typeDecls.findUniqueParams),
+        ...uniqueNotes
+      ]);
+      console.log();
+      log.info(kleur.bold(`Indexes (${table.indexes.length})`));
+      log.table(
+        [
+          ...table.indexes.map((index) => [
+            kleur.red(index.Key_name),
+            kleur.gray(index.Index_type),
+            fmtVal(JSON.stringify(index.Non_unique === 0))
+          ])
+        ],
+        ['Key', 'Type', 'Unique']
+      );
+      const searchIndexes = getFullTextSearchIndexes(table);
+      console.log();
+      log.info(kleur.bold(`Search Indexes (${searchIndexes.length})`));
+      log.table(
+        [
+          ...searchIndexes.map((index) => [
+            kleur.red(index.key),
+            index.indexedFields.map((k) => fmtVarName(k)).join(', ')
+          ])
+        ],
+        ['Key', 'Indexed Fields']
+      );
+      console.log();
+    }
+
+    log.footer();
     return await this.promptShowModelNextStep(table);
   }
   async promptShowModelNextStep(table: FetchedTable): Promise<void> {
     type Choice = { title: string; value: ShowModelNextStep };
     const choices: Choice[] = [
       {
-        title: 'Info',
-        value: 'basicInfo'
+        title: `Show basic model info`,
+        value: 'simple'
       },
       {
-        title: 'Field types',
-        value: 'fieldTypes'
+        title: `Show detailed model info`,
+        value: 'detailed'
       },
       {
-        title: 'Model types',
-        value: 'modelTypes'
-      },
-      {
-        title: 'Indexes',
-        value: 'indexes'
-      },
-      {
-        title: 'Create table SQL',
-        value: 'createSql'
-      },
-      {
-        title: 'Show detailed field info',
-        value: 'fieldInfo'
-      },
-      {
-        title: 'Modify field',
+        title: `Modify field in ${getModelName(table)}`,
         value: 'modifyField'
       },
       {
-        title: 'Type options',
-        value: 'typeOptions'
+        title: `Add field to ${getModelName(table)}`,
+        value: 'addField'
       },
       {
-        title: 'Another model',
+        title: 'Show another model',
         value: 'anotherModel'
       },
+
+      {
+        title: 'Show type options',
+        value: 'typeOptions'
+      },
+
       {
         title: 'Exit',
         value: 'exit'
       }
     ];
-    const initial = Math.max(
-      choices.findIndex((c) => c.value === this.showModelNextStep),
-      0
-    );
+
     const nextStep = await prompt<ShowModelNextStep>({
-      type: 'autocomplete',
-      message: `Model: ${getModelName(table)} | Show:`,
+      type: 'select',
+      message: `Model: ${getModelName(table)} | Next:`,
       name: 'next',
-      choices,
-      initial
+      choices
     });
     console.log();
+    if ('simple' === nextStep) {
+      return await this.showModel(table, false);
+    }
+    if ('detailed' === nextStep) {
+      return await this.showModel(table, true);
+    }
     if ('anotherModel' === nextStep) {
       const newTable = await this.promptModel(getModelName(table));
       console.log();
-      return await this.showModel(newTable);
+      return await this.showModel(newTable, false);
     }
     if ('modifyField' === nextStep) {
       const column = await this.promptField(table);
       console.log();
-      const { table: newTable, column: newCol } = await this.modifyField(
-        table,
-        column
-      );
-
-      this.showFieldInfo(newTable, newCol, true);
-      this.showModelNextStep = nextStep;
-      return await this.promptShowModelNextStep(newTable);
+      let newTable = await this.modifyField(table, column);
+      if (newTable) {
+        return await this.showModel(newTable, true);
+      }
+      newTable = await this.promptModel(table.name);
+      return await this.showModel(newTable, false);
     }
-    if ('fieldInfo' === nextStep) {
-      const column = await this.promptField(table);
-      console.log();
-      this.showFieldInfo(table, column, true);
-      this.showModelNextStep = nextStep;
+    if ('addField' === nextStep) {
+      const statement = await this.getAddColumnSql(table);
+      let newTable = await this.runMigration(statement, table);
+      if (newTable) {
+        return await this.showModel(newTable, true);
+      }
+      newTable = await this.promptModel(table.name);
+      return await this.showModel(newTable, false);
+    }
+    if ('typeOptions' === nextStep) {
+      this.showTypeOptions(true);
       return await this.promptShowModelNextStep(table);
     }
-    if ('exit' === nextStep) {
-      return;
-    }
-    this.showModelNextStep = nextStep;
-    switch (nextStep) {
-      case 'basicInfo':
-        this.showModelBasicInfo(table, true);
-        break;
-      case 'fieldTypes':
-        this.showModelFieldTypes(table, true);
-        break;
-      case 'modelTypes':
-        this.showModelTypes(table, true);
-        break;
-      case 'indexes':
-        this.showModelIndexes(table, true);
-        break;
-      case 'createSql':
-        this.showModelCreateSql(table, true);
-        break;
-
-      case 'typeOptions':
-        this.showTypeOptions(true);
-    }
-    console.log();
-    return await this.promptShowModelNextStep(table);
   }
 
   explainJsType(column: Column): string {
@@ -812,250 +1069,6 @@ export class Explorer {
     }
 
     return `Default type for ${fmtVal(mysqlType)} columns.`;
-  }
-
-  showModelBasicInfo(table: FetchedTable, showHeader: boolean) {
-    if (showHeader) {
-      log.header(`Model: ${getModelName(table)}`);
-    }
-    log.table([
-      ['Model Name', fmtVal(getModelName(table))],
-      ['Table Name', fmtVal(table.name)],
-      ['Columns', fmtVal(table.columns.length.toString())],
-      ['Indexes', fmtVal(table.indexes.length.toString())],
-      [
-        'Search Indexes',
-        fmtVal(getFullTextSearchIndexes(table).length.toString())
-      ]
-    ]);
-    if (showHeader) {
-      log.footer();
-    }
-  }
-
-  showModelIndexes(table: FetchedTable, showHeader: boolean) {
-    if (showHeader) {
-      log.header(`Indexes | Model: ${getModelName(table)}`);
-    }
-
-    log.info(kleur.bold(`Indexes (${table.indexes.length})`));
-    log.table(
-      [
-        ...table.indexes.map((index) => [
-          kleur.red(index.Key_name),
-          kleur.gray(index.Index_type),
-          fmtVal(JSON.stringify(index.Non_unique === 0))
-        ])
-      ],
-      ['Key', 'Type', 'Unique']
-    );
-    const searchIndexes = getFullTextSearchIndexes(table);
-    console.log();
-    log.info(kleur.bold(`Search Indexes (${searchIndexes.length})`));
-    log.table(
-      [
-        ...searchIndexes.map((index) => [
-          kleur.red(index.key),
-          index.indexedFields.map((k) => fmtVarName(k)).join(', ')
-        ])
-      ],
-      ['Key', 'Indexed Fields']
-    );
-
-    if (showHeader) {
-      log.footer();
-    }
-  }
-
-  showModelTypes(table: FetchedTable, showHeader: boolean) {
-    const formatCode = (code: string): string[] => {
-      return format(code, {
-        filepath: 'x.ts',
-        useTabs: false,
-        printWidth: getStdOutCols() - 4,
-        singleQuote: true
-      })
-        .trim()
-        .split('\n')
-        .map((s) => kleur.red(s));
-    };
-    if (showHeader) {
-      log.header(`Model Types | Model: ${getModelName(table)}`);
-    }
-    const typeDecls = getModelTypeDeclarations(table, this.options);
-    const baseTypeNotes = table.columns
-      .filter(
-        (c) =>
-          getModelFieldPresence(c) === ModelFieldPresence.undefinedForSelectAll
-      )
-      .map((c) => {
-        return `- ${fmtVarName(getFieldName(c))} will be ${fmtVal(
-          'undefined'
-        )} in ${fmtVal(getModelName(table))} using ${kleur.red(
-          'SELECT *'
-        )}. ${kleur.dim('(Column is INVISIBLE.)')}`;
-      });
-    if (baseTypeNotes.length > 0) {
-      baseTypeNotes.unshift(kleur.italic('Notes:'));
-    }
-    log.info([
-      kleur.bold('Model Type:') + ' ' + fmtVal(getModelName(table)),
-      ...formatCode(typeDecls.model),
-      ...baseTypeNotes
-    ]);
-    console.log();
-
-    log.info([
-      kleur.bold('Primary Key Type:') +
-        ' ' +
-        fmtVal(getModelPrimaryKeyTypeName(table)),
-      ...formatCode(typeDecls.primaryKey)
-    ]);
-    console.log();
-
-    const createDataNotes = table.columns
-      .map((c) => {
-        const p = getCreateModelFieldPresence(c);
-        if (p === CreateModelFieldPresence.omittedGenerated) {
-          return `- ${fmtVarName(getFieldName(c))} is omitted in ${fmtVal(
-            getModelCreateDataTypeName(table)
-          )}. ${kleur.dim('(Column is GENERATED.)')}`;
-        }
-        if (p === CreateModelFieldPresence.optionalAutoIncrement) {
-          return `- ${fmtVarName(getFieldName(c))} is optional in ${fmtVal(
-            getModelCreateDataTypeName(table)
-          )}. ${kleur.dim('(Column is auto_increment.)')}`;
-        }
-        if (p === CreateModelFieldPresence.optionalHasDefault) {
-          return `- ${fmtVarName(getFieldName(c))} is optional in ${fmtVal(
-            getModelCreateDataTypeName(table)
-          )}. ${kleur.dim('(Column has default value.)')}`;
-        }
-        return '';
-      })
-      .filter((s) => s.length > 0);
-
-    if (createDataNotes.length > 0) {
-      createDataNotes.unshift(kleur.italic('Notes:'));
-    }
-    log.info([
-      kleur.bold('Create Data Type:') +
-        ' ' +
-        fmtVal(getModelCreateDataTypeName(table)),
-      ...formatCode(typeDecls.createData),
-      ...createDataNotes
-    ]);
-    console.log();
-
-    const updateDataNotes = table.columns
-      .map((c) => {
-        const p = getUpdateModelFieldPresence(c);
-        if (p === UpdateModelFieldPresence.omittedGenerated) {
-          return `- ${fmtVarName(getFieldName(c))} is omitted in ${fmtVal(
-            getModelUpdateDataTypeName(table)
-          )}. ${kleur.dim('(Column is GENERATED.)')}`;
-        }
-        if (p === UpdateModelFieldPresence.omittedPrimaryKey) {
-          return `- ${fmtVarName(getFieldName(c))} is omitted in ${fmtVal(
-            getModelUpdateDataTypeName(table)
-          )}. ${kleur.dim('(Column is primary key.)')}`;
-        }
-
-        return '';
-      })
-      .filter((s) => s.length > 0);
-
-    if (updateDataNotes.length > 0) {
-      updateDataNotes.unshift(kleur.italic('Notes:'));
-    }
-
-    log.info([
-      kleur.bold('Update Data Type:') +
-        ' ' +
-        fmtVal(getModelUpdateDataTypeName(table)),
-      ...formatCode(typeDecls.updateData),
-      ...updateDataNotes
-    ]);
-    console.log();
-
-    const uniqueNotes = table.columns
-      .filter((c) => isUnique(c))
-      .map((c) => {
-        return `- ${fmtVarName(getFieldName(c))} is unique. ${kleur.dim(
-          '(Key: UNI)'
-        )}`;
-      });
-
-    if (uniqueNotes.length > 0) {
-      uniqueNotes.unshift(kleur.italic('Notes:'));
-    }
-    log.info([
-      kleur.bold('Find Unique Type:') +
-        ' ' +
-        fmtVal(getModelFindUniqueParamsTypeName(table)),
-      ...formatCode(typeDecls.findUniqueParams),
-      ...uniqueNotes
-    ]);
-
-    if (showHeader) {
-      log.footer();
-    }
-  }
-
-  showModelFieldTypes(table: FetchedTable, showHeader: boolean) {
-    if (showHeader) {
-      log.header(`Field Types | Model: ${getModelName(table)}`);
-    }
-
-    log.info(kleur.bold(`Fields (${table.columns.length})`));
-    log.table(
-      [
-        ...table.columns.map((c) => [
-          fmtVarName(getFieldName(c)),
-          fmtVal(
-            getJavascriptType(c, this.options) + (isNullable(c) ? '|null' : '')
-          ),
-          kleur.dim(getCastType(c, this.options)),
-          kleur.dim(c.Field),
-          kleur.dim(c.Type)
-        ])
-      ],
-      ['Field', 'Javascript Type', 'Cast', 'Column', 'Type']
-    );
-    console.log();
-    const primaryKeys = table.columns.filter(c => isPrimaryKey(c))
-    log.info(kleur.bold(`Primary Key${primaryKeys.length !== 1 ? 's' : ''}: ${primaryKeys.map(c => fmtVarName(getFieldName(c))).join(', ')}`));
-
-
-
-    console.log();
-    log.info([kleur.bold(`Field Type Notes`)]);
-    log.table(
-      [
-        ...table.columns.map((c) => [
-          fmtVarName(getFieldName(c)),
-          fmtVal(getJavascriptType(c, this.options)),
-          this.explainJsType(c)
-        ])
-      ],
-      ['Field', 'Type', 'Note']
-    );
-    if (showHeader) {
-      log.footer();
-    }
-  }
-
-  showModelCreateSql(table: FetchedTable, showHeader: boolean) {
-    if (showHeader) {
-      log.header(`Create Table | Model: ${getModelName(table)}`);
-    }
-    log.info([
-      kleur.bold('Create Table: '),
-      ...table.createSql.split('\n').map((s) => kleur.red(`${s}`))
-    ]);
-    if (showHeader) {
-      log.footer();
-    }
   }
 
   showTypeOptions(showHeader: boolean) {
@@ -1130,5 +1143,16 @@ export class Explorer {
     if (showHeader) {
       log.footer();
     }
+  }
+
+  getColumnDef(table: FetchedTable, column: Column): string {
+    const rx = new RegExp(`^\\s*\`${column.Field}\``);
+    const lines = table.createSql.split('\n');
+    for (const line of lines) {
+      if (rx.test(line)) {
+        return line.replace(/,\s*$/, '');
+      }
+    }
+    return '';
   }
 }
