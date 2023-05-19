@@ -15,7 +15,8 @@ import {
   getModelPrimaryKeyTypeName,
   getModelUpdateDataTypeName,
   getModelFindUniqueTypeName,
-  getModelName
+  getModelName,
+  getModelSelectAllTypeName
 } from '../parse/model-parsers.js';
 import {
   ModelFieldPresence,
@@ -28,6 +29,7 @@ export const getModelTypeDeclarations = (
   options: Partial<TypeOptions>
 ): {
   model: string;
+  selectAll: string;
   primaryKey: string;
   createData: string;
   updateData: string;
@@ -55,6 +57,13 @@ export const getModelTypeDeclarations = (
             : '';
         const orNull = o.isNullable ? '|null' : '';
         return `${o.name}${opt}:${o.javascriptType}${orNull}`;
+      })
+      .join(';')}}`,
+    selectAll: `export type ${getModelSelectAllTypeName(table)}={${columnInfo
+      .filter((o) => o.modelPresence !== ModelFieldPresence.undefinedForSelectAll)
+      .map((o) => {
+        const orNull = o.isNullable ? '|null' : '';
+        return `${o.name}:${o.javascriptType}${orNull}`;
       })
       .join(';')}}`,
     primaryKey: `export type ${getModelPrimaryKeyTypeName(table)}={${columnInfo
@@ -95,6 +104,7 @@ export const getModelTypeDeclarations = (
     ].join('|')}`,
     db: `export type ${getModelDbTypeName(table)}=ModelDb<${[
       getModelName(table),
+      getModelSelectAllTypeName(table),
       getModelPrimaryKeyTypeName(table),
       getModelCreateDataTypeName(table),
       getModelUpdateDataTypeName(table),

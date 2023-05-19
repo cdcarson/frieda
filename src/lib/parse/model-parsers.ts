@@ -6,7 +6,9 @@ export const getModelName = (table: Table): string => {
   return camelcase(table.name, { pascalCase: true });
 };
 
-
+export const getModelSelectAllTypeName = (table: Table): string => {
+  return `${getModelName(table)}SelectAll`;
+};
 
 export const getModelPrimaryKeyTypeName = (table: Table): string => {
   return `${getModelName(table)}PrimaryKey`;

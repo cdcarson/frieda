@@ -8,7 +8,8 @@ import {
   getModelName,
   getModelPrimaryKeyTypeName,
   getModelUpdateDataTypeName,
-  getFullTextSearchIndexes
+  getFullTextSearchIndexes,
+  getModelSelectAllTypeName
 } from './model-parsers.js';
 import type { FetchedTable } from '$lib/fetch/types.js';
 
@@ -25,12 +26,14 @@ describe('model-parsers', () => {
     expect(getModelName(table)).toBe('FooBar');
     table.name = 'FooBar';
     expect(getModelName(table)).toBe('FooBar');
-    
+    expect(getModelSelectAllTypeName(table)).toBe(
+      'FooBarSelectAll'
+    );
     expect(getModelPrimaryKeyTypeName(table)).toBe('FooBarPrimaryKey');
     expect(getModelCreateDataTypeName(table)).toBe('FooBarCreateData');
     expect(getModelUpdateDataTypeName(table)).toBe('FooBarUpdateData');
     expect(getModelFindUniqueTypeName(table)).toBe(
-      'FooBarFindUniqueParams'
+      'FooBarFindUnique'
     );
     expect(getModelDbTypeName(table)).toBe('FooBarModelDb');
     expect(getModelClassGetterName(table)).toBe('fooBar');

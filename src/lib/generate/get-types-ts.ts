@@ -22,6 +22,7 @@ export const getTypesTs = (
          * Types for the ${modelName} model.
          */
         ${types.model}
+        ${types.selectAll}
         ${types.primaryKey}
         ${types.createData}
         ${types.updateData}

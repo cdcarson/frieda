@@ -169,7 +169,7 @@ For each table in the database, Frieda generates several model types:
 This is the representation of a row in the table, and is what is returned by the `ModelDb` find methods. Each column is represented by a field.
 
 - If the column is nullable, the field's javascript type will be followed by `|null`.
-- If the column has been marked as `INVISIBLE`, the field will be defined as optional in the model (it will be `undefined` if the model is selected with `SELECT *`).
+- Note that this type will include fields where the column has been marked `INVISIBLE`
 
 Example:
 
@@ -187,7 +187,32 @@ CREATE TABLE `BlogPost` (
 export type BlogPost = {
   id: string;
   category: string | null; // column is nullable
-  content?: string; // column is INVISIBLE, so field undefined for SELECT *
+  content: string; // column is INVISIBLE, but defined in the base model
+  slug: string;
+  title: string;
+};
+```
+
+#### SELECT * type
+This type omits fields from the model where the corresponding column has been marked `INVISIBLE`. It is what will be returned if you use `SELECT *` to get the model, rather than passing a column list or `'all'` to the `find` methods.
+
+Example:
+
+```SQL
+CREATE TABLE `BlogPost` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `category` varchar(200) DEFAULT NULL,
+  `content` text NOT NULL /*!80023 INVISIBLE */,
+  `slug` varchar(100) NOT NULL,
+  `title` varchar(100) NOT NULL,
+  PRIMARY KEY (`id`)
+) 
+```
+```ts
+export type BlogPostSelectAll = {
+  id: string;
+  category: string | null; // column is nullable
+  ~~content: string;~~ // column is INVISIBLE, so omitted
   slug: string;
   title: string;
 };

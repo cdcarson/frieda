@@ -125,6 +125,7 @@ export class BaseDb {
 
 export class ModelDb<
   M extends Model,
+  ModelSelectAll extends { [K in keyof M]?: M[K] },
   PrimaryKey extends { [K in keyof M]?: M[K] },
   CreateData extends { [K in keyof M]?: M[K] },
   UpdateData extends { [K in keyof M]?: M[K] },
@@ -187,7 +188,7 @@ export class ModelDb<
     paging?: OneBasedPagingInput;
     orderBy?: ModelOrderByInput<M>;
     select?: S;
-  }): Promise<SelectedModel<M, S>[]> {
+  }): Promise<SelectedModel<M, S, ModelSelectAll>[]> {
     const where = getWhere(input.where, this.tableName);
     const orderBy = getOrderBy(input.orderBy, this.tableName);
     const limit = getLimitOffset(input.paging);
@@ -208,6 +209,8 @@ export class ModelDb<
             input.select.map((fieldName) => getSelectForFieldName(fieldName)),
             ','
           )
+        : 'all' === input.select
+        ? join(this.keys.map((fieldName) => getSelectForFieldName(fieldName)), ',')
         : raw('*');
     const query = sql`
         SELECT 
@@ -218,7 +221,7 @@ export class ModelDb<
         ${orderBy} 
         ${limit}`;
     const { rows } = await this.executeSelect<
-      SelectedModel<M, S>
+      SelectedModel<M, S, ModelSelectAll>
     >(query);
     return rows;
   }
@@ -227,7 +230,7 @@ export class ModelDb<
     where: Partial<M> | Sql;
     orderBy?: ModelOrderByInput<M> | Sql;
     select?: S;
-  }): Promise<SelectedModel<M, S> | null> {
+  }): Promise<SelectedModel<M, S, ModelSelectAll> | null> {
     const rows = await this.findMany({
       ...input,
       paging: { page: 1, rpp: 1 }
@@ -241,7 +244,7 @@ export class ModelDb<
     where: Partial<M> | Sql;
     orderBy?: ModelOrderByInput<M>;
     select?: S;
-  }): Promise<SelectedModel<M, S>> {
+  }): Promise<SelectedModel<M, S, ModelSelectAll>> {
     const result = await this.findFirst(input);
     if (!result) {
       throw new Error('findFirstOrThrow failed to find a record.');
@@ -251,7 +254,7 @@ export class ModelDb<
   async findUnique<S extends ModelSelectColumnsInput<M> = undefined>(input: {
     where: FindUniqueParams;
     select?: S;
-  }): Promise<SelectedModel<M, S> | null> {
+  }): Promise<SelectedModel<M, S, ModelSelectAll>  | null> {
     return await this.findFirst(input);
   }
   async findUniqueOrThrow<
@@ -259,7 +262,7 @@ export class ModelDb<
   >(input: {
     where: FindUniqueParams;
     select?: S;
-  }): Promise<SelectedModel<M, S>> {
+  }): Promise<SelectedModel<M, S, ModelSelectAll>> {
     return await this.findFirstOrThrow(input);
   }
   async countBigInt(input: { where: ModelWhereInput<M> }): Promise<bigint> {
