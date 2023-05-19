@@ -22,7 +22,6 @@ export const getTypesTs = (
          * Types for the ${modelName} model.
          */
         ${types.model}
-        ${types.omittedBySelectAll}
         ${types.primaryKey}
         ${types.createData}
         ${types.updateData}

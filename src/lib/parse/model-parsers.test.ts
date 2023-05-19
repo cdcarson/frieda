@@ -4,9 +4,8 @@ import {
   getModelClassGetterName,
   getModelCreateDataTypeName,
   getModelDbTypeName,
-  getModelFindUniqueParamsTypeName,
+  getModelFindUniqueTypeName,
   getModelName,
-  getModelOmittedBySelectAllTypeName,
   getModelPrimaryKeyTypeName,
   getModelUpdateDataTypeName,
   getFullTextSearchIndexes
@@ -26,13 +25,11 @@ describe('model-parsers', () => {
     expect(getModelName(table)).toBe('FooBar');
     table.name = 'FooBar';
     expect(getModelName(table)).toBe('FooBar');
-    expect(getModelOmittedBySelectAllTypeName(table)).toBe(
-      'FooBarOmittedBySelectAll'
-    );
+    
     expect(getModelPrimaryKeyTypeName(table)).toBe('FooBarPrimaryKey');
     expect(getModelCreateDataTypeName(table)).toBe('FooBarCreateData');
     expect(getModelUpdateDataTypeName(table)).toBe('FooBarUpdateData');
-    expect(getModelFindUniqueParamsTypeName(table)).toBe(
+    expect(getModelFindUniqueTypeName(table)).toBe(
       'FooBarFindUniqueParams'
     );
     expect(getModelDbTypeName(table)).toBe('FooBarModelDb');

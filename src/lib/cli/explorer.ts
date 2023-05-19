@@ -23,7 +23,7 @@ import {
 import {
   getFullTextSearchIndexes,
   getModelCreateDataTypeName,
-  getModelFindUniqueParamsTypeName,
+  getModelFindUniqueTypeName,
   getModelName,
   getModelPrimaryKeyTypeName,
   getModelUpdateDataTypeName
@@ -898,7 +898,7 @@ export class Explorer {
       log.info([
         kleur.bold('Find Unique Type:') +
           ' ' +
-          fmtVal(getModelFindUniqueParamsTypeName(table)),
+          fmtVal(getModelFindUniqueTypeName(table)),
         ...formatCode(typeDecls.findUniqueParams),
         ...uniqueNotes
       ]);

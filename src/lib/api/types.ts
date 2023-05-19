@@ -155,17 +155,26 @@ export type DbLoggingOptions = {
   errorLogger?: (error: Error) => void;
 };
 
+export type RequiredKeys<T> = { [K in keyof T]-?:
+  (Record<string,never> extends { [P in K]: T[K] } ? never : K)
+}[keyof T]
+
+export type OptionalKeys<T> = { [K in keyof T]-?:
+  (Record<string,never> extends { [P in K]: T[K] } ? K : never)
+}[keyof T]
+
+export type ExcludeOptionalProps<T> = Pick<T, RequiredKeys<T>>
+
 export type ModelSelectColumnsInput<M extends Model> =
   | (keyof M & string)[]
   | undefined;
 
 export type SelectedModel<
   M extends Model,
-  ExcludedBySelectAll extends (keyof M)[],
   S extends ModelSelectColumnsInput<M>
 > = S extends (keyof M)[]
   ? { [K in S[number]]: M[K] }
-  : Omit<M, ExcludedBySelectAll[number]>;
+  : ExcludeOptionalProps<M>;
 
 export type ModelWhereInput<M extends Model> = Partial<M> | Sql | undefined;
 

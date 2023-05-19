@@ -13,9 +13,8 @@ import {
   getModelCreateDataTypeName,
   getModelDbTypeName,
   getModelPrimaryKeyTypeName,
-  getModelOmittedBySelectAllTypeName,
   getModelUpdateDataTypeName,
-  getModelFindUniqueParamsTypeName,
+  getModelFindUniqueTypeName,
   getModelName
 } from '../parse/model-parsers.js';
 import {
@@ -29,7 +28,6 @@ export const getModelTypeDeclarations = (
   options: Partial<TypeOptions>
 ): {
   model: string;
-  omittedBySelectAll: string;
   primaryKey: string;
   createData: string;
   updateData: string;
@@ -59,14 +57,6 @@ export const getModelTypeDeclarations = (
         return `${o.name}${opt}:${o.javascriptType}${orNull}`;
       })
       .join(';')}}`,
-    omittedBySelectAll: `export type ${getModelOmittedBySelectAllTypeName(
-      table
-    )}=[${columnInfo
-      .filter(
-        (o) => o.modelPresence === ModelFieldPresence.undefinedForSelectAll
-      )
-      .map((o) => `'${o.name}'`)
-      .join(',')}]`,
     primaryKey: `export type ${getModelPrimaryKeyTypeName(table)}={${columnInfo
       .filter((o) => isPrimaryKey(o.column))
       .map((o) => {
@@ -93,7 +83,7 @@ export const getModelTypeDeclarations = (
         return `${o.name}${opt}:${o.javascriptType}${orNull}`;
       })
       .join(';')}}`,
-    findUniqueParams: `export type ${getModelFindUniqueParamsTypeName(
+    findUniqueParams: `export type ${getModelFindUniqueTypeName(
       table
     )}=${[
       getModelPrimaryKeyTypeName(table),
@@ -105,11 +95,10 @@ export const getModelTypeDeclarations = (
     ].join('|')}`,
     db: `export type ${getModelDbTypeName(table)}=ModelDb<${[
       getModelName(table),
-      getModelOmittedBySelectAllTypeName(table),
       getModelPrimaryKeyTypeName(table),
       getModelCreateDataTypeName(table),
       getModelUpdateDataTypeName(table),
-      getModelFindUniqueParamsTypeName(table)
+      getModelFindUniqueTypeName(table)
     ].join(',')}>`
   };
 };
