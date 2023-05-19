@@ -14,11 +14,6 @@ describe('ModelDb', () => {
     executeSpy = vi.spyOn(connection, 'execute');
     schema = {
       databaseName: 'testme',
-      typeOptions: {
-        typeBigIntAsString: true,
-        typeImports: [],
-        typeTinyIntOneAsBoolean: true
-      },
       models: [],
       cast: {
         // doesn't matter for these tests
@@ -746,11 +741,6 @@ describe('BaseDb.execute', () => {
     executeSpy = vi.spyOn(connection, 'execute');
     schema = {
       databaseName: 'testme',
-      typeOptions: {
-        typeBigIntAsString: true,
-        typeImports: [],
-        typeTinyIntOneAsBoolean: true
-      },
       models: [],
       cast: {
         // doesn't matter for these tests

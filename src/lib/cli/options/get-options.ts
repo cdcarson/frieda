@@ -96,24 +96,6 @@ export const getOptions = async (
     compileJs = false;
   }
 
-  let typeTinyIntOneAsBoolean: boolean;
-  if (typeof cliArgs.typeTinyIntOneAsBoolean === 'boolean') {
-    typeTinyIntOneAsBoolean = cliArgs.typeTinyIntOneAsBoolean;
-  } else if (typeof rc.typeTinyIntOneAsBoolean === 'boolean') {
-    typeTinyIntOneAsBoolean = rc.typeTinyIntOneAsBoolean;
-  } else {
-    typeTinyIntOneAsBoolean = true;
-  }
-
-  let typeBigIntAsString: boolean;
-  if (typeof cliArgs.typeBigIntAsString === 'boolean') {
-    typeBigIntAsString = cliArgs.typeBigIntAsString;
-  } else if (typeof rc.typeBigIntAsString === 'boolean') {
-    typeBigIntAsString = rc.typeBigIntAsString;
-  } else {
-    typeBigIntAsString = true;
-  }
-
   const typeImports = (rc.typeImports || [])
     .filter((s) => typeof s === 'string')
     .map((s) => s.trim())
@@ -184,34 +166,6 @@ export const getOptions = async (
     console.log();
     log.info(
       squishWords(
-        `${fmtVarName('typeBigIntAsString')}: ${
-          OPTION_DESCRIPTIONS.typeBigIntAsString
-        }`
-      ).split('\n')
-    );
-
-    typeBigIntAsString = await promptBooleanOption(
-      'typeBigIntAsString',
-      typeBigIntAsString
-    );
-
-    console.log();
-
-    log.info(
-      squishWords(
-        `${fmtVarName('typeTinyIntOneAsBoolean')}: ${
-          OPTION_DESCRIPTIONS.typeTinyIntOneAsBoolean
-        }`
-      ).split('\n')
-    );
-
-    typeTinyIntOneAsBoolean = await promptBooleanOption(
-      'typeTinyIntOneAsBoolean',
-      typeTinyIntOneAsBoolean
-    );
-    console.log();
-    log.info(
-      squishWords(
         `${fmtVarName('typeImports')}: ${
           OPTION_DESCRIPTIONS.typeImports
         } Note that you can edit this array directly in ${fmtPath(
@@ -225,9 +179,7 @@ export const getOptions = async (
     envFile: databaseUrlResult.envFile,
     outputDirectory: outputDirectoryResult.relativePath,
     compileJs,
-    typeBigIntAsString,
-    typeImports,
-    typeTinyIntOneAsBoolean
+    typeImports
   };
 
   const changedKeys = Object.keys(options).filter((k) => {

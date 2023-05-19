@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi, type SpyInstance } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import type { SchemaCastMap } from './types.js';
 import { createCastFunction } from './create-cast-function.js';
 import type { Field } from '@planetscale/database';

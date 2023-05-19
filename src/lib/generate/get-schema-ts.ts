@@ -6,26 +6,20 @@ import {
   isPrimaryKey
 } from '$lib/parse/field-parsers.js';
 import { getModelName } from '$lib/parse/model-parsers.js';
-import type { FieldDefinition, Schema, TypeOptions } from '../api/types.js';
+import type { FieldDefinition, Schema } from '../api/types.js';
 import { getSchemaCastMap } from './get-schema-cast-map.js';
 
 export const getSchemaTs = (
   fetched: FetchedSchema,
-  typeOptions: TypeOptions,
   bannerComment: string
 ): string => {
   const schema: Schema = {
     databaseName: fetched.databaseName,
-    typeOptions: {
-      typeBigIntAsString: typeOptions.typeBigIntAsString,
-      typeImports: typeOptions.typeImports,
-      typeTinyIntOneAsBoolean: typeOptions.typeTinyIntOneAsBoolean
-    },
-    cast: getSchemaCastMap(fetched, typeOptions),
+    cast: getSchemaCastMap(fetched),
     models: fetched.tables.map((t) => {
       const fields: FieldDefinition[] = t.columns.map((c) => {
         return {
-          castType: getCastType(c, typeOptions),
+          castType: getCastType(c),
           columnName: c.Field,
           fieldName: getFieldName(c),
           isAutoIncrement: isAutoIncrement(c),

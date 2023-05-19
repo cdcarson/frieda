@@ -1,9 +1,7 @@
 import { fetchSchema } from './shared.js';
 import { getOptions } from './options/get-options.js';
 import type { CliArgs } from './types.js';
-import { getModelName } from '$lib/parse/model-parsers.js';
 import { Explorer } from './explorer.js';
-import log from './ui/log.js';
 
 export const cmdModel = async (
   cliArgs: Partial<CliArgs>,
@@ -14,5 +12,5 @@ export const cmdModel = async (
   const [modelName] = positionalArgs;
   const explorer = new Explorer(schema, options, databaseUrlResult, connection);
   const table = await explorer.getModel(modelName);
-  await explorer.showModel(table)
+  await explorer.showModel(table);
 };

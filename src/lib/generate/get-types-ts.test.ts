@@ -1,17 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { TypeOptions } from '../api/types.js';
 import { getTypesTs } from './get-types-ts.js';
 import type { FetchedSchema } from '$lib/fetch/types.js';
 
 describe('getTypesTs', () => {
   let schema: FetchedSchema;
-  let options: TypeOptions;
   beforeEach(() => {
-    options = {
-      typeBigIntAsString: true,
-      typeImports: [],
-      typeTinyIntOneAsBoolean: true
-    };
     schema = {
       databaseName: 't',
       tables: [
@@ -49,10 +42,10 @@ describe('getTypesTs', () => {
   });
 
   it('works', () => {
-    expect(getTypesTs(schema, options, '/** a comment */')).toContain(
+    expect(getTypesTs(schema, [], '/** a comment */')).toContain(
       'export type FooBar'
     );
-    expect(getTypesTs(schema, options, '/** a comment */')).toContain(
+    expect(getTypesTs(schema, [], '/** a comment */')).toContain(
       '/** a comment */'
     );
   });

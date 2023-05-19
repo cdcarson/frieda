@@ -284,7 +284,7 @@ Example:
 
 #### Find Unique Type
 
-A union of the primary key type plus any other fields that are unique in the model. 
+A union of the primary key type plus any other fields that are unique in the model.
 
 Example:
 

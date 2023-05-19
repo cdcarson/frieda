@@ -1,17 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { TypeOptions } from '../api/types.js';
 import { getSchemaCastMap } from './get-schema-cast-map.js';
 import type { FetchedSchema } from '../fetch/types.js';
 
 describe('getSchemaCastMap', () => {
   let schema: FetchedSchema;
-  let options: TypeOptions;
   beforeEach(() => {
-    options = {
-      typeBigIntAsString: true,
-      typeImports: [],
-      typeTinyIntOneAsBoolean: true
-    };
     schema = {
       databaseName: 't',
       tables: [
@@ -49,7 +42,7 @@ describe('getSchemaCastMap', () => {
   });
 
   it('works', () => {
-    const map = getSchemaCastMap(schema, options);
+    const map = getSchemaCastMap(schema);
     expect(map['foo_bar.id']).toBe('string');
     expect(map['foo_bar.test']).toBe('string');
   });

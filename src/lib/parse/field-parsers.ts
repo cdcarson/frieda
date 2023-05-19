@@ -2,8 +2,7 @@ import {
   MYSQL_TYPES,
   type CastType,
   type Column,
-  type MysqlBaseType,
-  type TypeOptions
+  type MysqlBaseType
 } from '../api/types.js';
 import camelcase from 'camelcase';
 import type { Annotation, ParsedAnnotation } from './types.js';
@@ -75,24 +74,15 @@ export const getCommentAnnotations = (column: Column): ParsedAnnotation[] => {
   return result;
 };
 
-export const getCastType = (
-  column: Column,
-  options: Partial<TypeOptions>
-): CastType => {
+export const getCastType = (column: Column): CastType => {
   const mysqlBaseType = getMysqlBaseType(column);
   if ('json' === mysqlBaseType) {
     return 'json';
   }
   if ('bigint' === mysqlBaseType) {
-    if (options.typeBigIntAsString === false) {
-      return 'bigint';
-    }
     return getBigIntAnnotation(column) ? 'bigint' : 'string';
   }
   if (isTinyIntOne(column)) {
-    if (options.typeTinyIntOneAsBoolean === false) {
-      return 'int';
-    }
     return 'boolean';
   }
   // not sure if this will ever be the case, but for completeness...
@@ -136,11 +126,8 @@ export const getCastType = (
   return 'string';
 };
 
-export const getJavascriptType = (
-  column: Column,
-  options: Partial<TypeOptions>
-): string => {
-  const castType = getCastType(column, options);
+export const getJavascriptType = (column: Column): string => {
+  const castType = getCastType(column);
   if ('json' === castType) {
     const annotation = getValidJsonAnnotation(column);
     return annotation ? annotation.argument.trim() : DEFAULT_JSON_FIELD_TYPE;

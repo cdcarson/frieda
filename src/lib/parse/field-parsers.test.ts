@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { Column, TypeOptions } from '../api/types.js';
+import type { Column } from '../api/types.js';
 import {
   getBigIntAnnotation,
   getCastType,
@@ -32,7 +32,6 @@ import {
 
 describe('field-parsers', () => {
   let column: Column;
-  let options: Partial<TypeOptions>;
   beforeEach(() => {
     column = {
       Comment: '',
@@ -45,7 +44,6 @@ describe('field-parsers', () => {
       Collation: null,
       Privileges: ''
     };
-    options = {};
   });
   it('getFieldName works', () => {
     expect(getFieldName({ ...column, Field: 'foo_bar' })).toBe('fooBar');
@@ -144,132 +142,82 @@ describe('field-parsers', () => {
   });
   describe('getCastType', () => {
     it('json', () => {
-      expect(getCastType({ ...column, Type: 'json' }, options)).toBe('json');
+      expect(getCastType({ ...column, Type: 'json' })).toBe('json');
     });
-    it('bigint with typeBigIntAsString default', () => {
-      expect(getCastType({ ...column, Type: 'bigint' }, options)).toBe(
-        'string'
-      );
+    it('bigint', () => {
+      expect(getCastType({ ...column, Type: 'bigint' })).toBe('string');
     });
-    it('bigint with typeBigIntAsString = false', () => {
-      expect(
-        getCastType(
-          { ...column, Type: 'bigint' },
-          { typeBigIntAsString: false }
-        )
-      ).toBe('bigint');
-    });
-    it('bigint with typeBigIntAsString = true', () => {
-      expect(
-        getCastType({ ...column, Type: 'bigint' }, { typeBigIntAsString: true })
-      ).toBe('string');
-    });
+
     it('bigint with @bigint', () => {
       expect(
-        getCastType(
-          { ...column, Type: 'bigint', Comment: '@bigint' },
-          { typeBigIntAsString: true }
-        )
+        getCastType({ ...column, Type: 'bigint', Comment: '@bigint' })
       ).toBe('bigint');
     });
 
-    it('tinyint(1) with default typeTinyIntOneAsBoolean', () => {
+    it('tinyint(1)', () => {
       expect(getMysqlBaseType({ ...column, Type: 'tinyint(1)' })).toBe(
         'tinyint'
       );
-      expect(getCastType({ ...column, Type: 'tinyint(1)' }, options)).toBe(
-        'boolean'
-      );
+      expect(getCastType({ ...column, Type: 'tinyint(1)' })).toBe('boolean');
     });
-    it('tinyint(1) with typeTinyIntOneAsBoolean true', () => {
-      expect(getMysqlBaseType({ ...column, Type: 'tinyint(1)' })).toBe(
-        'tinyint'
-      );
-      expect(
-        getCastType(
-          { ...column, Type: 'tinyint(1)' },
-          { typeTinyIntOneAsBoolean: true }
-        )
-      ).toBe('boolean');
-    });
-    it('tinyint(1) with typeTinyIntOneAsBoolean false', () => {
-      expect(getMysqlBaseType({ ...column, Type: 'tinyint(1)' })).toBe(
-        'tinyint'
-      );
-      expect(
-        getCastType(
-          { ...column, Type: 'tinyint(1)' },
-          { typeTinyIntOneAsBoolean: false }
-        )
-      ).toBe('int');
-    });
+
     it('bool and boolean', () => {
-      expect(
-        getCastType(
-          { ...column, Type: 'bool' },
-          { typeTinyIntOneAsBoolean: false }
-        )
-      ).toBe('boolean');
-      expect(
-        getCastType(
-          { ...column, Type: 'boolean' },
-          { typeTinyIntOneAsBoolean: false }
-        )
-      ).toBe('boolean');
+      expect(getCastType({ ...column, Type: 'bool' })).toBe('boolean');
+      expect(getCastType({ ...column, Type: 'boolean' })).toBe('boolean');
     });
     it('set without annotation', () => {
       expect(
-        getCastType({ ...column, Type: `set('a','b')`, Comment: '' }, {})
+        getCastType({ ...column, Type: `set('a','b')`, Comment: '' })
       ).toBe('string');
     });
     it('set with plain annotation', () => {
       expect(
-        getCastType({ ...column, Type: `set('a','b')`, Comment: '@Set' }, {})
+        getCastType({ ...column, Type: `set('a','b')`, Comment: '@Set' })
       ).toBe('set');
     });
     it('set with typed annotation', () => {
       expect(
-        getCastType(
-          { ...column, Type: `set('a','b')`, Comment: '@Set(MyType)' },
-          {}
-        )
+        getCastType({
+          ...column,
+          Type: `set('a','b')`,
+          Comment: '@Set(MyType)'
+        })
       ).toBe('set');
     });
     it('enum without annotation', () => {
       expect(
-        getCastType({ ...column, Type: `enum('a','b')`, Comment: '' }, {})
+        getCastType({ ...column, Type: `enum('a','b')`, Comment: '' })
       ).toBe('enum');
     });
     it('enum with typed annotation', () => {
       expect(
-        getCastType(
-          { ...column, Type: `enum('a','b')`, Comment: '@enum(MyType)' },
-          {}
-        )
+        getCastType({
+          ...column,
+          Type: `enum('a','b')`,
+          Comment: '@enum(MyType)'
+        })
       ).toBe('enum');
     });
     it('tinyint with width other than 1', () => {
       expect(getParenthesizedArgs('tinyint', 'tinyint')).toBe('');
-      expect(getCastType({ ...column, Type: 'tinyint(2)' }, options)).toBe(
-        'int'
-      );
-      expect(getCastType({ ...column, Type: 'tinyint' }, options)).toBe('int');
+      expect(getCastType({ ...column, Type: 'tinyint(2)' })).toBe('int');
+      expect(getCastType({ ...column, Type: 'tinyint' })).toBe('int');
     });
     it('all the other int types', () => {
       ['tinyint', 'smallint', 'mediumint', 'int', 'integer', 'year'].forEach(
         (t) => {
-          expect(getCastType({ ...column, Type: t }, {})).toBe('int');
+          expect(getCastType({ ...column, Type: t })).toBe('int');
         }
       );
     });
     it('all the floaty types', () => {
       ['float', 'double', 'real', 'decimal', 'numeric'].forEach((t) => {
-        expect(getCastType({ ...column, Type: t }, {})).toBe('float');
+        expect(getCastType({ ...column, Type: t })).toBe('float');
       });
     });
     it('all the date types', () => {
       ['datetime', 'timestamp', 'date'].forEach((t) => {
-        expect(getCastType({ ...column, Type: t }, {})).toBe('date');
+        expect(getCastType({ ...column, Type: t })).toBe('date');
       });
     });
 
@@ -289,150 +237,98 @@ describe('field-parsers', () => {
         'longtext',
         'time'
       ].forEach((t) => {
-        expect(getCastType({ ...column, Type: t }, {})).toBe('string');
+        expect(getCastType({ ...column, Type: t })).toBe('string');
       });
     });
   });
 
   describe('getCastType', () => {
     it('json without a type', () => {
-      expect(getJavascriptType({ ...column, Type: 'json' }, options)).toBe(
-        'unknown'
-      );
+      expect(getJavascriptType({ ...column, Type: 'json' })).toBe('unknown');
       expect(
-        getJavascriptType(
-          { ...column, Type: 'json', Comment: '@json' },
-          options
-        )
+        getJavascriptType({ ...column, Type: 'json', Comment: '@json' })
       ).toBe('unknown');
     });
     it('json with a type', () => {
       expect(
-        getJavascriptType(
-          { ...column, Type: 'json', Comment: '@json(Stripe.Customer)' },
-          options
-        )
+        getJavascriptType({
+          ...column,
+          Type: 'json',
+          Comment: '@json(Stripe.Customer)'
+        })
       ).toBe('Stripe.Customer');
     });
-    it('bigint with typeBigIntAsString default', () => {
-      expect(getJavascriptType({ ...column, Type: 'bigint' }, options)).toBe(
-        'string'
-      );
+    it('bigint', () => {
+      expect(getJavascriptType({ ...column, Type: 'bigint' })).toBe('string');
     });
-    it('bigint with typeBigIntAsString = false', () => {
-      expect(
-        getJavascriptType(
-          { ...column, Type: 'bigint' },
-          { typeBigIntAsString: false }
-        )
-      ).toBe('bigint');
-    });
-    it('bigint with typeBigIntAsString = true', () => {
-      expect(
-        getJavascriptType(
-          { ...column, Type: 'bigint' },
-          { typeBigIntAsString: true }
-        )
-      ).toBe('string');
-    });
+
     it('bigint with @bigint', () => {
       expect(
-        getJavascriptType(
-          { ...column, Type: 'bigint', Comment: '@bigint' },
-          { typeBigIntAsString: true }
-        )
+        getJavascriptType({ ...column, Type: 'bigint', Comment: '@bigint' })
       ).toBe('bigint');
     });
 
-    it('tinyint(1) with default typeTinyIntOneAsBoolean', () => {
-      expect(
-        getJavascriptType({ ...column, Type: 'tinyint(1)' }, options)
-      ).toBe('boolean');
+    it('tinyint(1)', () => {
+      expect(getJavascriptType({ ...column, Type: 'tinyint(1)' })).toBe(
+        'boolean'
+      );
     });
-    it('tinyint(1) with typeTinyIntOneAsBoolean true', () => {
-      expect(
-        getJavascriptType(
-          { ...column, Type: 'tinyint(1)' },
-          { typeTinyIntOneAsBoolean: true }
-        )
-      ).toBe('boolean');
-    });
-    it('tinyint(1) with typeTinyIntOneAsBoolean false', () => {
-      expect(
-        getJavascriptType(
-          { ...column, Type: 'tinyint(1)' },
-          { typeTinyIntOneAsBoolean: false }
-        )
-      ).toBe('number');
-    });
+
     it('bool and boolean', () => {
-      expect(
-        getJavascriptType(
-          { ...column, Type: 'bool' },
-          { typeTinyIntOneAsBoolean: false }
-        )
-      ).toBe('boolean');
-      expect(
-        getJavascriptType(
-          { ...column, Type: 'boolean' },
-          { typeTinyIntOneAsBoolean: false }
-        )
-      ).toBe('boolean');
+      expect(getJavascriptType({ ...column, Type: 'bool' })).toBe('boolean');
+      expect(getJavascriptType({ ...column, Type: 'boolean' })).toBe('boolean');
     });
     it('set without annotation', () => {
       expect(
-        getJavascriptType({ ...column, Type: `set('a','b')`, Comment: '' }, {})
+        getJavascriptType({ ...column, Type: `set('a','b')`, Comment: '' })
       ).toBe('string');
     });
     it('set with plain annotation', () => {
       expect(
-        getJavascriptType(
-          { ...column, Type: `set('a','b')`, Comment: '@Set' },
-          {}
-        )
+        getJavascriptType({ ...column, Type: `set('a','b')`, Comment: '@Set' })
       ).toBe(`Set<'a'|'b'>`);
       expect(
-        getJavascriptType({ ...column, Type: `set()`, Comment: '@Set' }, {})
+        getJavascriptType({ ...column, Type: `set()`, Comment: '@Set' })
       ).toBe(`Set<string>`);
     });
     it('set with typed annotation', () => {
       expect(
-        getJavascriptType(
-          { ...column, Type: `set('a','b')`, Comment: '@Set(MyType)' },
-          {}
-        )
+        getJavascriptType({
+          ...column,
+          Type: `set('a','b')`,
+          Comment: '@Set(MyType)'
+        })
       ).toBe('Set<MyType>');
     });
     it('enum without annotation', () => {
       expect(
-        getJavascriptType({ ...column, Type: `enum('a','b')`, Comment: '' }, {})
+        getJavascriptType({ ...column, Type: `enum('a','b')`, Comment: '' })
       ).toBe(`'a'|'b'`);
       expect(
-        getJavascriptType({ ...column, Type: `enum()`, Comment: '' }, {})
+        getJavascriptType({ ...column, Type: `enum()`, Comment: '' })
       ).toBe(`string`);
     });
     it('enum with typed annotation', () => {
       expect(
-        getJavascriptType(
-          { ...column, Type: `enum('a','b')`, Comment: '@enum(MyType)' },
-          {}
-        )
+        getJavascriptType({
+          ...column,
+          Type: `enum('a','b')`,
+          Comment: '@enum(MyType)'
+        })
       ).toBe('MyType');
     });
     it('tinyint with width other than 1', () => {
       expect(getParenthesizedArgs('tinyint', 'tinyint')).toBe('');
-      expect(
-        getJavascriptType({ ...column, Type: 'tinyint(2)' }, options)
-      ).toBe('number');
-      expect(getJavascriptType({ ...column, Type: 'tinyint' }, options)).toBe(
+      expect(getJavascriptType({ ...column, Type: 'tinyint(2)' })).toBe(
         'number'
       );
+      expect(getJavascriptType({ ...column, Type: 'tinyint' })).toBe('number');
     });
     it('all the other int types', () => {
       ['tinyint', 'smallint', 'mediumint', 'int', 'integer', 'year'].forEach(
         (t) => {
-          expect(getJavascriptType({ ...column, Type: t }, {})).toBe('number');
-          expect(getJavascriptType({ ...column, Type: `${t}(2)` }, {})).toBe(
+          expect(getJavascriptType({ ...column, Type: t })).toBe('number');
+          expect(getJavascriptType({ ...column, Type: `${t}(2)` })).toBe(
             'number'
           );
         }
@@ -440,12 +336,12 @@ describe('field-parsers', () => {
     });
     it('all the floaty types', () => {
       ['float', 'double', 'real', 'decimal', 'numeric'].forEach((t) => {
-        expect(getJavascriptType({ ...column, Type: t }, {})).toBe('number');
+        expect(getJavascriptType({ ...column, Type: t })).toBe('number');
       });
     });
     it('all the date types', () => {
       ['datetime', 'timestamp', 'date'].forEach((t) => {
-        expect(getJavascriptType({ ...column, Type: t }, {})).toBe('Date');
+        expect(getJavascriptType({ ...column, Type: t })).toBe('Date');
       });
     });
 
@@ -466,7 +362,7 @@ describe('field-parsers', () => {
         'time',
         'foobar'
       ].forEach((t) => {
-        expect(getJavascriptType({ ...column, Type: t }, {})).toBe('string');
+        expect(getJavascriptType({ ...column, Type: t })).toBe('string');
       });
     });
   });

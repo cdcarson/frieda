@@ -210,7 +210,10 @@ export class ModelDb<
             ','
           )
         : 'all' === input.select
-        ? join(this.keys.map((fieldName) => getSelectForFieldName(fieldName)), ',')
+        ? join(
+            this.keys.map((fieldName) => getSelectForFieldName(fieldName)),
+            ','
+          )
         : raw('*');
     const query = sql`
         SELECT 
@@ -254,7 +257,7 @@ export class ModelDb<
   async findUnique<S extends ModelSelectColumnsInput<M> = undefined>(input: {
     where: FindUniqueParams;
     select?: S;
-  }): Promise<SelectedModel<M, S, ModelSelectAll>  | null> {
+  }): Promise<SelectedModel<M, S, ModelSelectAll> | null> {
     return await this.findFirst(input);
   }
   async findUniqueOrThrow<

@@ -1,9 +1,8 @@
-import type { TypeOptions } from '$lib/index.js';
-
-export type ResolvedCliOptions = TypeOptions & {
+export type ResolvedCliOptions = {
   envFile: string;
   outputDirectory: string;
   compileJs: boolean;
+  typeImports: string[];
 };
 
 export type CliArgs = Exclude<ResolvedCliOptions, 'typeImports'> & {

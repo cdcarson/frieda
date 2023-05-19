@@ -30,11 +30,7 @@ import {
   getModelUpdateDataTypeName
 } from '$lib/parse/model-parsers.js';
 import kleur from 'kleur';
-import {
-  MYSQL_TYPES,
-  type Column,
-  type MysqlBaseType
-} from '../api/types.js';
+import { MYSQL_TYPES, type Column, type MysqlBaseType } from '../api/types.js';
 import {
   fmtPath,
   fmtVal,
@@ -70,7 +66,6 @@ type ShowModelNextStep =
   | 'modifyField'
   | 'addField'
   | 'anotherModel'
-  | 'typeOptions'
   | 'exit';
 
 type MigrationType =
@@ -751,9 +746,8 @@ export class Explorer {
         ...table.columns.map((c) => [
           fmtVarName(getFieldName(c)),
           kleur.dim(c.Type),
-          fmtVal(
-            getJavascriptType(c, this.options) + (isNullable(c) ? '|null' : '')
-          ) + ` (${this.explainJsType(c)})`
+          fmtVal(getJavascriptType(c) + (isNullable(c) ? '|null' : '')) +
+            ` (${this.explainJsType(c)})`
         ])
       ],
       ['Field', 'Column Type', 'Javascript Type']
@@ -788,7 +782,7 @@ export class Explorer {
         .map((s) => kleur.red(s));
     };
 
-    const typeDecls = getModelTypeDeclarations(table, this.options);
+    const typeDecls = getModelTypeDeclarations(table);
 
     log.info([
       kleur.bold('Model Type:') + ' ' + fmtVal(getModelName(table)),
@@ -833,9 +827,9 @@ export class Explorer {
       kleur.bold('Primary Key Type:') +
         ' ' +
         fmtVal(getModelPrimaryKeyTypeName(table)),
-        ...squishWords(
-          kleur.dim(`This type is used to select, update and delete models.`)
-        ).split('\n'),
+      ...squishWords(
+        kleur.dim(`This type is used to select, update and delete models.`)
+      ).split('\n'),
       ...formatCode(typeDecls.primaryKey)
     ]);
     console.log();
@@ -972,11 +966,6 @@ export class Explorer {
       },
 
       {
-        title: 'Show type options',
-        value: 'typeOptions'
-      },
-
-      {
         title: 'Exit',
         value: 'exit'
       }
@@ -1017,10 +1006,6 @@ export class Explorer {
       newTable = await this.promptModel(table.name);
       return await this.showModel(newTable);
     }
-    if ('typeOptions' === nextStep) {
-      this.showTypeOptions(true);
-      return await this.promptShowModelNextStep(table);
-    }
   }
 
   explainJsType(column: Column): string {
@@ -1042,26 +1027,13 @@ export class Explorer {
       return `Using type from the ${kleur.red('@json')} type annotation.`;
     }
     if (isTinyIntOne(column)) {
-      return `${fmtVarName('typeTinyIntOneAsBoolean')}: ${fmtVal(
-        JSON.stringify(this.options.typeTinyIntOneAsBoolean)
-      )}`;
+      return `Default type for ${fmtVal('tinyint(1)')} columns.`;
     }
     if ('bigint' === mysqlType) {
-      if (!this.options.typeBigIntAsString) {
-        return `${fmtVarName('typeBigIntAsString')}: ${fmtVal(
-          JSON.stringify(this.options.typeBigIntAsString)
-        )}`;
-      }
       if (getBigIntAnnotation(column)) {
-        return `Found  ${kleur.red(
-          '@bigint'
-        )} type annotation. Overrides ${fmtVarName(
-          'typeBigIntAsString'
-        )}: ${fmtVal(JSON.stringify(this.options.typeBigIntAsString))}`;
+        return `Found  ${kleur.red('@bigint')} type annotation.`;
       }
-      return `${fmtVarName('typeBigIntAsString')}: ${fmtVal(
-        JSON.stringify(this.options.typeBigIntAsString)
-      )}`;
+      return `Default type for ${fmtVal('bigint')} columns.`;
     }
     if ('enum' === mysqlType) {
       const annotation = getValidEnumAnnotation(column);
@@ -1084,33 +1056,6 @@ export class Explorer {
     return `Default type for ${fmtVal(mysqlType)} columns.`;
   }
 
-  showTypeOptions(showHeader: boolean) {
-    if (showHeader) {
-      log.header(`Type Options`);
-    }
-    const typeImports =
-      this.options.typeImports.length === 0
-        ? [[fmtVarName('typeImports'), kleur.dim('none')]]
-        : this.options.typeImports.map((s, i) => [
-            i === 0 ? fmtVarName('typeImports') : '',
-            fmtVal(s)
-          ]);
-    log.table([
-      [
-        fmtVarName('typeBigIntAsString'),
-        fmtVal(JSON.stringify(this.options.typeBigIntAsString))
-      ],
-      [
-        fmtVarName('typeTinyIntOneAsBoolean'),
-        fmtVal(JSON.stringify(this.options.typeTinyIntOneAsBoolean))
-      ],
-      ...typeImports
-    ]);
-    if (showHeader) {
-      log.footer();
-    }
-  }
-
   showFieldInfo(table: FetchedTable, column: Column, showHeader: boolean) {
     if (showHeader) {
       log.header(
@@ -1131,9 +1076,9 @@ export class Explorer {
     log.table([
       ['Field Name', fmtVal(getFieldName(column))],
       ['Column Name', fmtVal(column.Field)],
-      ['Javscript Type', fmtVal(getJavascriptType(column, this.options))],
+      ['Javscript Type', fmtVal(getJavascriptType(column))],
       ['Type Note', this.explainJsType(column)],
-      ['Cast Type', fmtVal(getCastType(column, this.options))],
+      ['Cast Type', fmtVal(getCastType(column))],
       ...Object.keys(data).map((k) => [
         k,
         fmtVal(JSON.stringify(data[k as keyof typeof data]))

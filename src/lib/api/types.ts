@@ -131,7 +131,6 @@ export type Schema = {
   databaseName: string;
   models: ModelDefinition[];
   cast: SchemaCastMap;
-  typeOptions: TypeOptions;
 };
 
 export type CustomModelCast<M extends Model> = {
@@ -139,12 +138,6 @@ export type CustomModelCast<M extends Model> = {
 };
 export type SchemaCastMap = {
   [orgTableOrgCol: string]: CastType;
-};
-
-export type TypeOptions = {
-  typeTinyIntOneAsBoolean: boolean;
-  typeBigIntAsString: boolean;
-  typeImports: string[];
 };
 
 export type DbLoggingOptions = {

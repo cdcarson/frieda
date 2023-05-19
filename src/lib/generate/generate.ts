@@ -2,7 +2,6 @@ import { compileJavascript } from './compile-javascript.js';
 import { removeRecognizedFiles } from './remove-recognized-files.js';
 import type { FsPaths } from '$lib/fs/types.js';
 import type { FetchedSchema } from '../fetch/types.js';
-import type { TypeOptions } from '$lib/index.js';
 import type { JavascriptCode, TypescriptCode } from './types.js';
 import { getDatabaseTs } from './get-database-ts.js';
 import { getSchemaTs } from './get-schema-ts.js';
@@ -13,7 +12,7 @@ import { saveFile } from '$lib/fs/save-file.js';
 import { join } from 'node:path';
 export const generate = async (
   schema: FetchedSchema,
-  typeOptions: TypeOptions,
+  typeImports: string[],
   outputDirectory: string,
   compileJs: boolean
 ): Promise<FsPaths[]> => {
@@ -27,8 +26,8 @@ export const generate = async (
 
   const typescript: TypescriptCode = {
     'database.ts': getDatabaseTs(schema, bannerComment),
-    'schema.ts': getSchemaTs(schema, typeOptions, bannerComment),
-    'types.ts': getTypesTs(schema, typeOptions, bannerComment),
+    'schema.ts': getSchemaTs(schema, bannerComment),
+    'types.ts': getTypesTs(schema, typeImports, bannerComment),
     'full-text-search-indexes.ts': getFullTextSearchIndexesTs(
       schema,
       bannerComment

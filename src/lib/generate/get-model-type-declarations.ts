@@ -1,4 +1,4 @@
-import type { Table, TypeOptions } from '$lib/index.js';
+import type { Table } from '$lib/index.js';
 import {
   getJavascriptType,
   isPrimaryKey,
@@ -25,8 +25,7 @@ import {
 } from '../parse/types.js';
 
 export const getModelTypeDeclarations = (
-  table: Table,
-  options: Partial<TypeOptions>
+  table: Table
 ): {
   model: string;
   selectAll: string;
@@ -39,7 +38,7 @@ export const getModelTypeDeclarations = (
   const columnInfo = table.columns.map((column) => {
     return {
       column,
-      javascriptType: getJavascriptType(column, options),
+      javascriptType: getJavascriptType(column),
       name: getFieldName(column),
       isNullable: isNullable(column),
       modelPresence: getModelFieldPresence(column),
@@ -56,7 +55,9 @@ export const getModelTypeDeclarations = (
       })
       .join(';')}}`,
     selectAll: `export type ${getModelSelectAllTypeName(table)}={${columnInfo
-      .filter((o) => o.modelPresence !== ModelFieldPresence.undefinedForSelectAll)
+      .filter(
+        (o) => o.modelPresence !== ModelFieldPresence.undefinedForSelectAll
+      )
       .map((o) => {
         const orNull = o.isNullable ? '|null' : '';
         return `${o.name}:${o.javascriptType}${orNull}`;
@@ -88,9 +89,7 @@ export const getModelTypeDeclarations = (
         return `${o.name}${opt}:${o.javascriptType}${orNull}`;
       })
       .join(';')}}`,
-    findUniqueParams: `export type ${getModelFindUniqueTypeName(
-      table
-    )}=${[
+    findUniqueParams: `export type ${getModelFindUniqueTypeName(table)}=${[
       getModelPrimaryKeyTypeName(table),
       ...columnInfo
         .filter((o) => o.isUnique)

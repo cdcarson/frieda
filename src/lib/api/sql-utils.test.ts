@@ -1,8 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 import { bt, getOrderBy, getSearchSql, getWhere } from './sql-utils.js';
 import sql, { empty } from 'sql-template-tag';
-import type { FullTextSearchIndex } from './types.js';
 
 describe('bt', () => {
   it('should handle a string without a dot', () => {
@@ -79,7 +78,7 @@ describe('getOrderBy', () => {
 describe('getSearchSql', () => {
   // need some tests..
   it('works', () => {
-    const result = getSearchSql(
+    getSearchSql(
       [
         {
           key: 'UserProfile_name_bio_location_idx',

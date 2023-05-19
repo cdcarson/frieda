@@ -15,7 +15,7 @@ export const generateCode = async (
   const spinner = ora('Generating code').start();
   const files = await generate(
     schema,
-    options,
+    options.typeImports,
     options.outputDirectory,
     options.compileJs
   );

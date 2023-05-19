@@ -14,24 +14,12 @@ export const OPTION_DESCRIPTIONS = {
   compileJs: `Whether to compile and output javascript code rather than typescript files. Default: ${fmtVal(
     'false'
   )}.`,
-  typeBigIntAsString: `Whether to type ${fmtVal(
-    'bigint'
-  )} columns as javascript  ${fmtVal('string')}. Default: ${fmtVal('true')}.`,
-  typeTinyIntOneAsBoolean: `
-    Whether to type ${fmtVal('tinyint(1)')} columns as javascript ${fmtVal(
-    'boolean'
-  )}. Default: ${fmtVal('true')}.`,
+
   typeImports: `An array of import statements corresponding 
     to the types in ${colors.red('@json(MyType)')},
     ${colors.red('@enum(MyType)')}
     and ${colors.red('@set(MyType)')} annotations.
   `
-};
-
-export const COMMAND_DESCRIPTIONS = {
-  generate: 'Generate code.',
-  explain: `Explain model/field types and other information about the parsed schema.`,
-  init: `(Re-)initialize options in ${fmtPath(FRIEDA_RC_FILE_NAME)}.`
 };
 
 export const CLI_OPTIONS: CliOption[] = [
@@ -56,18 +44,7 @@ export const CLI_OPTIONS: CliOption[] = [
     description: OPTION_DESCRIPTIONS.compileJs,
     isRc: true
   },
-  {
-    name: 'typeBigIntAsString',
-    type: 'boolean',
-    description: OPTION_DESCRIPTIONS.typeBigIntAsString,
-    isRc: true
-  },
-  {
-    name: 'typeTinyIntOneAsBoolean',
-    type: 'boolean',
-    description: OPTION_DESCRIPTIONS.typeTinyIntOneAsBoolean,
-    isRc: true
-  },
+
   {
     name: 'help',
     type: 'boolean',
@@ -81,7 +58,7 @@ export const CLI_COMMANDS = [
   {
     name: 'generate',
     alias: 'g',
-    description: COMMAND_DESCRIPTIONS.generate,
+    description: 'Generate code.',
     usage: '[options]'
   },
   {
@@ -98,31 +75,11 @@ export const CLI_COMMANDS = [
       }
     ]
   },
-  {
-    name: 'type',
-    alias: 't',
-    description: 'Type a field',
-    usage: '[model] [field] [otherOptions]'
-  },
 
-  {
-    name: 'explain',
-    alias: 'e',
-    description: COMMAND_DESCRIPTIONS.explain,
-    usage: '[model] [otherOptions]',
-    positionalOptions: [
-      {
-        name: 'model',
-        description: `Optional. The name of a model or database table.`,
-        isRc: false,
-        type: 'string'
-      }
-    ]
-  },
   {
     name: 'init',
     alias: 'i',
-    description: COMMAND_DESCRIPTIONS.init,
+    description: `(Re-)initialize options in ${fmtPath(FRIEDA_RC_FILE_NAME)}.`,
     usage: '[options]'
   }
 ] as const;
