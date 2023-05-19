@@ -209,10 +209,10 @@ CREATE TABLE `BlogPost` (
 ) 
 ```
 ```ts
+// content column is INVISIBLE, so omitted
 export type BlogPostSelectAll = {
   id: string;
-  category: string | null; // column is nullable
-  ~~content: string;~~ // column is INVISIBLE, so omitted
+  category: string | null;
   slug: string;
   title: string;
 };
