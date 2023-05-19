@@ -173,7 +173,7 @@ export type SelectedModel<
   M extends Model,
   S extends ModelSelectColumnsInput<M>
 > = S extends (keyof M)[]
-  ? { [K in S[number]]: M[K] }
+  ? Required<{ [K in S[number]]: M[K] }>
   : ExcludeOptionalProps<M>;
 
 export type ModelWhereInput<M extends Model> = Partial<M> | Sql | undefined;
