@@ -120,7 +120,6 @@ ALTER TABLE `TeeShirt`
 
 The remainder of the MySQL column types are handled conventionally.
 
-
 ##### Integer column types
 
 Typed as javascript `number` and cast with `parseInt(value)`:
@@ -181,8 +180,9 @@ CREATE TABLE `BlogPost` (
   `slug` varchar(100) NOT NULL,
   `title` varchar(100) NOT NULL,
   PRIMARY KEY (`id`)
-) 
+)
 ```
+
 ```ts
 export type BlogPost = {
   id: string;
@@ -193,7 +193,8 @@ export type BlogPost = {
 };
 ```
 
-#### SELECT * type
+#### SELECT \* type
+
 This type omits fields from the model where the corresponding column has been marked `INVISIBLE`. It is what will be returned if you use `SELECT *` to get the model, rather than passing a column list or `'all'` to the `find` methods.
 
 Example:
@@ -206,8 +207,9 @@ CREATE TABLE `BlogPost` (
   `slug` varchar(100) NOT NULL,
   `title` varchar(100) NOT NULL,
   PRIMARY KEY (`id`)
-) 
+)
 ```
+
 ```ts
 // content column is INVISIBLE, so omitted
 export type BlogPostSelectAll = {
@@ -229,8 +231,9 @@ CREATE TABLE `BlogPost` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   -- etc...
   PRIMARY KEY (`id`)
-) 
+)
 ```
+
 ```ts
 export type BlogPostPrimaryKey = { id: string };
 ```
@@ -245,6 +248,7 @@ With multiple primary keys:
   PRIMARY KEY (`userId`,`publicationId`)
 )
 ```
+
 ```ts
 export type AccountUserPrimaryKey = {
   accountId: string;
@@ -254,10 +258,10 @@ export type AccountUserPrimaryKey = {
 
 #### Create Data Type
 
-The type of data that you pass to create a model. 
+The type of data that you pass to create a model.
 
-- If a column is `auto_increment` or has a default value, the field will be optional.
-- If a column is `GENERATED` the field will be omitted.
+- If a column is `auto_increment` or has a default value, the field is optional.
+- `GENERATED` fields are omitted.
 
 Example:
 
@@ -265,7 +269,42 @@ Example:
 
 ```
 
+#### Update Data Type
 
+The type of data that you pass to update a model.
+
+- Primary keys are omitted.
+- `GENERATED` fields are omitted.
+
+Example:
+
+```SQL
+
+```
+
+#### Find Unique Type
+
+A union of the primary key type plus any other fields that are unique in the model. 
+
+Example:
+
+```SQL
+CREATE TABLE `UserAccount` (
+  `userId` bigint unsigned NOT NULL,
+  `email` varchar(320) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `password` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`userId`),
+  UNIQUE KEY `UserAccount_email_key` (`email`),
+  KEY `UserAccount_userId_idx` (`userId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+
+```
+
+Generated model type:
+
+```ts
+export type UserAccountFindUnique = UserAccountPrimaryKey | { email: string };
+```
 
 ### Casting
 

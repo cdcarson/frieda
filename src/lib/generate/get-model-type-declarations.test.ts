@@ -39,9 +39,7 @@ describe('getModelTypeDeclarations', () => {
   it('create the named types', () => {
     const types = getModelTypeDeclarations(table, options);
     expect(types.model).toContain('export type FooBar');
-    expect(types.omittedBySelectAll).toContain(
-      'export type FooBarOmittedBySelectAll'
-    );
+    
     expect(types.createData).toContain('export type FooBarCreateData');
     expect(types.updateData).toContain('export type FooBarUpdateData');
     expect(types.findUniqueParams).toContain(

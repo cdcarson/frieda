@@ -51,12 +51,8 @@ export const getModelTypeDeclarations = (
   return {
     model: `export type ${getModelName(table)}={${columnInfo
       .map((o) => {
-        const opt =
-          o.modelPresence === ModelFieldPresence.undefinedForSelectAll
-            ? '?'
-            : '';
         const orNull = o.isNullable ? '|null' : '';
-        return `${o.name}${opt}:${o.javascriptType}${orNull}`;
+        return `${o.name}:${o.javascriptType}${orNull}`;
       })
       .join(';')}}`,
     selectAll: `export type ${getModelSelectAllTypeName(table)}={${columnInfo
