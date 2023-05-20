@@ -2,6 +2,7 @@ import ora from 'ora';
 import { getStdOutCols, spaces } from './formatters.js';
 import colors from 'kleur';
 import stripAnsi from 'strip-ansi';
+import { format } from 'prettier';
 
 const fromStringOrArray = (message: string | string[], indent = 2): string => {
   return (Array.isArray(message) ? message : [message])
@@ -76,6 +77,8 @@ const table = (data: string[][], header?: string[]) => {
     message(rowStr);
   }
 };
+
+
 export default {
   empty,
   warn,

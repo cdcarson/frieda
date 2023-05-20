@@ -1,16 +1,27 @@
-import { fetchSchema } from './shared.js';
-import { getOptions } from './options/get-options.js';
-import type { CliArgs } from './types.js';
-import { Explorer } from './explorer.js';
+
+import { getModelName } from '$lib/parse/model-parsers.js';
+import type { FetchedSchema, FetchedTable } from '$lib/fetch/types.js';
+import { promptModel } from './prompt-model.js';
+import { showModel } from './show.js';
 
 export const cmdModel = async (
-  cliArgs: Partial<CliArgs>,
+  schema: FetchedSchema,
   positionalArgs: string[]
 ) => {
-  const { options, connection, databaseUrlResult } = await getOptions(cliArgs);
-  const schema = await fetchSchema(connection);
+  
   const [modelName] = positionalArgs;
-  const explorer = new Explorer(schema, options, databaseUrlResult, connection);
-  const table = await explorer.getModel(modelName);
-  await explorer.showModel(table);
+  let table: FetchedTable
+  const s = (modelName || '').trim().toLowerCase();
+  const matches = schema.tables.filter((t) => {
+    return (
+      t.name.toLowerCase().startsWith(s) ||
+      getModelName(t).toLowerCase().startsWith(s)
+    );
+  });
+  if (matches.length === 1) {
+    table = matches[0]
+  } else {
+    table = await promptModel(schema, modelName)
+  }
+  showModel(table);
 };

@@ -6,7 +6,9 @@ import {
   isPrimaryKey
 } from '$lib/parse/field-parsers.js';
 import { getModelName } from '$lib/parse/model-parsers.js';
+import { FRIEDA_VERSION } from '$lib/version.js';
 import type { FieldDefinition, Schema } from '../api/types.js';
+import { calculateSchemaHash } from './calculate-schema-hash.js';
 import { getSchemaCastMap } from './get-schema-cast-map.js';
 
 export const getSchemaTs = (
@@ -15,6 +17,8 @@ export const getSchemaTs = (
 ): string => {
   const schema: Schema = {
     databaseName: fetched.databaseName,
+    friedaVersion: FRIEDA_VERSION,
+    schemaHash: calculateSchemaHash(fetched),
     cast: getSchemaCastMap(fetched),
     models: fetched.tables.map((t) => {
       const fields: FieldDefinition[] = t.columns.map((c) => {

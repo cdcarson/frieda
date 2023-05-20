@@ -1,9 +1,22 @@
-import colors from 'kleur';
+import kleur from 'kleur';
+import { format } from 'prettier';
 import stripAnsi from 'strip-ansi';
 
-export const fmtPath = (s: string) => colors.underline(colors.cyan(s));
-export const fmtVal = (s: string) => colors.blue(s);
-export const fmtVarName = (s: string) => colors.magenta(s);
+export const formatTypescriptCode = (code: string): string[] => {
+  return format(code, {
+    filepath: 'x.ts',
+    useTabs: false,
+    printWidth: getStdOutCols() - 4,
+    singleQuote: true
+  })
+    .trim()
+    .split('\n')
+    .map((s) => kleur.red(s));
+};
+
+export const fmtPath = (s: string) => kleur.underline(kleur.cyan(s));
+export const fmtVal = (s: string) => kleur.blue(s);
+export const fmtVarName = (s: string) => kleur.magenta(s);
 export const getStdOutCols = (): number => {
   return process.stdout.columns && typeof process.stdout.columns === 'number'
     ? process.stdout.columns
@@ -53,8 +66,8 @@ export const maskDatabaseURLPassword = (urlStr: string): string => {
   url.protocol = 'http:';
   const { username, hostname } = url;
   url.password = '<PASSWORD>';
-  return colors.cyan(
-    `${protocol}//${username}:${colors.gray('<PASSWORD>')}@${hostname}`
+  return kleur.cyan(
+    `${protocol}//${username}:${kleur.gray('<PASSWORD>')}@${hostname}`
   );
 };
 

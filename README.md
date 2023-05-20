@@ -168,7 +168,7 @@ For each table in the database, Frieda generates several model types:
 This is the representation of a row in the table, and is what is returned by the `ModelDb` find methods. Each column is represented by a field.
 
 - If the column is nullable, the field's javascript type will be followed by `|null`.
-- Note that this type will include fields where the column has been marked `INVISIBLE`
+- Note that this type *will include* fields where the column has been marked `INVISIBLE`, even though thay are omitted from the model if using `SELECT *` to retrieve the model. See the [SELECT ALL type](#select-all-type) below.
 
 Example:
 
@@ -193,7 +193,7 @@ export type BlogPost = {
 };
 ```
 
-#### SELECT \* type
+#### SELECT ALL type
 
 This type omits fields from the model where the corresponding column has been marked `INVISIBLE`. It is what will be returned if you use `SELECT *` to get the model, rather than passing a column list or `'all'` to the `find` methods.
 
