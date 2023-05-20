@@ -1,7 +1,6 @@
 import {
   getFullTextSearchIndexes,
   getModelCreateDataTypeName,
-  getModelDbTypeName,
   getModelFindUniqueTypeName,
   getModelName,
   getModelPrimaryKeyTypeName,
@@ -14,7 +13,6 @@ import {
   fmtVal,
   fmtVarName,
   formatTypescriptCode,
-  getStdOutCols,
   squishWords
 } from './ui/formatters.js';
 import log from './ui/log.js';
@@ -46,14 +44,11 @@ import {
 
 export const showModel = (table: FetchedTable) => {
   log.header(`Model: ${getModelName(table)}`);
-
   log.info([
     kleur.bold('Model:') + ` ${fmtVal(getModelName(table))}`,
     kleur.dim(`Table name: ${table.name}`)
   ]);
-
   console.log();
-
   showModelFields(table);
   console.log();
   const primaryKeys = table.columns.filter((c) => isPrimaryKey(c));
@@ -61,152 +56,33 @@ export const showModel = (table: FetchedTable) => {
     kleur.bold(`Primary Key${primaryKeys.length !== 1 ? 's' : ''}: `) +
       primaryKeys.map((c) => fmtVarName(getFieldName(c))).join(', ')
   );
-
   console.log();
   showModelCreateTable(table);
   console.log();
-
-  const typeDecls = getModelTypeDeclarations(table);
-
-  log.info([
-    kleur.bold('Model Type:') + ' ' + fmtVal(getModelName(table)),
-    kleur.dim('The base model type'),
-    ...formatTypescriptCode(typeDecls.model)
-  ]);
+  showBaseModelType(table);
   console.log();
-
-  const undefinedForSelectAll = table.columns
-    .filter(
-      (c) =>
-        getModelFieldPresence(c) === ModelFieldPresence.undefinedForSelectAll
-    )
-    .map((c) => fmtVarName(getFieldName(c)));
-  const selectAllNotes =
-    undefinedForSelectAll.length > 0
-      ? [
-          kleur.italic('Note INVISIBLE columns:') +
-            ` ${undefinedForSelectAll.join(', ')}. Omitted if using ${kleur.red(
-              'SELECT *'
-            )}.`
-        ]
-      : [kleur.italic('Note:') + ` No INVISIBLE columns.`];
-
-  log.info([
-    kleur.bold('Select * Type:') +
-      ' ' +
-      fmtVal(getModelSelectAllTypeName(table)),
-    ...squishWords(
-      kleur.dim(`This type omits fields from the model 
-          where the  corresponding column has been marked ${kleur.red(
-            'INVISIBLE'
-          )}. 
-          It's what will be returned if you use ${kleur.red(`SELECT *`)}.`)
-    ).split('\n'),
-    ...formatTypescriptCode(typeDecls.selectAll),
-    ...selectAllNotes
-  ]);
+  showSelectAllModelType(table);
   console.log();
-
-  log.info([
-    kleur.bold('Primary Key Type:') +
-      ' ' +
-      fmtVal(getModelPrimaryKeyTypeName(table)),
-    ...squishWords(
-      kleur.dim(`This type is used to select, update and delete models.`)
-    ).split('\n'),
-    ...formatTypescriptCode(typeDecls.primaryKey)
-  ]);
+  showPrimaryKeyType(table);
   console.log();
-
-  const createDataNotes = table.columns
-    .map((c) => {
-      const p = getCreateModelFieldPresence(c);
-      if (p === CreateModelFieldPresence.omittedGenerated) {
-        return `- ${fmtVarName(getFieldName(c))} is omitted in ${fmtVal(
-          getModelCreateDataTypeName(table)
-        )}. ${kleur.dim('(Column is GENERATED.)')}`;
-      }
-      if (p === CreateModelFieldPresence.optionalAutoIncrement) {
-        return `- ${fmtVarName(getFieldName(c))} is optional in ${fmtVal(
-          getModelCreateDataTypeName(table)
-        )}. ${kleur.dim('(Column is auto_increment.)')}`;
-      }
-      if (p === CreateModelFieldPresence.optionalHasDefault) {
-        return `- ${fmtVarName(getFieldName(c))} is optional in ${fmtVal(
-          getModelCreateDataTypeName(table)
-        )}. ${kleur.dim('(Column has default value.)')}`;
-      }
-      return '';
-    })
-    .filter((s) => s.length > 0);
-
-  if (createDataNotes.length > 0) {
-    createDataNotes.unshift(kleur.italic('Notes:'));
-  }
-  log.info([
-    kleur.bold('Create Data Type:') +
-      ' ' +
-      fmtVal(getModelCreateDataTypeName(table)),
-    ...formatTypescriptCode(typeDecls.createData),
-    ...createDataNotes
-  ]);
+  showCreateDataType(table);
   console.log();
-
-  const updateDataNotes = table.columns
-    .map((c) => {
-      const p = getUpdateModelFieldPresence(c);
-      if (p === UpdateModelFieldPresence.omittedGenerated) {
-        return `- ${fmtVarName(getFieldName(c))} is omitted in ${fmtVal(
-          getModelUpdateDataTypeName(table)
-        )}. ${kleur.dim('(Column is GENERATED.)')}`;
-      }
-      if (p === UpdateModelFieldPresence.omittedPrimaryKey) {
-        return `- ${fmtVarName(getFieldName(c))} is omitted in ${fmtVal(
-          getModelUpdateDataTypeName(table)
-        )}. ${kleur.dim('(Column is primary key.)')}`;
-      }
-
-      return '';
-    })
-    .filter((s) => s.length > 0);
-
-  if (updateDataNotes.length > 0) {
-    updateDataNotes.unshift(kleur.italic('Notes:'));
-  }
-
-  log.info([
-    kleur.bold('Update Data Type:') +
-      ' ' +
-      fmtVal(getModelUpdateDataTypeName(table)),
-    ...formatTypescriptCode(typeDecls.updateData),
-    ...updateDataNotes
-  ]);
+  showUpdateDataType(table);
   console.log();
-
-  const uniqueNotes = table.columns
-    .filter((c) => isUnique(c))
-    .map((c) => {
-      return `- ${fmtVarName(getFieldName(c))} is unique. ${kleur.dim(
-        '(Key: UNI)'
-      )}`;
-    });
-
-  if (uniqueNotes.length > 0) {
-    uniqueNotes.unshift(kleur.italic('Notes:'));
-  }
-  log.info([
-    kleur.bold('Find Unique Type:') +
-      ' ' +
-      fmtVal(getModelFindUniqueTypeName(table)),
-    ...formatTypescriptCode(typeDecls.findUniqueParams),
-    ...uniqueNotes
-  ]);
+  showFindUniqueType(table)
   console.log();
   showModelIndexes(table);
   console.log();
   showModelSearchIndexes(table);
   log.footer();
 };
+
+export const modelPreamble = (table: FetchedTable) => {
+  log.info([
+    kleur.bold('Model:') + ` ${fmtVal(getModelName(table))}`,
+    kleur.dim(`Table name: ${table.name}`)
+  ]);
+}
 
 export const showModelFields = (table: FetchedTable) => {
   log.info(kleur.bold(`Fields (${table.columns.length})`));
@@ -318,16 +194,186 @@ export const explainJsType = (column: Column): string => {
 
 export const showBaseModelType = (table: FetchedTable) => {
   const typeDecls = getModelTypeDeclarations(table);
-  const description = `
-  This is the representation of a row in the table, and is what is returned by the ${getModelDbTypeName(
-    table
-  )} ${kleur.bold('find')} methods. Note that .
+  const description = squishWords(`
+    The base representation of the model. 
+    Fields where the underlying column is INVISIBLE are optional.
+  `)
+    .split('\n')
+    .map((s) => kleur.dim(s));
+  const notes: string[] = table.columns
+    .filter(
+      (c) =>
+        getModelFieldPresence(c) === ModelFieldPresence.undefinedForSelectAll
+    )
+    .map((c) => {
+      return `- ${fmtVarName(getFieldName(c))} is optional in ${fmtVal(
+        getModelName(table)
+      )}. ${kleur.dim('(Column is INVISIBLE.)')}`;
+    });
 
-  `;
+  if (notes.length > 0) {
+    notes.unshift(kleur.italic('Notes:'));
+  }
+
   log.info([
     kleur.bold('Model Type:') + ' ' + fmtVal(getModelName(table)),
-    kleur.dim('The base model type'),
-    ...formatTypescriptCode(typeDecls.model)
+    ...description,
+    ...formatTypescriptCode(typeDecls.model),
+    ...notes
   ]);
-  console.log();
+};
+
+export const showSelectAllModelType = (table: FetchedTable) => {
+  const typeDecls = getModelTypeDeclarations(table);
+  const description = squishWords(`
+    The representation of the model when fetched using 'SELECT *'. 
+    Fields where the underlying column is INVISIBLE are omitted.
+  `)
+    .split('\n')
+    .map((s) => kleur.dim(s));
+
+  const notes: string[] = table.columns
+    .filter(
+      (c) =>
+        getModelFieldPresence(c) === ModelFieldPresence.undefinedForSelectAll
+    )
+    .map((c) => {
+      return `- ${fmtVarName(getFieldName(c))} is omitted in ${fmtVal(
+        getModelSelectAllTypeName(table)
+      )}. ${kleur.dim('(Column is INVISIBLE.)')}`;
+    });
+
+  if (notes.length > 0) {
+    notes.unshift(kleur.italic('Notes:'));
+  }
+  log.info([
+    kleur.bold('Select * Type:') +
+      ' ' +
+      fmtVal(getModelSelectAllTypeName(table)),
+    ...description,
+    ...formatTypescriptCode(typeDecls.selectAll),
+    ...notes
+  ]);
+};
+
+export const showPrimaryKeyType = (table: FetchedTable) => {
+  const typeDecls = getModelTypeDeclarations(table);
+  log.info([
+    kleur.bold('Primary Key Type:') +
+      ' ' +
+      fmtVal(getModelPrimaryKeyTypeName(table)),
+    ...squishWords(
+      kleur.dim(`Used to select, update and delete models.`)
+    ).split('\n'),
+    ...formatTypescriptCode(typeDecls.primaryKey)
+  ]);
+};
+
+export const showCreateDataType = (table: FetchedTable) => {
+  const typeDecls = getModelTypeDeclarations(table);
+  const description = squishWords(`
+    Data passed to create a new ${getModelName(table)}.
+  `)
+    .split('\n')
+    .map((s) => kleur.dim(s));
+  const notes = table.columns
+    .map((c) => {
+      const p = getCreateModelFieldPresence(c);
+      if (p === CreateModelFieldPresence.omittedGenerated) {
+        return `- ${fmtVarName(getFieldName(c))} is omitted in ${fmtVal(
+          getModelCreateDataTypeName(table)
+        )}. ${kleur.dim('(Column is GENERATED.)')}`;
+      }
+      if (p === CreateModelFieldPresence.optionalAutoIncrement) {
+        return `- ${fmtVarName(getFieldName(c))} is optional in ${fmtVal(
+          getModelCreateDataTypeName(table)
+        )}. ${kleur.dim('(Column is auto_increment.)')}`;
+      }
+      if (p === CreateModelFieldPresence.optionalHasDefault) {
+        return `- ${fmtVarName(getFieldName(c))} is optional in ${fmtVal(
+          getModelCreateDataTypeName(table)
+        )}. ${kleur.dim('(Column has default value.)')}`;
+      }
+      return '';
+    })
+    .filter((s) => s.length > 0);
+
+  if (notes.length > 0) {
+    notes.unshift(kleur.italic('Notes:'));
+  }
+  log.info([
+    kleur.bold('Create Data Type:') +
+      ' ' +
+      fmtVal(getModelCreateDataTypeName(table)),
+    ...description,
+    ...formatTypescriptCode(typeDecls.createData),
+    ...notes
+  ]);
+};
+
+export const showUpdateDataType = (table: FetchedTable) => {
+  const typeDecls = getModelTypeDeclarations(table);
+  const description = squishWords(`
+    Data passed to update an existing ${getModelName(table)}.
+  `)
+    .split('\n')
+    .map((s) => kleur.dim(s));
+  const notes = table.columns
+    .map((c) => {
+      const p = getUpdateModelFieldPresence(c);
+      if (p === UpdateModelFieldPresence.omittedGenerated) {
+        return `- ${fmtVarName(getFieldName(c))} is omitted in ${fmtVal(
+          getModelUpdateDataTypeName(table)
+        )}. ${kleur.dim('(Column is GENERATED.)')}`;
+      }
+      if (p === UpdateModelFieldPresence.omittedPrimaryKey) {
+        return `- ${fmtVarName(getFieldName(c))} is omitted in ${fmtVal(
+          getModelUpdateDataTypeName(table)
+        )}. ${kleur.dim('(Column is primary key.)')}`;
+      }
+
+      return '';
+    })
+    .filter((s) => s.length > 0);
+
+  if (notes.length > 0) {
+    notes.unshift(kleur.italic('Notes:'));
+  }
+  log.info([
+    kleur.bold('Update Data Type:') +
+      ' ' +
+      fmtVal(getModelUpdateDataTypeName(table)),
+    ...description,
+    ...formatTypescriptCode(typeDecls.updateData),
+    ...notes
+  ]);
+};
+
+export const showFindUniqueType = (table: FetchedTable) => {
+  const typeDecls = getModelTypeDeclarations(table);
+  const description = squishWords(`
+    The various ways you can select a unique ${getModelName(table)}.
+  `)
+    .split('\n')
+    .map((s) => kleur.dim(s));
+  const notes = table.columns
+    .filter((c) => isUnique(c))
+    .map((c) => {
+      return `- ${fmtVarName(getFieldName(c))} is unique. ${kleur.dim(
+        '(Key: UNI)'
+      )}`;
+    });
+
+  if (notes.length > 0) {
+    notes.unshift(kleur.italic('Notes:'));
+  }
+
+  log.info([
+    kleur.bold('Find Unique Type:') +
+      ' ' +
+      fmtVal(getModelFindUniqueTypeName(table)),
+    ...description,
+    ...formatTypescriptCode(typeDecls.findUniqueParams),
+    ...notes
+  ]);
 };

@@ -165,10 +165,10 @@ For each table in the database, Frieda generates several model types:
 
 #### Base model type
 
-This is the representation of a row in the table, and is what is returned by the `ModelDb` find methods. Each column is represented by a field.
+The base representation of a row in the table.
 
-- If the column is nullable, the field's javascript type will be followed by `|null`.
-- Note that this type *will include* fields where the column has been marked `INVISIBLE`, even though thay are omitted from the model if using `SELECT *` to retrieve the model. See the [SELECT ALL type](#select-all-type) below.
+- If the underlying column is nullable, the field's javascript type is followed by `|null`.
+- If the underlying column is `INVISIBLE` is marked as optional, since it will be `undefined` when using `SELECT *` to retrieve the model. See the [SELECT ALL type](#select-all-type) below.
 
 Example:
 
@@ -187,7 +187,7 @@ CREATE TABLE `BlogPost` (
 export type BlogPost = {
   id: string;
   category: string | null; // column is nullable
-  content: string; // column is INVISIBLE, but defined in the base model
+  content?: string; // optional: column is INVISIBLE
   slug: string;
   title: string;
 };
