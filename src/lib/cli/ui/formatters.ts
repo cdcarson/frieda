@@ -6,7 +6,7 @@ export const formatTypescriptCode = (code: string): string[] => {
   return format(code, {
     filepath: 'x.ts',
     useTabs: false,
-    printWidth: getStdOutCols() - 4,
+    printWidth: Math.min(getStdOutCols() - 4, 40),
     singleQuote: true
   })
     .trim()

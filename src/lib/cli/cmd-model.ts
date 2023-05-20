@@ -21,14 +21,8 @@ import log from './ui/log.js';
 type What =
   | 'fields'
   | 'createTable'
-  | 'baseModelType'
-  | 'selectAllType'
-  | 'primaryKeyType'
-  | 'createDataType'
-  | 'updateDataType'
-  | 'findUniqueType'
+  | 'modelTypes'
   | 'indexes'
-  | 'searchIndexes'
   | 'exit';
 
 type WhatNext = {
@@ -60,35 +54,41 @@ export const cmdModel = async (
     console.log()
     switch (what) {
       case 'fields':
+        log.header(`Fields | Model: ${getModelName(table)}`)
         showModelFields(table);
+        log.footer()
         break;
-      case 'baseModelType':
+      case 'modelTypes':
+        log.header(`Model Types | Model: ${getModelName(table)}`)
         showBaseModelType(table);
+        console.log();
+        showSelectAllModelType(table)
+        console.log();
+        showPrimaryKeyType(table)
+        console.log();
+        showCreateDataType(table)
+        console.log();
+        showUpdateDataType(table)
+        console.log();
+        showFindUniqueType(table)
+        log.footer()
         break;
-      case 'createDataType':
-        showCreateDataType(table);
-        break;
-      case 'updateDataType':
-        showUpdateDataType(table);
-        break;
+      
       case 'createTable':
+        log.header(`CREATE TABLE | Model: ${getModelName(table)}`)
         showModelCreateTable(table);
+        log.footer()
         break;
-      case 'findUniqueType':
-        showFindUniqueType(table);
-        break;
+    
       case 'indexes':
+        log.header(`Indexes | Model: ${getModelName(table)}`)
         showModelIndexes(table);
-        break;
-      case 'searchIndexes':
+        console.log();
         showModelSearchIndexes(table);
+        log.footer()
         break;
-      case 'primaryKeyType':
-        showPrimaryKeyType(table);
-        break;
-      case 'selectAllType':
-        showSelectAllModelType(table);
-        break;
+      
+      
     }
     //log.footer()
     console.log();
@@ -105,38 +105,16 @@ const promptShowWhat = async (table: FetchedTable, lastWhat: What): Promise<What
       value: 'fields'
     },
     {
-      title:  `Model Type`,
-      value: 'baseModelType'
+      title:  `Model Types`,
+      value: 'modelTypes'
     },
 
-    {
-      title: `SELECT * Type`,
-      value: 'selectAllType'
-    },
-    {
-      title: `Primary Key Type`,
-      value: 'primaryKeyType'
-    },
-    {
-      title: `Create Data Type`,
-      value: 'createDataType'
-    },
-    {
-      title: `Update Data Type`,
-      value: 'updateDataType'
-    },
-    {
-      title: `Find Unique Type`,
-      value: 'findUniqueType'
-    },
+    
     {
       title: `Indexes`,
       value: 'indexes'
     },
-    {
-      title: `Search Indexes`,
-      value: 'searchIndexes'
-    },
+    
     {
       title: 'CREATE TABLE sql',
       value: 'createTable'
