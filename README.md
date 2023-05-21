@@ -15,8 +15,7 @@ Frieda may be for you if:
 
 ## What Frieda does
 
-- Defines a reasonable set of rules to map MySQL column types to javascript types. 
-- In the limited set of cases where a useful javascript type cannot be directly inferred from the MySQL type, or where it may be convenient for the javascript type to be narrowed, Frieda defines **type annotations**.
+- Defines a reasonable set of rules to map MySQL column types to javascript types. In the limited set of cases where a useful javascript type cannot be directly inferred from the MySQL type, or where it may be convenient for the javascript type to be narrowed, Frieda defines **type annotations**, which can be added to the column `COMMENT'.
 - Given a database URL, introspects the schema, and generates some code:
   - Javascript types for each table based on the reasonable rules, including the base model type and types for selecting, creating and updating models.
   - Casting logic (e.g. `parseFloat` vs `parseInt` vs `JSON.parse`, etc.)
