@@ -4,7 +4,7 @@ Typescript / javascript code generator for the PlanetScale serverless driver.
 
 ## Motivation
 
-Frieda's goal is to provide a dead-simple developer experience for javascript and typescript projects using PlanetScale. The focus is on generating useful, solid application code, not on managing migrations or abstracting away SQL. Frieda is not an ORM or a query builder. Those types of tools seem great, but they tend to try to be all things to all people, sacrificing simplicity in exchange for certain (ahem) benefits.
+Frieda's goal is to provide a dead-simple developer experience for javascript and typescript projects using PlanetScale. The focus is on generating useful, solid application code, not on managing migrations or abstracting away all SQL. Frieda is not an ORM or a query builder. Those types of tools seem great, but they tend to try to be all things to all people, sacrificing simplicity and directness in exchange for certain (IMO dubious) benefits.
 
 Frieda may be for you if:
 
