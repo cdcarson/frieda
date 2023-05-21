@@ -15,9 +15,10 @@ Frieda may be for you if:
 
 ## What Frieda does
 
-- Defines a reasonable set of rules to map MySQL column types to javascript types.
-- Given a database URL, introspects the schema, and generates:
-  - Javascript model types for each table, including the base model type and types for creating and updating models.
+- Defines a reasonable set of rules to map MySQL column types to javascript types. 
+- In the limited set of cases where a useful javascript type cannot be directly inferred from the MySQL type, or where it may be convenient for the javascript type to be narrowed, Frieda defines **type annotations**.
+- Given a database URL, introspects the schema, and generates some code:
+  - Javascript types for each table based on the reasonable rules, including the base model type and types for selecting, creating and updating models.
   - Casting logic (e.g. `parseFloat` vs `parseInt` vs `JSON.parse`, etc.)
   - An `AppDb` class. This class provides CrUD methods (`db.user.create`, `db.account.update` and so on) and simple (single table) select methods (`db.user.findFirst`, etc.). `AppDb` also provides `select` and `execute` methods for running queries outside the context of a single table/model.
   - Some other useful helpers for constructing queries.
