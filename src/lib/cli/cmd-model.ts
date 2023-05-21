@@ -1,12 +1,13 @@
-import { getModelCreateDataTypeName, getModelFindUniqueTypeName, getModelName, getModelPrimaryKeyTypeName, getModelSelectAllTypeName, getModelUpdateDataTypeName } from '$lib/parse/model-parsers.js';
+import {
+  getModelName
+} from '$lib/parse/model-parsers.js';
 import type { FetchedSchema, FetchedTable } from '$lib/fetch/types.js';
 import { promptModel } from './prompt-model.js';
+import prompts from 'prompts';
 import {
-  modelPreamble,
   showBaseModelType,
   showCreateDataType,
   showFindUniqueType,
-  showModel,
   showModelCreateTable,
   showModelFields,
   showModelIndexes,
@@ -18,12 +19,7 @@ import {
 import { prompt } from './ui/prompt.js';
 import log from './ui/log.js';
 
-type What =
-  | 'fields'
-  | 'createTable'
-  | 'modelTypes'
-  | 'indexes'
-  | 'exit';
+type What = 'fields' | 'createTable' | 'modelTypes' | 'indexes' | 'exit';
 
 type WhatNext = {
   title: string;
@@ -49,72 +45,70 @@ export const cmdModel = async (
     table = await promptModel(schema, modelName);
   }
   console.log();
-  let what: What = await promptShowWhat(table, 'fields')
+  let what: What = 'fields'
   while (what !== 'exit') {
-    console.log()
+    console.log();
     switch (what) {
       case 'fields':
-        log.header(`Fields | Model: ${getModelName(table)}`)
+        log.header(`Fields | Model: ${getModelName(table)}`);
         showModelFields(table);
-        log.footer()
+        log.footer();
         break;
       case 'modelTypes':
-        log.header(`Model Types | Model: ${getModelName(table)}`)
+        log.header(`Model Types | Model: ${getModelName(table)}`);
         showBaseModelType(table);
         console.log();
-        showSelectAllModelType(table)
+        showSelectAllModelType(table);
         console.log();
-        showPrimaryKeyType(table)
+        showPrimaryKeyType(table);
         console.log();
-        showCreateDataType(table)
+        showCreateDataType(table);
         console.log();
-        showUpdateDataType(table)
+        showUpdateDataType(table);
         console.log();
-        showFindUniqueType(table)
-        log.footer()
+        showFindUniqueType(table);
+        log.footer();
         break;
-      
+
       case 'createTable':
-        log.header(`CREATE TABLE | Model: ${getModelName(table)}`)
+        log.header(`CREATE TABLE | Model: ${getModelName(table)}`);
         showModelCreateTable(table);
-        log.footer()
+        log.footer();
         break;
-    
+
       case 'indexes':
-        log.header(`Indexes | Model: ${getModelName(table)}`)
+        log.header(`Indexes | Model: ${getModelName(table)}`);
         showModelIndexes(table);
         console.log();
         showModelSearchIndexes(table);
-        log.footer()
+        log.footer();
         break;
-      
-      
     }
     //log.footer()
     console.log();
     what = await promptShowWhat(table, what);
   }
-  
 };
 
-const promptShowWhat = async (table: FetchedTable, lastWhat: What): Promise<What> => {
-
+const promptShowWhat = async (
+  table: FetchedTable,
+  lastWhat: What
+): Promise<What> => {
   const choices: WhatNext[] = [
     {
       title: `Fields`,
       value: 'fields'
     },
     {
-      title:  `Model Types`,
+      title: `Model Types`,
       value: 'modelTypes'
     },
 
-    
     {
       title: `Indexes`,
       value: 'indexes'
     },
-    
+
     {
       title: 'CREATE TABLE sql',
       value: 'createTable'
@@ -124,8 +118,11 @@ const promptShowWhat = async (table: FetchedTable, lastWhat: What): Promise<What
       value: 'exit'
     }
   ];
-  const initial = Math.max(choices.findIndex(c => lastWhat === c.value), 0);
-  
+  const initial = Math.max(
+    choices.findIndex((c) => lastWhat === c.value),
+    0
+  );
+
   return await prompt<What>({
     type: 'select',
     initial,
