@@ -1,9 +1,6 @@
-import {
-  getModelName
-} from '$lib/parse/model-parsers.js';
+import { getModelName } from '$lib/parse/model-parsers.js';
 import type { FetchedSchema, FetchedTable } from '$lib/fetch/types.js';
 import { promptModel } from './prompt-model.js';
-import prompts from 'prompts';
 import {
   showBaseModelType,
   showCreateDataType,
@@ -11,15 +8,33 @@ import {
   showModelCreateTable,
   showModelFields,
   showModelIndexes,
+  showModelPreamble,
+  showModelPrimaryKeys,
   showModelSearchIndexes,
   showPrimaryKeyType,
+  showRawColumns,
   showSelectAllModelType,
   showUpdateDataType
 } from './show.js';
 import { prompt } from './ui/prompt.js';
 import log from './ui/log.js';
+import { promptField } from './prompt-field.js';
+import { getFieldModifications, type FieldModification, runSql, addField } from './modify.js';
+import type { Connection } from '@planetscale/database';
+import { cliFetchSchema } from './cli-fetch-schema.js';
+import { cliGenerateCode } from './cli-generate-code.js';
+import type { ResolvedCliOptions } from './types.js';
 
-type What = 'fields' | 'createTable' | 'modelTypes' | 'indexes' | 'exit';
+type What =
+  | 'fields'
+  | 'modelTypes'
+  | 'rawColumns'
+  | 'createTable'
+  | 'indexes'
+  | 'modifyColumn'
+  | 'addColumn'
+  | 'otherModel'
+  | 'exit';
 
 type WhatNext = {
   title: string;
@@ -28,7 +43,9 @@ type WhatNext = {
 
 export const cmdModel = async (
   schema: FetchedSchema,
-  positionalArgs: string[]
+  positionalArgs: string[],
+  connection: Connection,
+  options: ResolvedCliOptions
 ) => {
   const [modelName] = positionalArgs;
   let table: FetchedTable;
@@ -45,17 +62,70 @@ export const cmdModel = async (
     table = await promptModel(schema, modelName);
   }
   console.log();
-  let what: What = 'fields'
+  let what: What = 'fields';
   while (what !== 'exit') {
     console.log();
+    if ('otherModel' === what) {
+      table = await promptModel(schema, table.name);
+
+    }
+    if ('modifyColumn' === what) {
+      const column = await promptField(table);
+      const mods: FieldModification[] = getFieldModifications(table, column);
+      const mod = await prompt<FieldModification>({
+        type: 'select',
+        name: 'mod',
+        message: 'Modification',
+        choices: mods.map(mod => {
+          return {
+            title: mod.description,
+            value: mod
+          }
+        })
+      })
+      const statement = await mod.getSql();
+      const success = await runSql(connection, statement);
+      if (success) {
+        schema = await cliFetchSchema(connection);
+        await cliGenerateCode(schema, options);
+        const newTable = schema.tables.find(t => t.name === table.name);
+        if (! newTable) {
+          table = await promptModel(schema, table.name);
+        } else {
+          table = newTable;
+        }
+      } 
+    }
+    if ('addColumn' === what) {
+      const success = await addField(table, connection);
+      if (success) {
+        schema = await cliFetchSchema(connection);
+        await cliGenerateCode(schema, options);
+        const newTable = schema.tables.find(t => t.name === table.name);
+        if (! newTable) {
+          table = await promptModel(schema, table.name);
+        } else {
+          table = newTable;
+        }
+      } 
+    }
     switch (what) {
+      case 'addColumn':      
+      case 'modifyColumn':
+      case 'otherModel':
       case 'fields':
-        log.header(`Fields | Model: ${getModelName(table)}`);
+        log.header(`↓ Model Fields: ${getModelName(table)}`);
+        showModelPreamble(table);
+        console.log();
         showModelFields(table);
-        log.footer();
+        console.log();
+        showModelPrimaryKeys(table)
+        log.header(`↑ Model Fields: ${getModelName(table)}`);
         break;
       case 'modelTypes':
-        log.header(`Model Types | Model: ${getModelName(table)}`);
+        log.header(`↓ Model Types: ${getModelName(table)}`);
+        showModelPreamble(table);
+        console.log();
         showBaseModelType(table);
         console.log();
         showSelectAllModelType(table);
@@ -67,24 +137,35 @@ export const cmdModel = async (
         showUpdateDataType(table);
         console.log();
         showFindUniqueType(table);
-        log.footer();
+        log.header(`↑ Model Types: ${getModelName(table)}`);
         break;
-
       case 'createTable':
-        log.header(`CREATE TABLE | Model: ${getModelName(table)}`);
+        log.header(`↓ Create Table: ${getModelName(table)}`);
+        showModelPreamble(table);
+        console.log();
         showModelCreateTable(table);
-        log.footer();
+        log.header(`↑ Create Table: ${getModelName(table)}`);
         break;
-
       case 'indexes':
-        log.header(`Indexes | Model: ${getModelName(table)}`);
+        log.header(`↓ Indexes: ${getModelName(table)}`);
+        showModelPreamble(table);
+        console.log();
         showModelIndexes(table);
         console.log();
         showModelSearchIndexes(table);
-        log.footer();
+        log.header(`↑ Indexes: ${getModelName(table)}`);
         break;
+      case 'rawColumns':
+        log.header(`↓ Columns: ${getModelName(table)}`);
+        showModelPreamble(table);
+        console.log();
+        showRawColumns(table);
+        log.header(`↑ Columns: ${getModelName(table)}`);
+        break;
+      
+        
+        
     }
-    //log.footer()
     console.log();
     what = await promptShowWhat(table, what);
   }
@@ -96,23 +177,39 @@ const promptShowWhat = async (
 ): Promise<What> => {
   const choices: WhatNext[] = [
     {
-      title: `Fields`,
+      title: `Show Model Fields`,
       value: 'fields'
     },
     {
-      title: `Model Types`,
+      title: 'Show Columns',
+      value: 'rawColumns'
+    },
+    {
+      title: `Show Model Types`,
       value: 'modelTypes'
     },
-
     {
-      title: `Indexes`,
+      title: `Show Indexes`,
       value: 'indexes'
     },
-
     {
-      title: 'CREATE TABLE sql',
+      title: `Show CREATE TABLE`,
       value: 'createTable'
     },
+    {
+      title: `Modify Field`,
+      value: 'modifyColumn'
+    },
+    {
+      title: `Add Field`,
+      value: 'addColumn'
+    },
+
+    {
+      title: `Show Another Model`,
+      value: 'otherModel'
+    },
+
     {
       title: 'Exit',
       value: 'exit'
@@ -128,6 +225,6 @@ const promptShowWhat = async (
     initial,
     name: 'showWhat',
     choices,
-    message: `Model: ${getModelName(table)} | Show:`
+    message: `Model: ${getModelName(table)}`
   });
 };

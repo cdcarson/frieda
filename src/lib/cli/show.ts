@@ -34,13 +34,13 @@ import {
 } from '../parse/field-parsers.js';
 import type { Column, Index } from '$lib/index.js';
 import { DEFAULT_JSON_FIELD_TYPE } from '$lib/constants.js';
-import { format } from 'prettier';
 import { getModelTypeDeclarations } from '$lib/generate/get-model-type-declarations.js';
 import {
   CreateModelFieldPresence,
   ModelFieldPresence,
   UpdateModelFieldPresence
 } from '$lib/parse/types.js';
+import { format } from 'prettier';
 
 export const showModel = (table: FetchedTable) => {
   log.header(`Model: ${getModelName(table)}`);
@@ -77,11 +77,19 @@ export const showModel = (table: FetchedTable) => {
   log.footer();
 };
 
-export const modelPreamble = (table: FetchedTable) => {
+export const showModelPreamble = (table: FetchedTable) => {
   log.info([
     kleur.bold('Model:') + ` ${fmtVal(getModelName(table))}`,
     kleur.dim(`Table name: ${table.name}`)
   ]);
+}
+
+export const showModelPrimaryKeys = (table: FetchedTable) => {
+  const primaryKeys = table.columns.filter((c) => isPrimaryKey(c));
+  log.info(
+    kleur.bold(`Primary Key${primaryKeys.length !== 1 ? 's' : ''}: `) +
+      primaryKeys.map((c) => fmtVarName(getFieldName(c))).join(', ')
+  );
 }
 
 export const showModelFields = (table: FetchedTable) => {
@@ -89,14 +97,17 @@ export const showModelFields = (table: FetchedTable) => {
 
   log.table(
     [
-      ...table.columns.map((c) => [
-        fmtVarName(getFieldName(c)),
-        kleur.dim(c.Type),
-        fmtVal(getJavascriptType(c) + (isNullable(c) ? '|null' : '')) +
-          ` (${explainJsType(c)})`
-      ])
+      ...table.columns.map((c) => {
+        const prettifiedType = prettifyJavascriptType(getJavascriptType(c) + (isNullable(c) ? '|null' : ''))
+        return [
+          fmtVarName(getFieldName(c)),
+          fmtVal(prettifiedType) ,
+          kleur.dim(c.Field),
+          kleur.dim(c.Type),
+        ]
+      })
     ],
-    ['Field', 'Column Type', 'Javascript Type']
+    ['Field', 'Javascript Type', 'Column', 'Column Type',]
   );
 };
 
@@ -377,3 +388,30 @@ export const showFindUniqueType = (table: FetchedTable) => {
     ...notes
   ]);
 };
+
+export const showRawColumn = (column: Column) => {
+  const rows = Object.keys(column).map((k) => {
+    const key = k as keyof Column;
+    const value = column[key];
+    return [fmtVarName(k), value === null ? fmtVal('null') : fmtVal(value)]
+  });
+  log.table(rows)
+}
+export const showRawColumns = (table: FetchedTable) => {
+ table.columns.forEach((c, i) => {
+  log.info(`Column: ${fmtVal(c.Field)}`)
+  showRawColumn(c);;
+  if (i < table.columns.length - 1) {
+    console.log();
+  }
+ })
+}
+
+export const prettifyJavascriptType = (t: string) => {
+  return format(t, {
+    filepath: 'x.ts',
+    useTabs: false,
+    singleQuote: true,
+    semi: false
+  }).trim()
+}
