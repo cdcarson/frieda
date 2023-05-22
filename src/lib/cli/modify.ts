@@ -1,4 +1,4 @@
-import type { FetchedTable } from '$lib/fetch/types.js';
+import type { FetchedSchema, FetchedTable } from '$lib/fetch/types.js';
 import { bt, type Column, type MysqlBaseType } from '$lib/index.js';
 import { join, raw, type Sql } from 'sql-template-tag';
 import sql from 'sql-template-tag';
@@ -17,11 +17,24 @@ import ora from 'ora';
 import { edit } from 'external-editor';
 import { squishWords } from './ui/formatters.js';
 import type { Annotation } from '$lib/parse/types.js';
+import type { GetOptionsResult } from './types.js';
+import { promptModel } from './prompt-model.js';
 
 export type FieldModification = {
   description: string;
   getSql: () => Promise<Sql>;
 };
+
+export const modify = async (
+  initialSchema: FetchedSchema,
+  optionsResult: GetOptionsResult,
+  modelName?: string,
+  fieldName?: string
+): Promise<FetchedSchema> => {
+  let schema: FetchedSchema = initialSchema;
+  const column = await promptModel(schema, modelName)
+}
+
 export const getFieldModifications = (
   table: FetchedTable,
   column: Column

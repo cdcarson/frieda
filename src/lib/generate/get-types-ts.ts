@@ -4,13 +4,12 @@ import { getModelTypeDeclarations } from './get-model-type-declarations.js';
 
 export const getTypesTs = (
   schema: FetchedSchema,
-  typeImports: string[],
   bannerComment: string
 ): string => {
   return `
     ${bannerComment}
     import type {ModelDb} from '@nowzoo/frieda';
-    ${typeImports.join('\n')}
+   
 
     ${schema.tables
       .map((t) => {

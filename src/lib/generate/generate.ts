@@ -12,7 +12,6 @@ import { saveFile } from '$lib/fs/save-file.js';
 import { join } from 'node:path';
 export const generate = async (
   schema: FetchedSchema,
-  typeImports: string[],
   outputDirectory: string,
   compileJs: boolean
 ): Promise<FsPaths[]> => {
@@ -27,7 +26,7 @@ export const generate = async (
   const typescript: TypescriptCode = {
     'database.ts': getDatabaseTs(schema, bannerComment),
     'schema.ts': getSchemaTs(schema, bannerComment),
-    'types.ts': getTypesTs(schema, typeImports, bannerComment),
+    'types.ts': getTypesTs(schema, bannerComment),
     'full-text-search-indexes.ts': getFullTextSearchIndexesTs(
       schema,
       bannerComment

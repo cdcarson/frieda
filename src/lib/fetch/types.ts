@@ -11,6 +11,7 @@ export type FetchedTable = {
 };
 
 export type FetchedSchema = {
+  fetched: Date;
   databaseName: string;
   tables: FetchedTable[];
 };

@@ -4,7 +4,7 @@ import {
   FRIEDA_RC_FILE_NAME,
   OPTION_DESCRIPTIONS
 } from './constants.js';
-import type { DatabaseUrlResult, ResolvedCliOptions } from './types.js';
+import type { DatabaseDetails, GetOptionsResult, Options } from './types.js';
 import { fmtPath, fmtVal, fmtVarName, squishWords } from './ui/formatters.js';
 import log from './ui/log.js';
 import { prompt } from './ui/prompt.js';
@@ -15,23 +15,25 @@ import { getDirectory } from '$lib/fs/get-directory.js';
 import { isPlainObject } from '$lib/utils/is-plain-object.js';
 import ora from 'ora';
 import { prettifyAndSaveFile } from '$lib/fs/prettify-and-save-file.js';
-import { connect, type Connection } from '@planetscale/database';
+import { connect } from '@planetscale/database';
 
 type MergedOptions = {
-  databaseUrlResult?: DatabaseUrlResult;
+  databaseUrlResult?: DatabaseDetails;
   outputDirectoryResult?: DirectoryResult;
+  schemaDirectoryResult?: DirectoryResult;
   envFileError?: Error;
   outputDirectoryError?: Error;
-  current: Partial<ResolvedCliOptions>;
-  rc: Partial<ResolvedCliOptions>;
+  schemaDirectoryError?: Error;
+  current: Partial<Options>;
+  rc: Partial<Options>;
 };
 
 export const getOptions = async (
-  cliArgs: Partial<ResolvedCliOptions>,
+  cliArgs: Partial<Options>,
   promptAlways = false
-): Promise<{ options: ResolvedCliOptions; connection: Connection }> => {
+): Promise<GetOptionsResult> => {
   const merged = await getMergedOptions(cliArgs);
-  let { databaseUrlResult, outputDirectoryResult } = merged;
+  let { databaseUrlResult, outputDirectoryResult, schemaDirectoryResult } = merged;
   if (promptAlways || !databaseUrlResult || merged.envFileError) {
     console.log();
 
@@ -61,9 +63,30 @@ export const getOptions = async (
     if (merged.outputDirectoryError) {
       log.error([merged.outputDirectoryError.message, '']);
     }
-    outputDirectoryResult = await promptOutputDirectory(
+    outputDirectoryResult = await promptDirectory(
+      'outputDirectory',
       merged.current.outputDirectory,
       merged.rc.outputDirectory
+    );
+  }
+  if (promptAlways || !schemaDirectoryResult || merged.schemaDirectoryError) {
+    console.log();
+    log.info([
+      kleur.bold('Schema Directory'),
+      ...squishWords(OPTION_DESCRIPTIONS.schemaDirectory).split('\n'),
+      `Current value in ${fmtPath(FRIEDA_RC_FILE_NAME)}: ${
+        merged.rc.schemaDirectory
+          ? fmtPath(merged.rc.schemaDirectory)
+          : kleur.dim('not set')
+      }`
+    ]);
+    if (merged.schemaDirectoryError) {
+      log.error([merged.schemaDirectoryError.message, '']);
+    }
+    schemaDirectoryResult = await promptDirectory(
+      'schemaDirectory',
+      merged.current.schemaDirectory,
+      merged.rc.schemaDirectory
     );
   }
   let compileJs = merged.current.compileJs === true;
@@ -85,21 +108,16 @@ export const getOptions = async (
       initial: compileJs
     });
   }
-  const options: ResolvedCliOptions = {
+  const options: Options = {
     envFile: databaseUrlResult.envFile,
     outputDirectory: outputDirectoryResult.relativePath,
+    schemaDirectory: schemaDirectoryResult.relativePath,
     compileJs,
-    typeImports: (Array.isArray(merged.rc.typeImports)
-      ? merged.rc.typeImports
-      : []
-    ).filter((s) => typeof s === 'string')
+    
   };
 
   const changedKeys = Object.keys(options).filter((k) => {
-    const key = k as keyof ResolvedCliOptions;
-    if (key === 'typeImports') {
-      return false;
-    }
+    const key = k as keyof Options;
     return options[key] !== merged.rc[key];
   });
 
@@ -109,19 +127,12 @@ export const getOptions = async (
     log.table(
       [
         ...Object.keys(options).map((k) => {
-          const value = options[k as keyof ResolvedCliOptions];
-          if ('typeImports' === k) {
-            return [
-              fmtVarName(k),
-              kleur.dim(`${options.typeImports.length} import statement(s)`),
-              'no'
-            ];
-          }
+          const value = options[k as keyof Options];
+          const fmted = typeof value === 'string' ? fmtPath(value) : fmtVal(JSON.stringify(value))
+          
           return [
             fmtVarName(k),
-            typeof value === 'string'
-              ? fmtVal(value)
-              : fmtVal(JSON.stringify(value)),
+            fmted,
             changedKeys.includes(k) ? 'yes' : 'no'
           ];
         })
@@ -147,21 +158,24 @@ export const getOptions = async (
   }
   return {
     options,
-    connection: connect({ url: databaseUrlResult.databaseUrl })
+    connection: connect({ url: databaseUrlResult.databaseUrl }),
+    databaseDetails: databaseUrlResult
   };
 };
 
 export const getMergedOptions = async (
-  cli: Partial<ResolvedCliOptions>
+  cli: Partial<Options>
 ): Promise<MergedOptions> => {
   const spinner = ora('Reading current options').start();
   const { rc } = await readFriedarc();
-  let databaseUrlResult: DatabaseUrlResult | undefined;
+  let databaseUrlResult: DatabaseDetails | undefined;
   let envFileError: Error | undefined;
   let outputDirectoryResult: DirectoryResult | undefined;
   let outputDirectoryError: Error | undefined;
+  let schemaDirectoryResult: DirectoryResult | undefined;
+  let schemaDirectoryError: Error | undefined;
 
-  const current: Partial<ResolvedCliOptions> = {};
+  const current: Partial<Options> = {};
 
   if (typeof rc.envFile === 'string' && rc.envFile.trim().length > 0) {
     current.envFile = rc.envFile.trim();
@@ -198,7 +212,8 @@ export const getMergedOptions = async (
   if (current.outputDirectory) {
     spinner.text = 'Validating outputDirectory';
     try {
-      outputDirectoryResult = await validateOutputDirectory(
+      outputDirectoryResult = await validateDirectory(
+        'outputDirectory',
         current.outputDirectory
       );
     } catch (error) {
@@ -207,7 +222,34 @@ export const getMergedOptions = async (
     }
   }
 
-  current.compileJs = typeof rc.compileJs === 'boolean' ? rc.compileJs : true;
+  if (
+    typeof rc.schemaDirectory === 'string' &&
+    rc.schemaDirectory.trim().length > 0
+  ) {
+    current.schemaDirectory = rc.schemaDirectory.trim();
+  }
+
+  if (
+    typeof cli.schemaDirectory === 'string' &&
+    cli.schemaDirectory.trim().length > 0
+  ) {
+    current.schemaDirectory = cli.schemaDirectory.trim();
+  }
+
+  if (current.schemaDirectory) {
+    spinner.text = 'Validating schemaDirectory';
+    try {
+      schemaDirectoryResult = await validateDirectory(
+        'schemaDirectory',
+        current.schemaDirectory
+      );
+    } catch (error) {
+      delete current.schemaDirectory;
+      schemaDirectoryError = error as Error;
+    }
+  }
+
+  current.compileJs = typeof rc.compileJs === 'boolean' ? rc.compileJs : false;
 
   if (typeof cli.compileJs === 'boolean') {
     current.compileJs = cli.compileJs;
@@ -218,7 +260,9 @@ export const getMergedOptions = async (
     databaseUrlResult,
     envFileError,
     outputDirectoryError,
-    outputDirectoryResult
+    outputDirectoryResult,
+    schemaDirectoryError,
+    schemaDirectoryResult
   };
   spinner.succeed('Current options read.');
 
@@ -227,8 +271,8 @@ export const getMergedOptions = async (
 
 export const promptEnvFile = async (
   currentValue?: string
-): Promise<DatabaseUrlResult> => {
-  let urlResult: DatabaseUrlResult | undefined;
+): Promise<DatabaseDetails> => {
+  let urlResult: DatabaseDetails | undefined;
   await prompt<string>({
     type: 'text',
     name: 'envFile',
@@ -247,12 +291,12 @@ export const promptEnvFile = async (
       }
     }
   });
-  return urlResult as DatabaseUrlResult;
+  return urlResult as DatabaseDetails;
 };
 
 export const validateEnvFile = async (
   envFilePath: string
-): Promise<Required<DatabaseUrlResult>> => {
+): Promise<Required<DatabaseDetails>> => {
   const fileResult = await getFile(envFilePath);
   if (!fileResult.exists) {
     throw new Error(`The file ${fmtPath(envFilePath)} does not exist.`);
@@ -266,7 +310,7 @@ export const validateEnvFile = async (
   const foundKeys = ENV_DB_URL_KEYS.filter(
     (k) => envKeys.includes(k) && env[k].length > 0
   );
-  const validResults: DatabaseUrlResult[] = foundKeys
+  const validResults: DatabaseDetails[] = foundKeys
     .filter((k) => validateDatabaseUrl(env[k]))
     .map((k) => {
       return {
@@ -315,7 +359,8 @@ export const validateDatabaseUrl = (urlStr: unknown): boolean => {
   }
 };
 
-export const promptOutputDirectory = async (
+export const promptDirectory = async (
+  key: keyof Pick<Options, 'outputDirectory'|'schemaDirectory'>,
   currentValue?: string,
   currentRcValue?: string
 ): Promise<DirectoryResult> => {
@@ -324,7 +369,7 @@ export const promptOutputDirectory = async (
   await prompt({
     type: 'text',
     name: 'outputDirectory',
-    message: fmtVarName('outputDirectory'),
+    message: fmtVarName(key),
     initial: currentValue || '',
     validate: async (value) => {
       const p = typeof value === 'string' ? value.trim() : '';
@@ -332,7 +377,7 @@ export const promptOutputDirectory = async (
         return 'Required.';
       }
       try {
-        directoryResult = await validateOutputDirectory(p);
+        directoryResult = await validateDirectory(key, p);
         return true;
       } catch (error) {
         return (error as Error).message;
@@ -350,7 +395,7 @@ export const promptOutputDirectory = async (
     directoryResult.relativePath !== currentRcValue
   ) {
     log.warn([
-      `The output directory path ${fmtPath(
+      `The ${fmtVarName(key)} directory path ${fmtPath(
         directoryResult.relativePath
       )} is not empty.`,
       ''
@@ -361,24 +406,25 @@ export const promptOutputDirectory = async (
       message: `Continue?`
     });
     if (!goAhead) {
-      return await promptOutputDirectory('', currentValue);
+      return await promptDirectory(key, '', currentValue);
     }
   }
   return directoryResult;
 };
 
-export const validateOutputDirectory = async (
+export const validateDirectory = async (
+  key: keyof Pick<Options, 'outputDirectory'|'schemaDirectory'>,
   relativePath: string
 ): Promise<DirectoryResult> => {
   const dir = await getDirectory(relativePath);
   if (!dir.isDirectory && dir.exists) {
     throw new Error(
-      `Error: Output directory path ${fmtPath(dir.relativePath)} is a file.`
+      `Error: ${fmtVarName(key)} directory path ${fmtPath(dir.relativePath)} is a file.`
     );
   }
   if (!dir.isUnderCwd) {
     throw new Error(
-      `Error: Output directory path ${fmtPath(
+      `Error:  ${fmtVarName(key)} directory path ${fmtPath(
         dir.relativePath
       )} is not a subdirectory of the current working directory.`
     );
@@ -388,10 +434,10 @@ export const validateOutputDirectory = async (
 
 export const readFriedarc = async (): Promise<{
   file: FileResult;
-  rc: Partial<ResolvedCliOptions>;
+  rc: Partial<Options>;
 }> => {
   const file = await getFile(FRIEDA_RC_FILE_NAME);
-  let rc: Partial<ResolvedCliOptions> = {};
+  let rc: Partial<Options> = {};
   if (file.isFile) {
     try {
       rc = JSON.parse(file.contents || '');

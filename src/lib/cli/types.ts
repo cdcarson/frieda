@@ -1,16 +1,21 @@
-export type ResolvedCliOptions = {
+import type { Connection } from "@planetscale/database";
+
+export type Options = {
   envFile: string;
   outputDirectory: string;
+  schemaDirectory: string;
   compileJs: boolean;
-  typeImports: string[];
 };
 
-export type CliArgs = Exclude<ResolvedCliOptions, 'typeImports'> & {
-  positionalArgs: string[];
-  help: boolean;
-};
+export type GetOptionsResult = {
+  options: Options,
+  connection: Connection;
+  databaseDetails: DatabaseDetails;
+}
 
-export type DatabaseUrlResult = {
+
+
+export type DatabaseDetails = {
   databaseUrl: string;
   databaseUrlKey: string;
   envFile: string;

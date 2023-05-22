@@ -8,11 +8,13 @@ import {
   getModelUpdateDataTypeName
 } from '$lib/parse/model-parsers.js';
 import kleur from 'kleur';
-import type { FetchedTable } from '../fetch/types.js';
+import type { FetchedSchema, FetchedTable } from '../fetch/types.js';
 import {
+  fmtPath,
   fmtVal,
   fmtVarName,
   formatTypescriptCode,
+  maskDatabaseURLPassword,
   squishWords
 } from './ui/formatters.js';
 import log from './ui/log.js';
@@ -41,6 +43,7 @@ import {
   UpdateModelFieldPresence
 } from '$lib/parse/types.js';
 import { format } from 'prettier';
+import type { GetOptionsResult } from './types.js';
 
 export const showModel = (table: FetchedTable) => {
   log.header(`Model: ${getModelName(table)}`);
@@ -414,4 +417,19 @@ export const prettifyJavascriptType = (t: string) => {
     singleQuote: true,
     semi: false
   }).trim()
+}
+
+
+export const showSchema = (schema: FetchedSchema, options: GetOptionsResult) => {
+  const {databaseUrlKey, databaseUrl, envFile} = options.databaseDetails
+  log.info(kleur.bold('Database: ') + fmtVal(schema.databaseName));
+  log.table([
+    ['Database URL', maskDatabaseURLPassword(databaseUrl)],
+    ['Database URL source', `${fmtVarName(databaseUrlKey)} in $${fmtPath(envFile)}`]
+  ])
+  console.log();
+  log.info(kleur.bold(`Models (${schema.tables.length})`));
+  log.table([
+    ...schema.tables.map(t => [fmtVal(getModelName(t)), kleur.dim(t.name)])
+  ], ['Model', 'Table'])
 }

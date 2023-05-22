@@ -11,6 +11,7 @@ export const fetchSchema = async (
     tableNames.map((t) => fetchTable(connection, t))
   );
   return {
+    fetched: new Date(),
     databaseName,
     tables
   };

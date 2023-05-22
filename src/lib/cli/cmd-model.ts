@@ -23,7 +23,7 @@ import { getFieldModifications, type FieldModification, runSql, addField } from 
 import type { Connection } from '@planetscale/database';
 import { cliFetchSchema } from './cli-fetch-schema.js';
 import { cliGenerateCode } from './cli-generate-code.js';
-import type { ResolvedCliOptions } from './types.js';
+import type { Options } from './types.js';
 
 type What =
   | 'fields'
@@ -45,7 +45,7 @@ export const cmdModel = async (
   schema: FetchedSchema,
   positionalArgs: string[],
   connection: Connection,
-  options: ResolvedCliOptions
+  options: Options
 ) => {
   const [modelName] = positionalArgs;
   let table: FetchedTable;
