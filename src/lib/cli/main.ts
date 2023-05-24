@@ -2,42 +2,15 @@ import { FRIEDA_VERSION } from '$lib/version.js';
 import kleur from 'kleur';
 
 import { getOptions } from './get-options.js';
-import yargs, { type CommandModule } from 'yargs';
+import yargs from 'yargs';
 import { cliFetchSchema } from './cli-fetch-schema.js';
 import { cliGenerateCode } from './cli-generate-code.js';
 import { getStdOutCols, squishWords } from './ui/formatters.js';
-import { prompt } from './ui/prompt.js';
 import { OPTION_DESCRIPTIONS } from './constants.js';
-import { exploreSchema } from './explore-schema.js';
+import { explore } from './explore.js';
 
 export const main = async (argv: string[]) => {
-  let command: string | undefined;
-  const modelCommand: CommandModule = {
-    command: 'model [modelName] [options]',
-    describe: 'Modify or drop a model.',
-    aliases: 'm',
-    builder: (b) => {
-      return b
-        .positional('modelName', {
-          type: 'string',
-          describe: 'Optional. The model (or table) you want to modify'
-        })
-    
-    },
-    handler: () => {
-      command = 'modify';
-    }
-  };
-
-  const generateCommand: CommandModule = {
-    command: 'generate [options]',
-    describe: 'Generate code.',
-    aliases: 'g',
-    builder: (b) => b,
-    handler: () => {
-      command = 'generate';
-    }
-  };
+ 
 
   const helpWidth = getStdOutCols() - 30;
   const app = yargs(argv)
@@ -45,9 +18,23 @@ export const main = async (argv: string[]) => {
     .wrap(null)
     .version(false)
     .help(false)
-    .command(generateCommand)
-    .command(modifyCommand)
+    .usage('$0 [options]', 'Generate code.')
     .options({
+      'explore': {
+        alias: 'x',
+        type: 'boolean',
+        description: 'Explore/modify schema before generating code.'
+      },
+      'model': {
+        alias: 'm',
+        type: 'string',
+        description: 'The model to explore.'
+      },
+      'field': {
+        alias: 'f',
+        type: 'string',
+        description: 'The field to explore.'
+      },
       'env-file': {
         alias: 'e',
         type: 'string',
@@ -84,10 +71,23 @@ export const main = async (argv: string[]) => {
     })
     .group(
       [
+        'explore',
+        'model',
+        'field'
+      ],
+      'Schema Options:'
+    )
+    .group(
+      [
         'env-file',
         'output-directory',
         'schema-directory',
         'compile-js',
+      ],
+      'Code Generation Options:'
+    )
+    .group(
+      [
         'init',
         'help'
       ],
@@ -96,19 +96,21 @@ export const main = async (argv: string[]) => {
   const parsed = await app.parse();
   console.log(kleur.bold('frieda'), kleur.dim(`v${FRIEDA_VERSION}`), '🦮');
   console.log();
-  if (parsed.help || command === undefined) {
-    
+  if (parsed.help) {
     app.showHelp();
-    
   } else {
-    const optionsResult = await getOptions(parsed, parsed.init);
+    const optionsResult = await getOptions(parsed, parsed.init === true);
     const { options, connection } = optionsResult;
     let schema = await cliFetchSchema(connection);
-    if (command === 'modify') {
-
+    const {files, types} = await cliGenerateCode(schema, options);
+    if (parsed.explore || typeof parsed.model === 'string' || typeof parsed.field === 'string') {
+      console.log(parsed.model)
+      schema = await explore(schema, optionsResult, types, parsed.model, parsed.field);
     }
+    
+    
+    console.log(kleur.bold('Done'), '🦮');
   }
-
-
-  
+  console.log();
+ 
 };

@@ -263,3 +263,4 @@ export const isTinyIntOne = (column: Column): boolean => {
     getParenthesizedArgs(column.Type, 'tinyint').trim() === '1'
   );
 };
+

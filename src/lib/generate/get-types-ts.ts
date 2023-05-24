@@ -17,7 +17,7 @@ export const getTypesTs = (
         const modelName = getModelName(t);
         return `
         /**
-         * Types for the ${modelName} model.
+         * Model types: ${modelName}
          */
         ${types.model}
         ${types.selectAll}

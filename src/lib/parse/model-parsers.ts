@@ -2,6 +2,7 @@ import type { FetchedTable } from '$lib/fetch/types.js';
 import type { FullTextSearchIndex, Table } from '../api/types.js';
 import camelcase from 'camelcase';
 
+
 export const getModelName = (table: Table): string => {
   return camelcase(table.name, { pascalCase: true });
 };
@@ -54,3 +55,5 @@ export const getFullTextSearchIndexes = (
     };
   });
 };
+
+

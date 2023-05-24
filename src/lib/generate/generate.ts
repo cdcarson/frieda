@@ -2,19 +2,27 @@ import { compileJavascript } from './compile-javascript.js';
 import { removeRecognizedFiles } from './remove-recognized-files.js';
 import type { FsPaths } from '$lib/fs/types.js';
 import type { FetchedSchema } from '../fetch/types.js';
-import type { JavascriptCode, TypescriptCode } from './types.js';
+import { tsquery } from '@phenomnomnominal/tsquery';
+import type ts from 'typescript'
+import {
+  JAVASCRIPT_FILES,
+  TYPESCRIPT_FILES,
+  type JavascriptCode,
+  type TypescriptCode
+} from './types.js';
 import { getDatabaseTs } from './get-database-ts.js';
 import { getSchemaTs } from './get-schema-ts.js';
 import { getTypesTs } from './get-types-ts.js';
 import { writeFiles } from './write-files.js';
 import { getFullTextSearchIndexesTs } from './get-full-text-search-indexes-ts.js';
-import { saveFile } from '$lib/fs/save-file.js';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
+import fs from 'fs-extra';
+import { getFsPaths } from '$lib/fs/get-fs-paths.js';
 export const generate = async (
   schema: FetchedSchema,
   outputDirectory: string,
   compileJs: boolean
-): Promise<FsPaths[]> => {
+): Promise<{files: FsPaths[], types: {[t: string]: number}}> => {
   await removeRecognizedFiles(outputDirectory);
   const bannerComment = `
     /**
@@ -26,7 +34,7 @@ export const generate = async (
   const typescript: TypescriptCode = {
     'database.ts': getDatabaseTs(schema, bannerComment),
     'schema.ts': getSchemaTs(schema, bannerComment),
-    'types.ts': getTypesTs(schema, bannerComment),
+    'types.d.ts': getTypesTs(schema, bannerComment),
     'full-text-search-indexes.ts': getFullTextSearchIndexesTs(
       schema,
       bannerComment
@@ -38,13 +46,27 @@ export const generate = async (
 
   if (compileJs) {
     out = compileJavascript(files) as JavascriptCode;
-    await removeRecognizedFiles(outputDirectory);
+    await removeRecognizedFiles(outputDirectory, ['types.d.ts']);
   }
 
-  await saveFile(
-    join(outputDirectory, 'schema-debug.json'),
-    JSON.stringify(schema, null, 2)
-  );
+  await writeFiles(out, outputDirectory);
+  const types = await fs.readFile(join(outputDirectory, 'types.d.ts'), 'utf-8');
+  const typeMap: {[t:string]: number} = {};
+  const ast = tsquery.ast(types);
+  const nodes: ts.TypeAliasDeclaration[] = tsquery(ast, 'TypeAliasDeclaration');
+  nodes.forEach(node => {
+    const name = node.name;
+    typeMap[name.getText()] = ast.getLineAndCharacterOfPosition(node.getStart()).line + 1;
+  })
+  
+  const dir = await fs.readdir(outputDirectory);
+  const finalFiles = dir
+    .filter((p) =>
+      ([...JAVASCRIPT_FILES, ...TYPESCRIPT_FILES] as string[]).includes(
+        basename(p)
+      )
+    )
+    .map((p) => getFsPaths(join(outputDirectory, p)));
 
-  return await writeFiles(out, outputDirectory);
+  return {files: finalFiles, types: typeMap}
 };

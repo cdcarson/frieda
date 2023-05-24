@@ -25,15 +25,6 @@ export type FieldModification = {
   getSql: () => Promise<Sql>;
 };
 
-export const modify = async (
-  initialSchema: FetchedSchema,
-  optionsResult: GetOptionsResult,
-  modelName?: string,
-  fieldName?: string
-): Promise<FetchedSchema> => {
-  let schema: FetchedSchema = initialSchema;
-  const column = await promptModel(schema, modelName)
-}
 
 export const getFieldModifications = (
   table: FetchedTable,

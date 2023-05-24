@@ -1,7 +1,7 @@
 export const TYPESCRIPT_FILES = [
   'database.ts',
   'schema.ts',
-  'types.ts',
+  'types.d.ts',
   'full-text-search-indexes.ts'
 ] as const;
 
