@@ -13,26 +13,10 @@ export type GetOptionsResult = {
   databaseDetails: DatabaseDetails;
 }
 
-
-
 export type DatabaseDetails = {
   databaseUrl: string;
   databaseUrlKey: string;
   envFile: string;
 };
 
-export type CliOption = {
-  name: string;
-  type: 'boolean' | 'string';
-  alias?: string;
-  description: string;
-  isRc: boolean;
-};
 
-export type CliCommand = {
-  name: string;
-  alias: string;
-  usage: string;
-  description: string;
-  positionalOptions?: CliOption[];
-};

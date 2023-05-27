@@ -52,7 +52,6 @@ export type MysqlBaseType = (typeof MYSQL_TYPES)[number];
  * A simplified set of casting rules. We infer this for each schema field from:
  * - the database column type,
  * - optional type annotations in the column definition COMMENT
- * - global settings in .friedarc
  *
  * In addition, this is used to provide one-off cast overrides to db.executeSelect
  * in the case where columns returned from a query do not map to the schema.
@@ -65,8 +64,7 @@ export const CAST_TYPES = [
   'json',
   'date',
   'boolean',
-  'set',
-  'enum'
+  'set'
 ] as const;
 export type CastType = (typeof CAST_TYPES)[number];
 

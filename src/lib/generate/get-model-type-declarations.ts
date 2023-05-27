@@ -169,7 +169,7 @@ const getModelPrimaryKeyDecl = (table: Table) => {
 const getModelCreateDataDecl = (table: Table) => {
   const modelName = getModelName(table);
   const comment = [
-    `Data paseed to create a new \`${modelName}\` model.`,
+    `Data pasded to create a new \`${modelName}\` model.`,
     `Fields where the underlying column is\`auto_increment\` or has a default value ar optional.`,
     `Fields where the underlying column is \`GENERATED\` are omitted.`,
 

@@ -1,6 +1,6 @@
 export const FRIEDA_RC_FILE_NAME = '.friedarc.json';
 export const ENV_DB_URL_KEYS = ['FRIEDA_DATABASE_URL', 'DATABASE_URL'] as const;
-
+export const DEFAULT_JSON_FIELD_TYPE = 'unknown';
 export const OPTION_DESCRIPTIONS = {
   envFile: `The path to an environment variables file containing either ${ENV_DB_URL_KEYS.join(' or ')}. Valid URL format: ${
     'mysql://<user>:<password>@<host>'

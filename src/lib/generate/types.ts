@@ -1,3 +1,5 @@
+import type { FileResult, FsPaths } from "$lib/fs/types.js";
+
 export const TYPESCRIPT_FILES = [
   'database.ts',
   'schema.ts',
@@ -30,3 +32,17 @@ export type TypescriptCode = {
 export type JavascriptCode = {
   [K in JavascriptFileName]: string;
 };
+
+export type LineNumbers = {
+  [key: string]: number;
+}
+
+export type GenerateResult = {
+  codeFiles: FsPaths[];
+  schemaFiles: FsPaths[];
+  typesDFile: FileResult;
+  typesDLineNumbers: LineNumbers;
+  schemaSqlFile: FileResult;
+  schemaSqlLineNumbers: LineNumbers;
+
+}
