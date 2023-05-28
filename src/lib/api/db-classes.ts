@@ -7,13 +7,12 @@ import type {
   CustomModelCast,
   DbLoggingOptions,
   FieldDefinition,
-  Model,
   ModelDefinition,
   ModelOrderByInput,
   ModelSelectColumnsInput,
   ModelWhereInput,
   OneBasedPagingInput,
-  Schema,
+  SchemaDefinition,
   SelectedModel
 } from './types.js';
 import sql, { join, empty, raw, type Sql } from 'sql-template-tag';
@@ -23,11 +22,11 @@ import { bt, getLimitOffset, getOrderBy, getWhere } from './sql-utils.js';
 
 export class BaseDb {
   #connOrTx: Connection | Transaction;
-  #schema: Schema;
+  #schema: SchemaDefinition;
   #loggingOptions: DbLoggingOptions;
   constructor(
     conn: Connection | Transaction,
-    schema: Schema,
+    schema: SchemaDefinition,
     loggingOptions: DbLoggingOptions = {}
   ) {
     this.#connOrTx = conn;
@@ -39,7 +38,7 @@ export class BaseDb {
     return this.#connOrTx;
   }
 
-  get schema(): Schema {
+  get schema(): SchemaDefinition {
     return this.#schema;
   }
 
@@ -72,7 +71,7 @@ export class BaseDb {
 
   public async execute(
     query: Sql,
-    customModelCast?: CustomModelCast<Model>
+    customModelCast?: CustomModelCast<Record<string, unknown>>
   ): Promise<ExecutedQuery> {
     try {
       const start = Date.now();
@@ -96,7 +95,7 @@ export class BaseDb {
     }
   }
 
-  public async executeSelect<M extends Model>(
+  public async executeSelect<M extends Record<string, unknown>>(
     query: Sql,
     customModelCast?: CustomModelCast<M>
   ): Promise<{ executedQuery: ExecutedQuery; rows: M[] }> {
@@ -104,14 +103,14 @@ export class BaseDb {
     return { executedQuery, rows: executedQuery.rows as M[] };
   }
 
-  public async executeSelectFirst<M extends Model>(
+  public async executeSelectFirst<M extends Record<string, unknown>>(
     query: Sql,
     customModelCast?: CustomModelCast<M>
   ): Promise<M | null> {
     const { rows } = await this.executeSelect(query, customModelCast);
     return rows[0] || null;
   }
-  public async executeSelectFirstOrThrow<M extends Model>(
+  public async executeSelectFirstOrThrow<M extends Record<string, unknown>>(
     query: Sql,
     customModelCast?: CustomModelCast<M>
   ): Promise<M> {
@@ -124,7 +123,7 @@ export class BaseDb {
 }
 
 export class ModelDb<
-  M extends Model,
+  M extends Record<string, unknown>,
   ModelSelectAll extends { [K in keyof M]?: M[K] },
   PrimaryKey extends { [K in keyof M]?: M[K] },
   CreateData extends { [K in keyof M]?: M[K] },
@@ -135,7 +134,7 @@ export class ModelDb<
   constructor(
     modelName: string,
     conn: Connection | Transaction,
-    schema: Schema,
+    schema: SchemaDefinition,
     loggingOptions: DbLoggingOptions = {}
   ) {
     super(conn, schema, loggingOptions);

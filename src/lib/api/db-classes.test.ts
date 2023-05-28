@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, vi, type SpyInstance } from 'vitest';
 import { BaseDb, ModelDb } from './db-classes.js';
-import type { Schema } from './types.js';
+import type { SchemaDefinition } from './types.js';
 import type { Connection } from '@planetscale/database';
 import sql from 'sql-template-tag';
 describe('ModelDb', () => {
   let connection: Connection;
   let executeSpy: SpyInstance;
-  let schema: Schema;
+  let schema: SchemaDefinition;
   beforeEach(() => {
     connection = {
       execute: vi.fn()
@@ -18,7 +18,7 @@ describe('ModelDb', () => {
       cast: {
         // doesn't matter for these tests
       }
-    };
+    } as unknown as SchemaDefinition;
   });
 
   it('findMany without selecting columns', async () => {
@@ -733,7 +733,7 @@ describe('ModelDb', () => {
 describe('BaseDb.execute', () => {
   let connection: Connection;
   let executeSpy: SpyInstance;
-  let schema: Schema;
+  let schema: SchemaDefinition;
   beforeEach(() => {
     connection = {
       execute: vi.fn()
@@ -745,7 +745,7 @@ describe('BaseDb.execute', () => {
       cast: {
         // doesn't matter for these tests
       }
-    };
+    } as unknown as SchemaDefinition;
   });
   it('throws if the query throws', async () => {
     const db = new BaseDb(connection, schema);

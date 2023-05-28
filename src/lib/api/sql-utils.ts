@@ -1,6 +1,5 @@
 import type {
   FullTextSearchIndex,
-  Model,
   ModelOrderByInput,
   ModelWhereInput,
   ModelWithSearchRelevance,
@@ -32,7 +31,7 @@ export const bt = (first: string, second?: string): Sql => {
  *   Remember not to add 'WHERE' at the beginning.
  * - undefined returns empty
  */
-export const getWhere = <M extends Model>(
+export const getWhere = <M extends Record<string, unknown>>(
   input: ModelWhereInput<M>,
   tableName?: string
 ): Sql => {
@@ -57,7 +56,7 @@ export const getWhere = <M extends Model>(
  *
  * If you pass Sql, remember not to add 'ORDER BY' at the beginning.
  */
-export const getOrderBy = <M extends Model>(
+export const getOrderBy = <M extends Record<string, unknown>>(
   orderBy: ModelOrderByInput<M>,
   tableName?: string
 ): Sql => {
@@ -93,7 +92,7 @@ export const getLimitOffset = (paging: OneBasedPagingInput): Sql => {
   return raw(`LIMIT ${paging.rpp} OFFSET ${(paging.page - 1) * paging.rpp}`);
 };
 
-export const getSearchSql = <M extends Model>(
+export const getSearchSql = <M extends Record<string, unknown>>(
   indices: FullTextSearchIndex[],
   searchTerm: string
 ): {

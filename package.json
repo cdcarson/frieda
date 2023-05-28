@@ -28,7 +28,7 @@
     "!dist/**/*.test.*",
     "!dist/**/*.spec.*"
   ],
-  "bin": "dist/cli/index.js",
+  "bin": "dist/cli.js",
   "devDependencies": {
     "@sveltejs/adapter-static": "^2.0.2",
     "@sveltejs/kit": "^1.18.0",
@@ -70,6 +70,7 @@
     "sql-formatter": "^12.2.1",
     "sql-template-tag": "^5.0.3",
     "strip-ansi": "^7.0.1",
+    "ts-morph": "^18.0.0",
     "typescript": "^5.0.4",
     "yargs": "^17.7.2",
     "yargs-parser": "^21.1.1"

@@ -1,10 +1,6 @@
 import type { Sql } from 'sql-template-tag';
 import type { ExecutedQuery } from '@planetscale/database';
-// https://www.typescriptlang.org/play?#code/C4TwDgpgBAsg9gEwgGygXigJQgYzgJwQB4BnYfASwDsBzAGigFcqBrKuAdyoD4BuAKH6hIsRCgDKKXMApwqRGFAgAPYBCoISopMm7ooAChYQQcAGawAlAG0AulAA+TDRDPUICAUPDQAospxkRiQEADF8OABbSWRpAEFkZAUlVXVNbRQ9DCMTc1goADIoMkpaG1tBYWgY6Q9QihRNIn4ofJU1DS14HToWqF8UjvT-QOC6iOipHGAEpJhuXtbxQbSusWQa6dl5ef1mJDcqD34sqGX21cNjUwsYcqgAfigAbyhrAGkoajPrKkZIgBGEHwtlsAC5YB97ABfKAQgDykQowAUDF8v3+QJBei8VSgABUIGR9M8+gBDCElag0AStAGU8jU2lQHAQv6A4HMhAQgAiZLUAmhuJ8ZymagQhOJGE24vqjRIRElwAY1gA5GTVQxVQhVbY+PwgA
-/**
- * The base type for models
- */
-export type Model = Record<string, unknown>;
+
 
 /**
  * The database types we handle typing for. Other types are allowed,
@@ -68,55 +64,15 @@ export const CAST_TYPES = [
 ] as const;
 export type CastType = (typeof CAST_TYPES)[number];
 
-/**
- * A row from a `SHOW FULL COLUMNS FROM TableName` query.
- * see https://dev.mysql.com/doc/refman/8.0/en/show-columns.html
- */
-export type Column = {
-  Field: string;
-  Type: string;
-  Null: 'YES' | 'NO';
-  Collation: string | null;
-  Key: string;
-  Default: string | null;
-  Extra: string;
-  Comment: string;
-  Privileges: string;
-};
-
-/**
- * A row from `SHOW INDEXES FROM TableName`
- */
-export type Index = {
-  Table: string;
-  Non_unique: number;
-  Key_name: string;
-  Seq_in_index: number;
-  Column_name: string | null;
-  Collation: string | null;
-  Cardinality: string;
-  Sub_part: string | null;
-  Packed: string | null;
-  Null: string;
-  Index_type: string;
-  Comment: string;
-  Index_comment: string;
-  Visible: string;
-  Expression: string | null;
-};
-
-export type Table = {
-  name: string;
-  columns: Column[];
-  indexes: Index[];
-};
 
 export type FieldDefinition = {
   fieldName: string;
   columnName: string;
   isPrimaryKey: boolean;
   isAutoIncrement: boolean;
+  mysqlBaseType: MysqlBaseType|null;
   castType: CastType;
+  hasDefault: boolean;
 };
 
 export type ModelDefinition = {
@@ -125,7 +81,7 @@ export type ModelDefinition = {
   fields: FieldDefinition[];
 };
 
-export type Schema = {
+export type SchemaDefinition = {
   databaseName: string;
   friedaVersion: string;
   schemaHash: string;
@@ -133,7 +89,7 @@ export type Schema = {
   cast: SchemaCastMap;
 };
 
-export type CustomModelCast<M extends Model> = {
+export type CustomModelCast<M extends Record<string, unknown>> = {
   [K in keyof M]?: CastType;
 };
 export type SchemaCastMap = {
@@ -148,27 +104,15 @@ export type DbLoggingOptions = {
   errorLogger?: (error: Error) => void;
 };
 
-export type RequiredKeys<T> = {
-  [K in keyof T]-?: Record<string, never> extends { [P in K]: T[K] }
-    ? never
-    : K;
-}[keyof T];
 
-export type OptionalKeys<T> = {
-  [K in keyof T]-?: Record<string, never> extends { [P in K]: T[K] }
-    ? K
-    : never;
-}[keyof T];
 
-export type ExcludeOptionalProps<T> = Pick<T, RequiredKeys<T>>;
-
-export type ModelSelectColumnsInput<M extends Model> =
+export type ModelSelectColumnsInput<M extends Record<string, unknown>> =
   | (keyof M & string)[]
   | 'all'
   | undefined;
 
 export type SelectedModel<
-  M extends Model,
+  M extends Record<string, unknown>,
   S extends ModelSelectColumnsInput<M>,
   SelectAll extends { [K in keyof M]?: M[K] }
 > = S extends (keyof M)[]
@@ -177,9 +121,9 @@ export type SelectedModel<
   ? M
   : SelectAll;
 
-export type ModelWhereInput<M extends Model> = Partial<M> | Sql | undefined;
+export type ModelWhereInput<M extends Record<string, unknown>> = Partial<M> | Sql | undefined;
 
-export type ModelOrderByInput<M extends Model> =
+export type ModelOrderByInput<M extends Record<string, unknown>> =
   | {
       col: keyof M & string;
       dir: 'asc' | 'desc';
@@ -203,6 +147,6 @@ export type FullTextSearchIndex = {
   indexedFields: string[];
   key: string;
 };
-export type ModelWithSearchRelevance<M extends Model> = M & {
+export type ModelWithSearchRelevance<M extends Record<string, unknown>> = M & {
   _searchRelevance?: number;
 };

@@ -7,11 +7,10 @@ import {
   CAST_TYPES,
   type CastType,
   type CustomModelCast,
-  type Model,
   type SchemaCastMap
 } from './types.js';
 
-export const createCastFunction = <M extends Model>(
+export const createCastFunction = <M extends Record<string, unknown>>(
   schemaCast: SchemaCastMap,
   customModelCast?: CustomModelCast<M>
 ): Cast => {
@@ -55,7 +54,6 @@ export const createCastFunction = <M extends Model>(
       case 'json':
         return JSON.parse(decode(value));
       case 'string':
-      case 'enum':
         return decode(value);
     }
 
