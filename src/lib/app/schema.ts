@@ -149,10 +149,10 @@ export class Schema {
   }
 
   get currentSchemaFile(): GeneratedFile {
-    return this.#currentSchemaFile
+    return this.#currentSchemaFile;
   }
   get changeFiles(): GeneratedFile[] {
-    return this.#changeFiles
+    return this.#changeFiles;
   }
 
   get fullTextSearchIndexes(): { [key: string]: FullTextSearchIndex } {

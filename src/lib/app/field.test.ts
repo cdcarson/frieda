@@ -220,8 +220,6 @@ describe('Field', () => {
     expect(new Field({ ...column }).jsonAnnotation).toBeUndefined();
   });
 
-  
-
   it('isTinyIntOne', () => {
     expect(new Field({ ...column, Type: 'tinyint(1)' }).isTinyIntOne).toBe(
       true

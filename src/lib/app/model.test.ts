@@ -193,7 +193,9 @@ describe('Model', () => {
       expect(m.findUniqueTypes[0]).toEqual(
         `{publicationArticleId:string;publicationId:string}`
       );
-      expect(m.findUniqueTypeDeclaration).toEqual('export type ArticleFindUnique=ArticlePrimaryKey|{publicationArticleId:string;publicationId:string}')
+      expect(m.findUniqueTypeDeclaration).toEqual(
+        'export type ArticleFindUnique=ArticlePrimaryKey|{publicationArticleId:string;publicationId:string}'
+      );
     });
     it('works for indexes with one key', () => {
       table = {
@@ -352,8 +354,9 @@ describe('Model', () => {
       const m = new Model(table);
       expect(m.findUniqueTypes.length).toBe(1);
       expect(m.findUniqueTypes[0]).toEqual(`{email:string}`);
-      expect(m.findUniqueTypeDeclaration).toEqual('export type UserAccountFindUnique=UserAccountPrimaryKey|{email:string}')
-
+      expect(m.findUniqueTypeDeclaration).toEqual(
+        'export type UserAccountFindUnique=UserAccountPrimaryKey|{email:string}'
+      );
     });
     it('works if there are no other unique indexes', () => {
       table = {
@@ -401,11 +404,13 @@ describe('Model', () => {
             Expression: null
           }
         ],
-        createSql:''
+        createSql: ''
       };
       const m = new Model(table);
       expect(m.findUniqueTypes.length).toBe(0);
-      expect(m.findUniqueTypeDeclaration).toEqual('export type UserFindUnique=UserPrimaryKey')
+      expect(m.findUniqueTypeDeclaration).toEqual(
+        'export type UserFindUnique=UserPrimaryKey'
+      );
     });
   });
 
@@ -440,23 +445,28 @@ describe('Model', () => {
         indexes: [],
         createSql: ''
       };
-    })
+    });
     it('works', () => {
-      
       const m = new Model(table);
-      expect(m.modelTypeDeclaration).toEqual('export type FooBar={id:string;name:string}')
+      expect(m.modelTypeDeclaration).toEqual(
+        'export type FooBar={id:string;name:string}'
+      );
     });
     it('works if a field is invisible', () => {
-      table.columns[1].Extra = 'INVISIBLE'
+      table.columns[1].Extra = 'INVISIBLE';
       const m = new Model(table);
-      expect(m.modelTypeDeclaration).toEqual('export type FooBar={id:string;name?:string}')
+      expect(m.modelTypeDeclaration).toEqual(
+        'export type FooBar={id:string;name?:string}'
+      );
     });
     it('works if a field is nullable', () => {
-      table.columns[1].Null = 'YES'
+      table.columns[1].Null = 'YES';
       const m = new Model(table);
-      expect(m.modelTypeDeclaration).toEqual('export type FooBar={id:string;name:string|null}')
+      expect(m.modelTypeDeclaration).toEqual(
+        'export type FooBar={id:string;name:string|null}'
+      );
     });
-  })
+  });
   describe('selectAllTypeDeclaration', () => {
     beforeEach(() => {
       table = {
@@ -488,26 +498,30 @@ describe('Model', () => {
         indexes: [],
         createSql: ''
       };
-    })
+    });
     it('works', () => {
-      
       const m = new Model(table);
-      expect(m.selectAllTypeDeclaration).toEqual('export type FooBarSelectAll={id:string;name:string}')
+      expect(m.selectAllTypeDeclaration).toEqual(
+        'export type FooBarSelectAll={id:string;name:string}'
+      );
     });
     it('works if a field is invisible', () => {
-      table.columns[1].Extra = 'INVISIBLE'
+      table.columns[1].Extra = 'INVISIBLE';
       const m = new Model(table);
-      expect(m.selectAllTypeDeclaration).toEqual('export type FooBarSelectAll={id:string}')
+      expect(m.selectAllTypeDeclaration).toEqual(
+        'export type FooBarSelectAll={id:string}'
+      );
     });
     it('works if a field is nullable', () => {
-      table.columns[1].Null = 'YES'
+      table.columns[1].Null = 'YES';
       const m = new Model(table);
-      expect(m.selectAllTypeDeclaration).toEqual('export type FooBarSelectAll={id:string;name:string|null}')
+      expect(m.selectAllTypeDeclaration).toEqual(
+        'export type FooBarSelectAll={id:string;name:string|null}'
+      );
     });
-  })
+  });
 
   describe('selectAllTypeDeclaration', () => {
-
     it('works', () => {
       table = {
         name: 'foo_bar',
@@ -539,7 +553,9 @@ describe('Model', () => {
         createSql: ''
       };
       const m = new Model(table);
-      expect(m.primaryKeyTypeDeclaration).toEqual('export type FooBarPrimaryKey={id:string}')
+      expect(m.primaryKeyTypeDeclaration).toEqual(
+        'export type FooBarPrimaryKey={id:string}'
+      );
     });
     it('works if there are two primary keys', () => {
       table = {
@@ -572,10 +588,11 @@ describe('Model', () => {
         createSql: ''
       };
       const m = new Model(table);
-      expect(m.primaryKeyTypeDeclaration).toEqual('export type FooBarPrimaryKey={userId:string;accountId:string}')
+      expect(m.primaryKeyTypeDeclaration).toEqual(
+        'export type FooBarPrimaryKey={userId:string;accountId:string}'
+      );
     });
-   
-  })
+  });
 
   describe('createTypeDeclaration', () => {
     it('works', () => {
@@ -609,7 +626,9 @@ describe('Model', () => {
         createSql: ''
       };
       const m = new Model(table);
-      expect(m.createTypeDeclaration).toEqual('export type FooBarCreate={id?:string;name:string}')
+      expect(m.createTypeDeclaration).toEqual(
+        'export type FooBarCreate={id?:string;name:string}'
+      );
     });
     it('works if a col is nullable', () => {
       table = {
@@ -642,7 +661,9 @@ describe('Model', () => {
         createSql: ''
       };
       const m = new Model(table);
-      expect(m.createTypeDeclaration).toEqual('export type FooBarCreate={id?:string;name?:string|null}')
+      expect(m.createTypeDeclaration).toEqual(
+        'export type FooBarCreate={id?:string;name?:string|null}'
+      );
     });
     it('works if a col has a default', () => {
       table = {
@@ -675,7 +696,9 @@ describe('Model', () => {
         createSql: ''
       };
       const m = new Model(table);
-      expect(m.createTypeDeclaration).toEqual('export type FooBarCreate={id?:string;name?:string}')
+      expect(m.createTypeDeclaration).toEqual(
+        'export type FooBarCreate={id?:string;name?:string}'
+      );
     });
     it('works if the pk is not auto increment', () => {
       table = {
@@ -709,7 +732,9 @@ describe('Model', () => {
         createSql: ''
       };
       const m = new Model(table);
-      expect(m.createTypeDeclaration).toEqual('export type FooBarCreate={id:string;name:string}')
+      expect(m.createTypeDeclaration).toEqual(
+        'export type FooBarCreate={id:string;name:string}'
+      );
     });
     it('works if a col is generated', () => {
       table = {
@@ -742,9 +767,11 @@ describe('Model', () => {
         createSql: ''
       };
       const m = new Model(table);
-      expect(m.createTypeDeclaration).toEqual('export type FooBarCreate={id?:string}')
+      expect(m.createTypeDeclaration).toEqual(
+        'export type FooBarCreate={id?:string}'
+      );
     });
-  })
+  });
   describe('updateTypeDeclaration', () => {
     it('works', () => {
       table = {
@@ -777,7 +804,9 @@ describe('Model', () => {
         createSql: ''
       };
       const m = new Model(table);
-      expect(m.updateTypeDeclaration).toEqual('export type FooBarUpdate={name?:string}')
+      expect(m.updateTypeDeclaration).toEqual(
+        'export type FooBarUpdate={name?:string}'
+      );
     });
     it('works if a col is nullable', () => {
       table = {
@@ -810,9 +839,11 @@ describe('Model', () => {
         createSql: ''
       };
       const m = new Model(table);
-      expect(m.updateTypeDeclaration).toEqual('export type FooBarUpdate={name?:string|null}')
+      expect(m.updateTypeDeclaration).toEqual(
+        'export type FooBarUpdate={name?:string|null}'
+      );
     });
-   
+
     it('works if a col is generated', () => {
       table = {
         name: 'foo_bar',
@@ -844,10 +875,9 @@ describe('Model', () => {
         createSql: ''
       };
       const m = new Model(table);
-      expect(m.updateTypeDeclaration).toEqual('export type FooBarUpdate={}')
+      expect(m.updateTypeDeclaration).toEqual('export type FooBarUpdate={}');
     });
-    
-  })
+  });
 
   describe('dbTypeDeclaration', () => {
     it('works', () => {
@@ -856,10 +886,11 @@ describe('Model', () => {
         columns: [],
         indexes: [],
         createSql: ''
-      }
+      };
       const m = new Model(table);
-      expect(m.dbTypeDeclaration).toEqual(`export type ADb=<A,ASelectAll,APrimaryKey,ACreate,AUpdate,AFindUnique>`)
-
-    })
-  })
+      expect(m.dbTypeDeclaration).toEqual(
+        `export type ADb=<A,ASelectAll,APrimaryKey,ACreate,AUpdate,AFindUnique>`
+      );
+    });
+  });
 });

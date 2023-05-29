@@ -1,4 +1,4 @@
-import type { Connection } from "@planetscale/database";
+import type { Connection } from '@planetscale/database';
 
 export type Options = {
   envFile: string;
@@ -8,15 +8,13 @@ export type Options = {
 };
 
 export type GetOptionsResult = {
-  options: Options,
+  options: Options;
   connection: Connection;
   databaseDetails: DatabaseDetails;
-}
+};
 
 export type DatabaseDetails = {
   databaseUrl: string;
   databaseUrlKey: string;
   envFile: string;
 };
-
-

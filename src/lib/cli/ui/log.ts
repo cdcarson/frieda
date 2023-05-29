@@ -78,7 +78,6 @@ const table = (data: string[][], header?: string[]) => {
   }
 };
 
-
 export default {
   empty,
   warn,

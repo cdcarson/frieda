@@ -465,10 +465,10 @@ export const showFieldType = (column: Column) => {
   );
 
   log.info(kleur.bold('Field Type'));
-  log.table([
-    [fmtVal(prettifiedType), kleur.dim(column.Type)],
-    
-  ], ['Javascript Type', 'Column Type']);
+  log.table(
+    [[fmtVal(prettifiedType), kleur.dim(column.Type)]],
+    ['Javascript Type', 'Column Type']
+  );
   console.log();
   log.info([kleur.bold('Type Explanation'), explainJsType(column)]);
 
@@ -482,16 +482,17 @@ export const showFieldColumnDef = (table: FetchedTable, column: Column) => {
   ]);
 };
 
-
 export const showFieldDefaultValue = (column: Column) => {
-  const value: string = hasDefault(column) ? 
-  column.Default === null ? fmtVal('null') : fmtVal(column.Default) : ''
+  const value: string = hasDefault(column)
+    ? column.Default === null
+      ? fmtVal('null')
+      : fmtVal(column.Default)
+    : '';
   log.info(kleur.bold('Default Value'));
   log.table([
     ['Has default', fmtVal(JSON.stringify(hasDefault(column)))],
     ['Value', value]
-  ])
-   
+  ]);
 };
 
 export const showFieldModelNotes = (table: FetchedTable, column: Column) => {
@@ -512,10 +513,10 @@ export const showField = (table: FetchedTable, column: Column) => {
   showFieldModelNotes(table, column);
   console.log();
   showFieldDefaultValue(column);
-  console.log()
+  console.log();
   showFieldColumnDef(table, column);
   console.log();
-  log.info(kleur.bold(`Column: `) +fmtVal(column.Field));
+  log.info(kleur.bold(`Column: `) + fmtVal(column.Field));
   showRawColumn(column);
 };
 
@@ -626,4 +627,3 @@ export const showFieldScreen = (table: FetchedTable, column: Column) => {
   showField(table, column);
   log.header(`↑ Field: ${getFieldName(column)}`);
 };
-

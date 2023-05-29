@@ -11,9 +11,7 @@ import type {
 } from './types.js';
 
 export class Database {
-  constructor(public readonly connection: Connection) {
-    
-  }
+  constructor(public readonly connection: Connection) {}
   async fetchCreateTableSql(tableName: string): Promise<string> {
     const query = sql`SHOW CREATE TABLE ${bt(tableName)};`;
     const result = await this.connection.execute(query.sql);
@@ -71,10 +69,9 @@ export class Database {
   }
 
   async fetchSchema(): Promise<FetchedSchema> {
-    
     const { databaseName, tableNames } = await this.fetchTableNames();
     const tables = await Promise.all(tableNames.map((t) => this.fetchTable(t)));
-    
+
     return {
       fetched: new Date(),
       databaseName,

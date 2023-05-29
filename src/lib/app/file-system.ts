@@ -92,8 +92,6 @@ export class FileSystem {
   }
 
   async deleteFile(inputPath: string) {
-    await fs.remove(this.getPathResult(inputPath).absolutePath)
+    await fs.remove(this.getPathResult(inputPath).absolutePath);
   }
-
-  
 }

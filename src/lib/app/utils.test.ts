@@ -1,7 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi } from 'vitest';
 
-import { isPlainObject, squishWords, getStdOutCols, prompt, onUserCancelled, promptValidateString, getParenthesizedArgs } from './utils.js';
+import {
+  isPlainObject,
+  squishWords,
+  getStdOutCols,
+  prompt,
+  onUserCancelled,
+  promptValidateString,
+  getParenthesizedArgs
+} from './utils.js';
 import prompts from 'prompts';
 
 vi.mock('./log');
@@ -12,7 +20,6 @@ describe('onUserCancelled', () => {
     expect(spy).toHaveBeenCalled();
   });
 });
-
 
 describe('isPlainObject', () => {
   it('is true for plain objects', () => {
@@ -29,11 +36,11 @@ describe('isPlainObject', () => {
 
 describe('promptValidateString', () => {
   it('works', () => {
-    expect(promptValidateString('')).toEqual(expect.any(String))
-    expect(promptValidateString('  ')).toEqual(expect.any(String))
-    expect(promptValidateString('hey')).toEqual(true)
-  })
-})
+    expect(promptValidateString('')).toEqual(expect.any(String));
+    expect(promptValidateString('  ')).toEqual(expect.any(String));
+    expect(promptValidateString('hey')).toEqual(true);
+  });
+});
 
 describe('getStdOutCols', () => {
   it('works', () => {
@@ -77,12 +84,11 @@ describe('prompt', () => {
   });
 });
 
-
 describe('getParenthesizedArgs', () => {
   it('works', () => {
-    expect(getParenthesizedArgs('tinyint(1)', 'tinyint')).toBe('1')
-    expect(getParenthesizedArgs('tinyint(1)', 'TINYINT')).toBe('1')
-    expect(getParenthesizedArgs(`set('a','b')`, 'set')).toBe(`'a','b'`)
-    expect(getParenthesizedArgs(`set( )`, 'set')).toBe(` `)
-  })
-})
+    expect(getParenthesizedArgs('tinyint(1)', 'tinyint')).toBe('1');
+    expect(getParenthesizedArgs('tinyint(1)', 'TINYINT')).toBe('1');
+    expect(getParenthesizedArgs(`set('a','b')`, 'set')).toBe(`'a','b'`);
+    expect(getParenthesizedArgs(`set( )`, 'set')).toBe(` `);
+  });
+});

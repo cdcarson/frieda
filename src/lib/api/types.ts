@@ -1,7 +1,6 @@
 import type { Sql } from 'sql-template-tag';
 import type { ExecutedQuery } from '@planetscale/database';
 
-
 /**
  * The database types we handle typing for. Other types are allowed,
  * but they will be typed as javascript string.
@@ -64,13 +63,12 @@ export const CAST_TYPES = [
 ] as const;
 export type CastType = (typeof CAST_TYPES)[number];
 
-
 export type FieldDefinition = {
   fieldName: string;
   columnName: string;
   isPrimaryKey: boolean;
   isAutoIncrement: boolean;
-  mysqlBaseType: MysqlBaseType|null;
+  mysqlBaseType: MysqlBaseType | null;
   castType: CastType;
   hasDefault: boolean;
 };
@@ -104,8 +102,6 @@ export type DbLoggingOptions = {
   errorLogger?: (error: Error) => void;
 };
 
-
-
 export type ModelSelectColumnsInput<M extends Record<string, unknown>> =
   | (keyof M & string)[]
   | 'all'
@@ -121,7 +117,10 @@ export type SelectedModel<
   ? M
   : SelectAll;
 
-export type ModelWhereInput<M extends Record<string, unknown>> = Partial<M> | Sql | undefined;
+export type ModelWhereInput<M extends Record<string, unknown>> =
+  | Partial<M>
+  | Sql
+  | undefined;
 
 export type ModelOrderByInput<M extends Record<string, unknown>> =
   | {

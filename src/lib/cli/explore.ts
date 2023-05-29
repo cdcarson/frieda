@@ -46,22 +46,27 @@ import type { Sql } from 'sql-template-tag';
 export const explore = async (
   schema: FetchedSchema,
   options: GetOptionsResult,
-  typesMap: {[t:string]: number},
+  typesMap: { [t: string]: number },
   modelName?: string,
   fieldName?: string
 ): Promise<FetchedSchema> => {
-  Object.keys(typesMap).forEach(k => {
-    console.log(k, fmtPath(options.options.outputDirectory + '/types.d.ts:' + typesMap[k] + ':1'))
-  })
+  Object.keys(typesMap).forEach((k) => {
+    console.log(
+      k,
+      fmtPath(
+        options.options.outputDirectory + '/types.d.ts:' + typesMap[k] + ':1'
+      )
+    );
+  });
   if (typeof modelName === 'string' || typeof fieldName === 'string') {
     const table = await promptModel(schema, modelName);
-    if (typeof fieldName === 'string' ) {
+    if (typeof fieldName === 'string') {
       const column = await promptField(table, fieldName);
-      return await fieldScreen(schema, options, table, column)
+      return await fieldScreen(schema, options, table, column);
     }
-    return await modelScreen(schema, options, table)
+    return await modelScreen(schema, options, table);
   }
-  return await schemaScreen(schema, options)
+  return await schemaScreen(schema, options);
 };
 
 const schemaScreen = async (
@@ -394,9 +399,8 @@ const fieldScreen = async (
   }
 
   if ('back' === next) {
-    return await modelScreen(schema, options, table)
+    return await modelScreen(schema, options, table);
   }
 
   return onUserCancelled();
-
 };

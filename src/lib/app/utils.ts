@@ -2,8 +2,10 @@ import kleur from 'kleur';
 import stripAnsi from 'strip-ansi';
 import prompts from 'prompts';
 import ora from 'ora';
-import prettier from 'prettier'
+import prettier from 'prettier';
 import { DEFAULT_PRETTIER_OPTIONS } from './constants.js';
+import { format as sqlFmt } from 'sql-formatter';
+
 export const isPlainObject = (obj: unknown) => {
   return Object.prototype.toString.call(obj) === '[object Object]';
 };
@@ -163,7 +165,6 @@ export const promptValidateString = (value: unknown): string | true => {
   return true;
 };
 
-
 export const getParenthesizedArgs = (
   source: string,
   prefix: string
@@ -173,16 +174,16 @@ export const getParenthesizedArgs = (
   return match ? match[2] : '';
 };
 
-
 export const blockComment = (lines: string[]): string => {
-  return [
-    '/**',
-    ...lines.map(l => ` * ${l}`),
-    ' */'
+  return ['/**', ...lines.map((l) => ` * ${l}`), ' */'].join('\n');
+};
 
-  ].join('\n')
-}
+export const getPrettierOptions = async (
+  cwd: string
+): Promise<prettier.Options> => {
+  return (await prettier.resolveConfig(cwd)) || DEFAULT_PRETTIER_OPTIONS;
+};
 
-export const getPrettierOptions = async(cwd: string): Promise<prettier.Options> => {
-  return await prettier.resolveConfig(cwd) || DEFAULT_PRETTIER_OPTIONS;
-}
+export const formatSql = (input: string): string => {
+  return sqlFmt(input, { language: 'mysql' });
+};

@@ -2,11 +2,10 @@ import {
   fmtPath,
   fmtVal,
   fmtVarName,
-  getParenthesizedArgs,
+  formatSql,
   log,
   maskDatabaseURLPassword,
-  onUserCancelled,
-  squishWords
+  onUserCancelled
 } from './utils.js';
 import { Code } from './code.js';
 import type { Database } from './database.js';
@@ -17,16 +16,26 @@ import { Schema } from './schema.js';
 import { prompt } from './utils.js';
 import kleur from 'kleur';
 import type { Field } from './field.js';
-import sql, { Sql, raw } from 'sql-template-tag';
-import { bt } from '$lib/index.js';
-import { format } from 'sql-formatter';
-import type { Annotation, ParsedAnnotation, SchemaChange } from './types.js';
+
+import type { Annotation, SchemaChange } from './types.js';
 import ora from 'ora';
 import { edit } from 'external-editor';
+import {
+  getAddModelSql,
+  getDropFieldSql,
+  getDropModelSql,
+  getEditFieldManuallySql,
+  getEditJsonAnnotationSql,
+  getModifyModelByHandSql,
+  getRenameFieldSql,
+  getToggleBigIntAnnotationSql,
+  getToggleInvisibleSql,
+  getToggleSetAnnotationSql,
+  getToggleTinyIntBooleanSql
+} from './schema-changes.js';
+import camelcase from 'camelcase';
 
 export class Explorer {
-  currentModel: Model | undefined;
-  currentField: Field | undefined;
   constructor(
     public schema: Schema,
     public code: Code,
@@ -36,11 +45,34 @@ export class Explorer {
   ) {}
 
   async run() {
-    if (this.options.model || this.options.field) {
-      return await this.promptModel(this.options.model, this.options.field);
-    } else {
-      return await this.schemaScreen();
+    const schemaPath = this.options.explore || '';
+    const [modelName, fieldName] = schemaPath.split('.');
+    const modelSearch = (modelName || '').trim().toLowerCase();
+    const fieldSearch = (fieldName || '').trim().toLowerCase();
+    const exactModel = this.schema.models.find(
+      (m) =>
+        m.modelName.toLowerCase() === modelSearch ||
+        m.tableName.toLowerCase() === modelSearch
+    );
+    if (exactModel) {
+      const exactField = exactModel.fields.find(
+        (f) =>
+          f.fieldName.toLowerCase() === fieldSearch ||
+          f.columnName.toLowerCase() === fieldSearch
+      );
+      if (exactField) {
+        return await this.fieldScreen(exactModel, exactField);
+      }
+      if (fieldSearch.length > 0) {
+        return await this.promptField(exactModel, fieldSearch);
+      }
+      return await this.modelScreen(exactModel);
     }
+    if (modelSearch.length > 0 || fieldSearch.length > 0) {
+      return await this.promptModel(modelSearch, fieldSearch);
+    }
+
+    return await this.schemaScreen();
   }
 
   async promptModel(modelName?: string, fieldName?: string): Promise<void> {
@@ -63,7 +95,7 @@ export class Explorer {
       );
     };
     const initialChoice = suggest(modelName || '', choices)[0] || choices[0];
-    this.currentModel = (await prompt({
+    const m = (await prompt({
       type: 'autocomplete',
       name: 'model',
       message: 'Model',
@@ -75,9 +107,9 @@ export class Explorer {
       }
     })) as unknown as Model;
     if (fieldName) {
-      return await this.promptField(this.currentModel, fieldName);
+      return await this.promptField(m, fieldName);
     }
-    return await this.modelScreen(this.currentModel);
+    return await this.modelScreen(m);
   }
 
   async promptField(model: Model, partialName?: string): Promise<void> {
@@ -100,7 +132,7 @@ export class Explorer {
       );
     };
     const initialChoice = suggest(partialName || '', choices)[0] || choices[0];
-    this.currentField = (await prompt({
+    const f = (await prompt({
       type: 'autocomplete',
       name: 'field',
       message: 'Field',
@@ -111,7 +143,7 @@ export class Explorer {
         return suggest(inp, choices as Choice[]);
       }
     })) as unknown as Field;
-    return await this.fieldScreen(model, this.currentField);
+    return await this.fieldScreen(model, f);
   }
 
   async schemaScreen() {
@@ -135,6 +167,42 @@ export class Explorer {
       ['Model Name', 'Table Name']
     );
     log.header(`↑ Schema: ${this.schema.databaseName}`);
+
+    type Next = 'addModel' | 'showModel' | 'exit';
+    const choices: { title: string; value: Next }[] = [
+      {
+        title: 'Show a model',
+        value: 'showModel'
+      },
+      {
+        title: 'Add model',
+        value: 'addModel'
+      },
+      {
+        title: 'Exit',
+        value: 'exit'
+      }
+    ];
+    const next = await prompt<Next>({
+      type: 'select',
+      name: 'next',
+      message: `Schema: ${fmtVal(this.schema.databaseName)}`,
+      choices
+    });
+
+    if ('exit' === next) {
+      return;
+    }
+    if ('showModel' === next) {
+      return await this.promptModel();
+    }
+    if ('addModel' === next) {
+      const { statement, tableName } = await getAddModelSql(this.schema);
+      return await this.executeSchemaChange(
+        statement,
+        camelcase(tableName, { pascalCase: true })
+      );
+    }
   }
 
   async modelScreen(m: Model) {
@@ -158,17 +226,28 @@ export class Explorer {
     );
     log.header(`↑ Model: ${m.modelName}`);
 
-    type Next = 'field' | 'model' | 'schema' | 'exit';
+    type Next =
+      | 'editModel'
+      | 'dropModel'
+      | 'field'
+      | 'model'
+      | 'schema'
+      | 'exit';
+    const choices: { title: string; value: Next }[] = [
+      { title: 'Edit Model', value: 'editModel' },
+      { title: 'Drop Model', value: 'dropModel' },
+      { title: 'Show / Modify Individual Field', value: 'field' },
+      { title: 'Show Another Model', value: 'model' },
+      { title: 'Show Schema', value: 'schema' },
+      { title: 'Exit', value: 'exit' }
+    ];
     const next = await prompt<Next>({
       type: 'select',
       name: 'next',
-      message: `Model: ${m.modelName}`,
-      choices: [
-        { title: 'Show/Modify Field', value: 'field' },
-        { title: 'Show Another Model', value: 'model' },
-        { title: 'Show Schema', value: 'schema' },
-        { title: 'Exit', value: 'exit' }
-      ]
+      message: `Schema: ${fmtVal(this.schema.databaseName)} | Model: ${fmtVal(
+        m.modelName
+      )}`,
+      choices
     });
     if (next === 'exit') {
       return onUserCancelled();
@@ -181,6 +260,14 @@ export class Explorer {
     }
     if (next === 'schema') {
       return await this.schemaScreen();
+    }
+    if (next === 'dropModel') {
+      const change = getDropModelSql(m);
+      return await this.executeSchemaChange(change, m.modelName);
+    }
+    if (next === 'editModel') {
+      const change = getModifyModelByHandSql(m);
+      return await this.executeSchemaChange(change, m.modelName);
     }
   }
 
@@ -203,22 +290,44 @@ export class Explorer {
     ]);
     log.header(`↑ Field: ${f.fieldName}`);
     type Next = 'change' | 'field' | 'model' | 'schema' | 'exit';
-
+    type Choice = {
+      title: string;
+      value: Next;
+    };
+    const choices: Choice[] = [
+      { title: 'Modify field', value: 'change' },
+      { title: `Show another field in ${fmtVal(m.modelName)}`, value: 'field' },
+      { title: `Back to model ${fmtVal(m.modelName)}`, value: 'model' },
+      { title: `Back to schema ${this.schema.databaseName}`, value: 'schema' },
+      { title: 'Exit', value: 'exit' }
+    ];
     const next = await prompt<Next>({
       type: 'select',
       name: 'next',
-      message: `Model: ${m.modelName} | Field: ${f.fieldName}`,
-      choices: [
-        { title: 'Modify or Drop Field', value: 'change' },
-        { title: 'Show Another Field', value: 'fiels' },
-        { title: 'Show Another Model', value: 'model' },
-        { title: 'Show Schema', value: 'schema' },
-        { title: 'Exit', value: 'exit' }
-      ]
+      message: `Schema: ${fmtVal(this.schema.databaseName)} | Model: ${fmtVal(
+        m.modelName
+      )} | Field: ${fmtVal(f.fieldName)}`,
+      choices
     });
+
+    if ('exit' === next) {
+      return;
+    }
+    if ('model' === next) {
+      return await this.modelScreen(m);
+    }
+    if ('field' === next) {
+      return await this.promptField(m, f.fieldName);
+    }
+    if ('schema' === next) {
+      return await this.schemaScreen();
+    }
+    if ('change' === next) {
+      return await this.promptFieldChange(m, f);
+    }
   }
 
-  async promptFieldChange(m: Model, f: Field) {
+  async promptFieldChange(m: Model, f: Field): Promise<void> {
     type Next =
       | 'cancel'
       | 'exit'
@@ -287,13 +396,23 @@ export class Explorer {
         });
       }
     }
-   
+
     if (f.mysqlBaseType === 'set') {
-      choices.push({
-        title: `Toggle the ${kleur.red('@set')} type annotation`,
-        value: 'typeSet'
-      });
-      
+      if (f.setAnnotation) {
+        choices.push({
+          title: `Type as javascript ${fmtVal('string')} (remove ${kleur.red(
+            '@set'
+          )} type annotation)`,
+          value: 'typeSet'
+        });
+      } else {
+        choices.push({
+          title: `Type as javascript ${fmtVal(
+            `Set<${f.javascriptEnumerableStringType}>`
+          )} (add ${kleur.red('@set')} type annotation)`,
+          value: 'typeSet'
+        });
+      }
     }
     if (f.isInvisible) {
       choices.push({
@@ -328,83 +447,50 @@ export class Explorer {
       return onUserCancelled();
     }
     if ('typeTinyInt' === next) {
-      let colDef = this.getModelColumnDefinition(m, f);
-      colDef = colDef.replace(
-        /tinyint(?:\(\d*\))?/,
-        f.isTinyIntOne ? 'tinyint' : 'tinyint(1)'
-      );
-
-      const change = sql`
-        ALTER TABLE ${bt(m.table.name)}
-        MODIFY COLUMN ${raw(colDef)}
-      `;
-      return await this.executeSchemaChange(change);
+      const change = getToggleTinyIntBooleanSql(m, f);
+      return await this.executeSchemaChange(change, m.modelName, f.fieldName);
     }
     if ('typeBigInt' === next) {
-      let colDef = this.getModelColumnDefinition(m, f);
-      let comment = this.removeCommentAnnotationsByType(f, 'bigint');
-      comment = f.bigIntAnnotation
-        ? comment
-        : [comment, '@bigint'].join(' ').trim();
-      colDef = this.replaceOrAddColDefComment(colDef, comment)
-      const change = sql`
-        ALTER TABLE ${bt(m.table.name)}
-        MODIFY COLUMN ${raw(colDef)}
-      `;
-      return await this.executeSchemaChange(change);
+      const change = getToggleBigIntAnnotationSql(m, f);
+      return await this.executeSchemaChange(change, m.modelName, f.fieldName);
     }
     if ('typeJson' === next) {
-      const type = await this.promptJsonType(f.jsonAnnotation? f.jsonAnnotation.typeArgument : '')
-      let colDef = this.getModelColumnDefinition(m, f);
-      let comment = this.removeCommentAnnotationsByType(f, 'json');
-      comment = type.length > 0 ? [comment, `@json(${type})`].join(' ').trim() : comment;
-      colDef = this.replaceOrAddColDefComment(colDef, comment)
-      const change = sql`
-        ALTER TABLE ${bt(m.table.name)}
-        MODIFY COLUMN ${raw(colDef)}
-      `;
-      return await this.executeSchemaChange(change);
+      const change = await getEditJsonAnnotationSql(m, f);
+      return await this.executeSchemaChange(change, m.modelName, f.fieldName);
     }
-    
-    if ('typeSet' === next) {
-      const strings = getParenthesizedArgs(f.column.Type, 'set')
-        .split(',')
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0)
-        .join('|');
-      const typeAsSet = await prompt({
-        type: 'select',
-        name: 'typeAs',
-        choices: [
-          {
-            title: `Type as javascript ${fmtVal(`Set<${strings}>`)}`,
-            value: true
-          },
-          {
-            title: `Type as javascript ${fmtVal(`string`)} (a comma separated list of values)`,
-            value: true
-          }
-        ]
-      });
 
-      let colDef = this.getModelColumnDefinition(m, f);
-      let comment = this.removeCommentAnnotationsByType(f, 'set');
-      comment = typeAsSet ? [comment, `@set`].join(' ').trim() : comment;
-      colDef = this.replaceOrAddColDefComment(colDef, comment)
-      const change = sql`
-        ALTER TABLE ${bt(m.table.name)}
-        MODIFY COLUMN ${raw(colDef)}
-      `;
-      return await this.executeSchemaChange(change);
+    if ('typeSet' === next) {
+      const change = getToggleSetAnnotationSql(m, f);
+      return await this.executeSchemaChange(change, m.modelName, f.fieldName);
+    }
+    if ('setInvisible' === next) {
+      const change = getToggleInvisibleSql(m, f);
+      return await this.executeSchemaChange(change, m.modelName, f.fieldName);
+    }
+    if ('drop' === next) {
+      const change = getDropFieldSql(m, f);
+      return await this.executeSchemaChange(change, m.modelName, f.fieldName);
+    }
+    if ('editByHand' === next) {
+      const change = getEditFieldManuallySql(m, f);
+      return await this.executeSchemaChange(change, m.modelName, f.fieldName);
+    }
+    if ('rename' === next) {
+      const { statement, columnName } = await getRenameFieldSql(m, f);
+      return await this.executeSchemaChange(
+        statement,
+        m.modelName,
+        camelcase(columnName)
+      );
     }
   }
 
   async executeSchemaChange(
-    change: Sql,
+    change: string,
     expectedModelName?: string,
     expectedFieldName?: string
   ): Promise<void> {
-    const prettified = format(change.sql);
+    const prettified = formatSql(change);
 
     const previousScreen = async () => {
       const model = this.schema.models.find(
@@ -450,8 +536,8 @@ export class Explorer {
         name: 'editByHand'
       });
       if (editByHand) {
-        const edited = edit(prettified);
-        return await this.executeSchemaChange(raw(edited));
+        const edited = formatSql(edit(prettified));
+        return await this.executeSchemaChange(edited);
       }
       return previousScreen();
     }
@@ -490,24 +576,6 @@ export class Explorer {
     throw new Error('could not find column definition.');
   }
 
-  async promptJsonType  (initial?: string): Promise<string>  {
-    log.info([
-      `${fmtVal('@json')} type annotation`,
-      kleur.dim('Any valid typescript import or inline type is ok. Examples:'),
-      kleur.red(`import('stripe').Transaction`),
-      kleur.red(`import('../api.js').Preferences`),
-      kleur.red(`Partial<import('../api.js').Preferences>`),
-      kleur.red('{foo: string; bar: number, baz: number[]}')
-    ]);
-    const jsonType = await prompt<string>({
-      type: 'text',
-      name: 'jsonType',
-      message: `${fmtVal('@json')} type annotation (leave blank to remove or omit)`,
-      initial: initial || ''
-    });
-    return jsonType.trim();
-  };
-  
   async fetchSchema(change?: SchemaChange) {
     const spinner = ora('Fetching schema').start();
     const fetchedSchema = await this.db.fetchSchema();
@@ -539,5 +607,60 @@ export class Explorer {
       kleur.bold('Generated files:'),
       ...this.code.files.map((f) => ` - ${fmtPath(f.relativePath)}`)
     ]);
+  }
+
+  getFieldModelNotes(model: Model, field: Field) {
+    const notes: string[] = [];
+    if (field.isInvisible) {
+      notes.push(
+        `${fmtVarName(field.fieldName)} is optional in ${fmtVal(
+          model.modelName
+        )} ${kleur.dim(`(column is INVISIBLE)`)}`
+      );
+      notes.push(
+        `${fmtVarName(field.fieldName)} is omitted from in ${fmtVal(
+          model.selectAllTypeName
+        )} ${kleur.dim(`(column is INVISIBLE)`)}`
+      );
+    }
+    if (field.isPrimaryKey) {
+      notes.push(
+        `${fmtVarName(field.fieldName)} is included in ${fmtVal(
+          model.primaryKeyTypeName
+        )} ${kleur.dim(`(column is a primary key)`)}`
+      );
+    }
+    if (field.isGeneratedAlways) {
+      notes.push(
+        `${fmtVarName(field.fieldName)} is omitted from ${fmtVal(
+          model.createTypeName
+        )} ${kleur.dim(`(column is GENERATED)`)}`
+      );
+    } else if (field.isAutoIncrement) {
+      notes.push(
+        `${fmtVarName(field.fieldName)} is optional in ${fmtVal(
+          model.createTypeName
+        )} ${kleur.dim(`(column is auto_increment)`)}`
+      );
+    } else if (field.hasDefault) {
+      notes.push(
+        `${fmtVarName(field.fieldName)} is optional in ${fmtVal(
+          model.createTypeName
+        )} ${kleur.dim(`(column has a default value)`)}`
+      );
+    }
+    if (field.isGeneratedAlways) {
+      notes.push(
+        `${fmtVarName(field.fieldName)} is omitted from ${fmtVal(
+          model.updateTypeName
+        )} ${kleur.dim(`(column is GENERATED)`)}`
+      );
+    } else if (field.isPrimaryKey) {
+      notes.push(
+        `${fmtVarName(field.fieldName)} is omitted from ${fmtVal(
+          model.updateTypeName
+        )} ${kleur.dim(`(column is a primary key)`)}`
+      );
+    }
   }
 }

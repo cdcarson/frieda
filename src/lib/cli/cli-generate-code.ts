@@ -12,7 +12,7 @@ import { writeSchema } from './write-schema.js';
 export const cliGenerateCode = async (
   schema: FetchedSchema,
   options: Options
-): Promise<{files: FsPaths[], types: {[t: string]: number}}> => {
+): Promise<{ files: FsPaths[]; types: { [t: string]: number } }> => {
   const spin = ora('Generating code').start();
   try {
     const result = await generate(
@@ -20,9 +20,8 @@ export const cliGenerateCode = async (
       options.outputDirectory,
       options.compileJs
     );
-     
-    
-    const schemaFiles = await writeSchema(schema, options)
+
+    const schemaFiles = await writeSchema(schema, options);
     spin.succeed('Code generated.');
     log.info([
       kleur.bold('Code files'),

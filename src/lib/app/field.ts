@@ -165,8 +165,17 @@ export class Field {
     return 'string';
   }
 
-
-  get javascriptEnumerableType(): string 
+  get javascriptEnumerableStringType(): string {
+    if (!['enum', 'set'].includes(this.mysqlBaseType as string)) {
+      return '';
+    }
+    const t = getParenthesizedArgs(this.column.Type, this.mysqlBaseType || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0)
+      .join('|');
+    return t.length > 0 ? t : 'string';
+  }
 
   get javascriptType(): string {
     if ('json' === this.castType) {
@@ -176,25 +185,14 @@ export class Field {
     }
 
     if ('set' === this.castType) {
-
       if (this.setAnnotation) {
-        const strings = getParenthesizedArgs(this.column.Type, 'set')
-          .split(',')
-          .map((s) => s.trim())
-          .filter((s) => s.length > 0)
-          .join('|');
-        return strings.length > 0 ? `Set<${strings}>` : `Set<string>`;
+        return `Set<${this.javascriptEnumerableStringType}>`;
       }
-      return 'string'
+      return 'string';
     }
 
     if ('enum' === this.mysqlBaseType) {
-      const strings = getParenthesizedArgs(this.column.Type, 'enum')
-        .split(',')
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0)
-        .join('|');
-      return strings.length > 0 ? strings : `string`;
+      return this.javascriptEnumerableStringType;
     }
 
     switch (this.castType) {

@@ -47,7 +47,6 @@ describe('Options', () => {
     it('showHelp', () => {
       const opts = new Options(fs, ['-f', 'foo']);
       opts.showHelp();
-      
     });
   });
 
@@ -61,44 +60,47 @@ describe('Options', () => {
         outputDirectory: 'src/db/_g',
         schemaDirectory: 'schema'
       };
-      opts = new Options(fs, [])
-      vi.spyOn(opts, 'readRc').mockResolvedValue({rcOptions: buildOptions, rcFile: {} as FileResult});
+      opts = new Options(fs, []);
+      vi.spyOn(opts, 'readRc').mockResolvedValue({
+        rcOptions: buildOptions,
+        rcFile: {} as FileResult
+      });
       vi.spyOn(opts, 'validateDirectory').mockImplementation(async (key, v) => {
         return {
           ...fs.getPathResult(v),
           isDirectory: true,
           isEmpty: true,
           exists: false
-        }
-      })
+        };
+      });
       vi.spyOn(opts, 'validateEnvFile').mockImplementation(async (v) => {
         return {
           databaseUrl: 'mysql://u:p@h',
           databaseUrlKey: 'DATABASE_URL',
           envFile: v
-        }
-      })
-    })
-    it('throw if not initialized',async () => {
-      expect(() => opts.compileJs).toThrow()
-      expect(() => opts.outputDirectory).toThrow()
-      expect(() => opts.schemaDirectory).toThrow()
-      expect(() => opts.envFile).toThrow()
-      expect(() => opts.databaseDetails).toThrow()
-    })
-    it('does not throw if initialized',async () => {
+        };
+      });
+    });
+    it('throw if not initialized', async () => {
+      expect(() => opts.compileJs).toThrow();
+      expect(() => opts.outputDirectory).toThrow();
+      expect(() => opts.schemaDirectory).toThrow();
+      expect(() => opts.envFile).toThrow();
+      expect(() => opts.databaseDetails).toThrow();
+    });
+    it('does not throw if initialized', async () => {
       await opts.initialize();
-      expect(opts.compileJs).toBe(false)
-      expect(opts.schemaDirectory).toBe('schema')
-      expect(opts.outputDirectory).toBe('src/db/_g')
-      expect(opts.envFile).toBe('.env')
+      expect(opts.compileJs).toBe(false);
+      expect(opts.schemaDirectory).toBe('schema');
+      expect(opts.outputDirectory).toBe('src/db/_g');
+      expect(opts.envFile).toBe('.env');
       expect(opts.databaseDetails).toEqual({
         databaseUrl: 'mysql://u:p@h',
         databaseUrlKey: 'DATABASE_URL',
         envFile: '.env'
-      })
-    })
-  })
+      });
+    });
+  });
 
   describe('readRc', () => {
     let readSpy: SpyInstance;
@@ -264,41 +266,31 @@ describe('Options', () => {
       fileResult.isFile = false;
       readSpy.mockResolvedValue(fileResult);
       const opts = new Options(fs, []);
-      await expect(() =>
-        opts.validateEnvFile('.env')
-      ).rejects.toThrow();
+      await expect(() => opts.validateEnvFile('.env')).rejects.toThrow();
     });
     it('should throw if does not exist', async () => {
       fileResult.exists = false;
       readSpy.mockResolvedValue(fileResult);
       const opts = new Options(fs, []);
-      await expect(() =>
-        opts.validateEnvFile('.env')
-      ).rejects.toThrow();
+      await expect(() => opts.validateEnvFile('.env')).rejects.toThrow();
     });
     it('should throw if no db url key found', async () => {
       fileResult.contents = '';
       readSpy.mockResolvedValue(fileResult);
       const opts = new Options(fs, []);
-      await expect(() =>
-        opts.validateEnvFile('.env')
-      ).rejects.toThrow();
+      await expect(() => opts.validateEnvFile('.env')).rejects.toThrow();
     });
     it('should throw if url key found, but empty', async () => {
       fileResult.contents = 'DATABASE_URL=';
       readSpy.mockResolvedValue(fileResult);
       const opts = new Options(fs, []);
-      await expect(() =>
-        opts.validateEnvFile('.env')
-      ).rejects.toThrow();
+      await expect(() => opts.validateEnvFile('.env')).rejects.toThrow();
     });
     it('should throw if url key found, but invalid', async () => {
       fileResult.contents = 'DATABASE_URL=ccsfc';
       readSpy.mockResolvedValue(fileResult);
       const opts = new Options(fs, []);
-      await expect(() =>
-        opts.validateEnvFile('.env')
-      ).rejects.toThrow();
+      await expect(() => opts.validateEnvFile('.env')).rejects.toThrow();
     });
   });
 
@@ -403,8 +395,15 @@ describe('Options', () => {
       expect(opts.compileJs).toEqual(buildOpts.compileJs);
     });
     it('should work if errors in the cli args', async () => {
-      const opts = new Options(fs, ['-o', 'error', '-e', 'error', '-s', 'error']);
-      
+      const opts = new Options(fs, [
+        '-o',
+        'error',
+        '-e',
+        'error',
+        '-s',
+        'error'
+      ]);
+
       const pathResult = fs.getPathResult(FRIEDA_RC_FILE_NAME);
 
       vi.spyOn(opts, 'readRc').mockResolvedValue({
@@ -416,15 +415,21 @@ describe('Options', () => {
         },
         rcOptions: {}
       });
-      
-      vi.spyOn(opts, 'validateEnvFile').mockRejectedValue(new Error())
-      vi.spyOn(opts, 'validateDirectory').mockRejectedValue(new Error())
-      vi.spyOn(opts, 'promptDirectory').mockResolvedValue({relativePath: 'a'} as unknown as DirectoryResult)
-      vi.spyOn(opts, 'promptEnvFile').mockResolvedValue({databaseUrl: 'mysql://u:p@h', databaseUrlKey: 'a', envFile: '.env'});
+
+      vi.spyOn(opts, 'validateEnvFile').mockRejectedValue(new Error());
+      vi.spyOn(opts, 'validateDirectory').mockRejectedValue(new Error());
+      vi.spyOn(opts, 'promptDirectory').mockResolvedValue({
+        relativePath: 'a'
+      } as unknown as DirectoryResult);
+      vi.spyOn(opts, 'promptEnvFile').mockResolvedValue({
+        databaseUrl: 'mysql://u:p@h',
+        databaseUrlKey: 'a',
+        envFile: '.env'
+      });
       vi.spyOn(fs, 'prettifyAndSaveFile').mockResolvedValue({} as PathResult);
       await opts.initialize();
-      expect(opts.databaseDetails.databaseUrl).toEqual('mysql://u:p@h')
-    })
+      expect(opts.databaseDetails.databaseUrl).toEqual('mysql://u:p@h');
+    });
     it('should work if init is true', async () => {
       const opts = new Options(fs, ['-i']);
       const buildOpts: BuildOptions = {
@@ -444,14 +449,26 @@ describe('Options', () => {
         },
         rcOptions: buildOpts
       });
-      
-      vi.spyOn(opts, 'validateEnvFile').mockResolvedValue({databaseUrl: 'mysql://u:p@h', databaseUrlKey: 'a', envFile: '.env'})
-      vi.spyOn(opts, 'validateDirectory').mockResolvedValue({relativePath: 'a'} as unknown as DirectoryResult)
-      vi.spyOn(opts, 'promptDirectory').mockResolvedValue({relativePath: 'a'} as unknown as DirectoryResult)
-      vi.spyOn(opts, 'promptEnvFile').mockResolvedValue({databaseUrl: 'mysql://u:p@h', databaseUrlKey: 'a', envFile: '.env'});
+
+      vi.spyOn(opts, 'validateEnvFile').mockResolvedValue({
+        databaseUrl: 'mysql://u:p@h',
+        databaseUrlKey: 'a',
+        envFile: '.env'
+      });
+      vi.spyOn(opts, 'validateDirectory').mockResolvedValue({
+        relativePath: 'a'
+      } as unknown as DirectoryResult);
+      vi.spyOn(opts, 'promptDirectory').mockResolvedValue({
+        relativePath: 'a'
+      } as unknown as DirectoryResult);
+      vi.spyOn(opts, 'promptEnvFile').mockResolvedValue({
+        databaseUrl: 'mysql://u:p@h',
+        databaseUrlKey: 'a',
+        envFile: '.env'
+      });
       vi.spyOn(fs, 'prettifyAndSaveFile').mockResolvedValue({} as PathResult);
-      await opts.initialize()
-    })
+      await opts.initialize();
+    });
     it('should work if init is true and empty rc opts', async () => {
       const opts = new Options(fs, ['-i']);
       const buildOpts: BuildOptions = {
@@ -471,14 +488,26 @@ describe('Options', () => {
         },
         rcOptions: {}
       });
-      
-      vi.spyOn(opts, 'validateEnvFile').mockResolvedValue({databaseUrl: 'mysql://u:p@h', databaseUrlKey: 'a', envFile: '.env'})
-      vi.spyOn(opts, 'validateDirectory').mockResolvedValue({relativePath: 'a'} as unknown as DirectoryResult)
-      vi.spyOn(opts, 'promptDirectory').mockResolvedValue({relativePath: 'a'} as unknown as DirectoryResult)
-      vi.spyOn(opts, 'promptEnvFile').mockResolvedValue({databaseUrl: 'mysql://u:p@h', databaseUrlKey: 'a', envFile: '.env'});
+
+      vi.spyOn(opts, 'validateEnvFile').mockResolvedValue({
+        databaseUrl: 'mysql://u:p@h',
+        databaseUrlKey: 'a',
+        envFile: '.env'
+      });
+      vi.spyOn(opts, 'validateDirectory').mockResolvedValue({
+        relativePath: 'a'
+      } as unknown as DirectoryResult);
+      vi.spyOn(opts, 'promptDirectory').mockResolvedValue({
+        relativePath: 'a'
+      } as unknown as DirectoryResult);
+      vi.spyOn(opts, 'promptEnvFile').mockResolvedValue({
+        databaseUrl: 'mysql://u:p@h',
+        databaseUrlKey: 'a',
+        envFile: '.env'
+      });
       vi.spyOn(fs, 'prettifyAndSaveFile').mockResolvedValue({} as PathResult);
-      await opts.initialize()
-    })
+      await opts.initialize();
+    });
     it('should work if the compileJs is passed in the cli args', async () => {
       const buildOpts: BuildOptions = {
         compileJs: false,

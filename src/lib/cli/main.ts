@@ -10,8 +10,6 @@ import { OPTION_DESCRIPTIONS } from './constants.js';
 import { explore } from './explore.js';
 
 export const main = async (argv: string[]) => {
- 
-
   const helpWidth = getStdOutCols() - 30;
   const app = yargs(argv)
     .scriptName('frieda')
@@ -20,17 +18,17 @@ export const main = async (argv: string[]) => {
     .help(false)
     .usage('$0 [options]', 'Generate code.')
     .options({
-      'explore': {
+      explore: {
         alias: 'x',
         type: 'boolean',
         description: 'Explore/modify schema before generating code.'
       },
-      'model': {
+      model: {
         alias: 'm',
         type: 'string',
         description: 'The model to explore.'
       },
-      'field': {
+      field: {
         alias: 'f',
         type: 'string',
         description: 'The field to explore.'
@@ -69,30 +67,12 @@ export const main = async (argv: string[]) => {
         description: 'Show help.'
       }
     })
+    .group(['explore', 'model', 'field'], 'Schema Options:')
     .group(
-      [
-        'explore',
-        'model',
-        'field'
-      ],
-      'Schema Options:'
-    )
-    .group(
-      [
-        'env-file',
-        'output-directory',
-        'schema-directory',
-        'compile-js',
-      ],
+      ['env-file', 'output-directory', 'schema-directory', 'compile-js'],
       'Code Generation Options:'
     )
-    .group(
-      [
-        'init',
-        'help'
-      ],
-      'Options:'
-    );
+    .group(['init', 'help'], 'Options:');
   const parsed = await app.parse();
   console.log(kleur.bold('frieda'), kleur.dim(`v${FRIEDA_VERSION}`), '🦮');
   console.log();
@@ -102,15 +82,23 @@ export const main = async (argv: string[]) => {
     const optionsResult = await getOptions(parsed, parsed.init === true);
     const { options, connection } = optionsResult;
     let schema = await cliFetchSchema(connection);
-    const {files, types} = await cliGenerateCode(schema, options);
-    if (parsed.explore || typeof parsed.model === 'string' || typeof parsed.field === 'string') {
-      console.log(parsed.model)
-      schema = await explore(schema, optionsResult, types, parsed.model, parsed.field);
+    const { files, types } = await cliGenerateCode(schema, options);
+    if (
+      parsed.explore ||
+      typeof parsed.model === 'string' ||
+      typeof parsed.field === 'string'
+    ) {
+      console.log(parsed.model);
+      schema = await explore(
+        schema,
+        optionsResult,
+        types,
+        parsed.model,
+        parsed.field
+      );
     }
-    
-    
+
     console.log(kleur.bold('Done'), '🦮');
   }
   console.log();
- 
 };

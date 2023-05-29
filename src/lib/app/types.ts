@@ -93,9 +93,7 @@ export type BuildOptions = {
 export type CliOptions = Partial<BuildOptions> & {
   help?: boolean;
   init?: boolean;
-  explore?: boolean;
-  model?: string;
-  field?: string;
+  explore?: string;
 };
 
 export type DatabaseDetails = {
@@ -103,7 +101,6 @@ export type DatabaseDetails = {
   databaseUrlKey: string;
   envFile: string;
 };
-
 
 export type Index = {
   indexName: string;
@@ -124,8 +121,7 @@ export type ParsedAnnotation = {
   typeArgument?: string;
 };
 
-
-export type LineNumbers = {[key: string]: number};
+export type LineNumbers = { [key: string]: number };
 
 export type GeneratedFile = PathResult & { contents: string };
 
@@ -133,13 +129,24 @@ export enum TypescriptFileName {
   typesD = 'types.d.ts',
   database = 'database.ts',
   schema = 'schema.ts',
-  searchIndexes= 'search-indexes.ts'
+  searchIndexes = 'search-indexes.ts'
 }
 
-export type TypescriptSourceCode = {[K in TypescriptFileName]: string};
+export type TypescriptSourceCode = { [K in TypescriptFileName]: string };
 
 export type SchemaChange = {
   previousSchema: FetchedSchema;
   changeSql: string;
-}
+};
 
+export type TypeDeclarationWithDescription = {
+  declaration: string;
+  description: string;
+};
+
+export type TypeDeclarationWithFieldNotes = TypeDeclarationWithDescription & {
+  notes: { [fieldName: string]: string };
+};
+export type TypeDeclarationWithNotes = TypeDeclarationWithDescription & {
+  notes: string[];
+};

@@ -70,7 +70,7 @@ export class Cli {
     await this.options.initialize(this.#cwd);
     await this.fetchSchema();
     await this.generateCode();
-    if (this.options.explore || this.options.model || this.options.field) {
+    if (this.options.explore) {
       const explorer = new Explorer(
         this.schema,
         this.code,
@@ -78,7 +78,7 @@ export class Cli {
         this.database,
         this.options
       );
-      await explorer.run()
+      await explorer.run();
     }
   }
 

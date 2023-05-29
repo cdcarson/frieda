@@ -1,16 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import fs from 'fs-extra';
-import prettier from 'prettier'
+import prettier from 'prettier';
 import { FileSystem } from './file-system.js';
 
 describe('FileSystem', () => {
   let fileSystem: FileSystem;
   let testCwd: string;
   beforeEach(() => {
-    testCwd = '/a/b'
-    fileSystem = new FileSystem(testCwd)
-  })
+    testCwd = '/a/b';
+    fileSystem = new FileSystem(testCwd);
+  });
   describe('saveFile', () => {
     it('works', async () => {
       const ensureSpy = vi.spyOn(fs, 'ensureFile').mockResolvedValue();
@@ -26,7 +26,9 @@ describe('FileSystem', () => {
     it('works', async () => {
       const relpath = 'foo.json';
       const paths = fileSystem.getPathResult(relpath);
-      const getPathsSpy = vi.spyOn(fileSystem, 'getPathResult').mockReturnValue(paths);
+      const getPathsSpy = vi
+        .spyOn(fileSystem, 'getPathResult')
+        .mockReturnValue(paths);
       const configSpy = vi.spyOn(prettier, 'resolveConfig');
       const fmtSpy = vi.spyOn(prettier, 'format');
       const saveSpy = vi.spyOn(fileSystem, 'saveFile').mockResolvedValue(paths);
@@ -38,13 +40,19 @@ describe('FileSystem', () => {
       expect(saveSpy).toHaveBeenCalled();
     });
     it('works with extname', async () => {
-      const relpath = 'foo.rc'
+      const relpath = 'foo.rc';
       const paths = fileSystem.getPathResult(relpath);
-      const getPathsSpy = vi.spyOn(fileSystem, 'getPathResult').mockReturnValue(paths);
+      const getPathsSpy = vi
+        .spyOn(fileSystem, 'getPathResult')
+        .mockReturnValue(paths);
       const configSpy = vi.spyOn(prettier, 'resolveConfig');
       const fmtSpy = vi.spyOn(prettier, 'format');
       const saveSpy = vi.spyOn(fileSystem, 'saveFile').mockResolvedValue(paths);
-      const result = await fileSystem.prettifyAndSaveFile(relpath, '{}', 'json');
+      const result = await fileSystem.prettifyAndSaveFile(
+        relpath,
+        '{}',
+        'json'
+      );
       expect(result).toEqual(paths);
       expect(getPathsSpy).toHaveBeenCalledTimes(1);
       expect(configSpy).toHaveBeenCalledWith(paths.absolutePath + '.json');
@@ -52,13 +60,19 @@ describe('FileSystem', () => {
       expect(saveSpy).toHaveBeenCalled();
     });
     it('works with dotted extname', async () => {
-      const relpath = 'foo.rc'
+      const relpath = 'foo.rc';
       const paths = fileSystem.getPathResult(relpath);
-      const getPathsSpy = vi.spyOn(fileSystem, 'getPathResult').mockReturnValue(paths);
+      const getPathsSpy = vi
+        .spyOn(fileSystem, 'getPathResult')
+        .mockReturnValue(paths);
       const configSpy = vi.spyOn(prettier, 'resolveConfig');
       const fmtSpy = vi.spyOn(prettier, 'format');
       const saveSpy = vi.spyOn(fileSystem, 'saveFile').mockResolvedValue(paths);
-      const result = await fileSystem.prettifyAndSaveFile(relpath, '{}', '.json');
+      const result = await fileSystem.prettifyAndSaveFile(
+        relpath,
+        '{}',
+        '.json'
+      );
       expect(result).toEqual(paths);
       expect(getPathsSpy).toHaveBeenCalledTimes(1);
       expect(configSpy).toHaveBeenCalledWith(paths.absolutePath + '.json');
@@ -69,7 +83,7 @@ describe('FileSystem', () => {
   describe('getDirectory', () => {
     it('calls getPaths and stat', async () => {
       const statSpy = vi.spyOn(fs, 'stat').mockRejectedValue('x');
-      const getPathsSpy = vi.spyOn(fileSystem, 'getPathResult')
+      const getPathsSpy = vi.spyOn(fileSystem, 'getPathResult');
       const result = await fileSystem.getDirectory('foo');
       expect(result).toBeTruthy();
       expect(getPathsSpy).toHaveBeenCalledWith('foo');
@@ -79,7 +93,7 @@ describe('FileSystem', () => {
       const statSpy = vi.spyOn(fs, 'stat').mockRejectedValue('x');
       const readdirSpy = vi.spyOn(fs, 'readdir');
       const result = await fileSystem.getDirectory('foo');
-  
+
       expect(result).toBeTruthy();
       expect(statSpy).toHaveBeenCalledWith(testCwd + '/foo');
       expect(readdirSpy).not.toHaveBeenCalled();
@@ -92,7 +106,7 @@ describe('FileSystem', () => {
       const statSpy = vi.spyOn(fs, 'stat').mockResolvedValue(stat);
       const readdirSpy = vi.spyOn(fs, 'readdir');
       const result = await fileSystem.getDirectory('foo');
-  
+
       expect(result).toBeTruthy();
       expect(statSpy).toHaveBeenCalledWith(testCwd + '/foo');
       expect(readdirSpy).not.toHaveBeenCalled();
@@ -105,7 +119,7 @@ describe('FileSystem', () => {
       const statSpy = vi.spyOn(fs, 'stat').mockResolvedValue(stat);
       const readdirSpy = vi.spyOn(fs, 'readdir').mockResolvedValue([] as any);
       const result = await fileSystem.getDirectory('foo');
-  
+
       expect(result).toBeTruthy();
       expect(statSpy).toHaveBeenCalledWith(testCwd + '/foo');
       expect(readdirSpy).toHaveBeenCalled();
@@ -116,9 +130,11 @@ describe('FileSystem', () => {
     it('works if stat resolves (path  exists) and is a non-empty dir', async () => {
       const stat: any = { isDirectory: () => true };
       const statSpy = vi.spyOn(fs, 'stat').mockResolvedValue(stat);
-      const readdirSpy = vi.spyOn(fs, 'readdir').mockResolvedValue(['a'] as any);
+      const readdirSpy = vi
+        .spyOn(fs, 'readdir')
+        .mockResolvedValue(['a'] as any);
       const result = await fileSystem.getDirectory('foo');
-  
+
       expect(result).toBeTruthy();
       expect(statSpy).toHaveBeenCalledWith(testCwd + '/foo');
       expect(readdirSpy).toHaveBeenCalled();
@@ -135,7 +151,7 @@ describe('FileSystem', () => {
         isFile: vi.fn()
       } as unknown as fs.Stats;
     });
-  
+
     it('calls getPaths', async () => {
       vi.spyOn(fs, 'stat').mockResolvedValue(stat as any);
       const spy = vi.spyOn(fileSystem, 'getPathResult');
@@ -169,8 +185,6 @@ describe('FileSystem', () => {
   });
 
   describe('getPathResult', () => {
-   
-  
     it('has cwd', () => {
       expect(fileSystem.getPathResult('foo').cwd).toBe(testCwd);
     });
@@ -199,4 +213,4 @@ describe('FileSystem', () => {
       expect(fileSystem.getPathResult('foo').isUnderCwd).toBe(true);
     });
   });
-})
+});

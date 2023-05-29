@@ -1,7 +1,15 @@
 import camelcase from 'camelcase';
-import type { FetchedTable, Index } from './types.js';
+import type {
+  FetchedTable,
+  Index,
+  TypeDeclarationWithDescription,
+  TypeDeclarationWithFieldNotes,
+  TypeDeclarationWithNotes
+} from './types.js';
 import { Field } from './field.js';
 import type { ModelDefinition } from '../api/types.js';
+import { fmtVal, fmtVarName } from './utils.js';
+import kleur from 'kleur';
 
 export class Model {
   #table: FetchedTable;
@@ -69,7 +77,7 @@ export class Model {
     return camelcase(this.tableName);
   }
 
-  get findUniqueTypes(): string[] {
+  get findUniqueTypes(): { indexName: string; declaration: string }[] {
     return this.indexes
       .filter((i) => i.isUnique && !i.isPrimary)
       .map((i) => {
@@ -80,7 +88,10 @@ export class Model {
           return `${f.fieldName}:${f.javascriptType}`;
         });
         // tests depend on maintaining this spacing
-        return `{${fieldSignatures.join(';')}}`;
+        return {
+          declaration: `{${fieldSignatures.join(';')}}`,
+          indexName: i.indexName
+        };
       });
   }
 
@@ -88,21 +99,44 @@ export class Model {
    * The model's base type.
    * Fields are optional if the column is INVISIBLE.
    */
-  get modelTypeDeclaration(): string {
+  get modelTypeDeclaration(): TypeDeclarationWithFieldNotes {
     // tests depend on spacing
     const sigs = this.fields.map((f) => {
       const opt = f.isInvisible ? '?' : '';
       const orNull = f.isNullable ? '|null' : '';
       return `${f.fieldName}${opt}:${f.javascriptType}${orNull}`;
     });
-    return `export type ${this.modelName}={${sigs.join(';')}}`;
+    const description = `
+        The base type for the ${fmtVal(this.modelName)} model.
+        Note that fields where the underlying column is 
+        ${kleur.red('INVISIBLE')} are optional,
+        since such columns are omitted when the model is 
+        queried with ${kleur.red('SELECT *')}.
+    `;
+    const notes: { [fieldName: string]: string } = this.fields.reduce(
+      (acc, f) => {
+        const copy: { [fieldName: string]: string } = { ...acc };
+        if (f.isInvisible) {
+          copy[f.fieldName] = `
+            ${fmtVarName(f.fieldName)} is optional in ${fmtVal(this.modelName)} 
+            (column is ${kleur.red('INVISIBLE')}.)`;
+        }
+        return copy;
+      },
+      {} as { [fieldName: string]: string }
+    );
+    return {
+      declaration: `export type ${this.modelName}={${sigs.join(';')}}`,
+      description,
+      notes
+    };
   }
 
   /**
    * The model's select all type.
    * Fields are omitted if the column is INVISIBLE.
    */
-  get selectAllTypeDeclaration(): string {
+  get selectAllTypeDeclaration(): TypeDeclarationWithFieldNotes {
     // tests depend on spacing
     const sigs = this.fields
       .filter((f) => !f.isInvisible)
@@ -110,56 +144,187 @@ export class Model {
         const orNull = f.isNullable ? '|null' : '';
         return `${f.fieldName}:${f.javascriptType}${orNull}`;
       });
-    return `export type ${this.selectAllTypeName}={${sigs.join(';')}}`;
+    const description = `
+        The representation the ${fmtVal(this.modelName)} model
+        when queried with ${kleur.red('SELECT *')}.
+        Fields where the underlying column is 
+        ${kleur.red('INVISIBLE')} are omitted,
+        since such columns are omitted  with ${kleur.red('SELECT *')}.
+    `;
+    const notes: { [fieldName: string]: string } = this.fields.reduce(
+      (acc, f) => {
+        const copy: { [fieldName: string]: string } = { ...acc };
+        if (f.isInvisible) {
+          copy[f.fieldName] = `
+            ${fmtVarName(f.fieldName)} is omitted in ${fmtVal(
+            this.selectAllTypeName
+          )} 
+            (column is ${kleur.red('INVISIBLE')}.)`;
+        }
+        return copy;
+        return copy;
+      },
+      {} as { [fieldName: string]: string }
+    );
+    return {
+      declaration: `export type ${this.selectAllTypeName}={${sigs.join(';')}}`,
+      description,
+      notes
+    };
   }
-  get primaryKeyTypeDeclaration(): string {
+  get primaryKeyTypeDeclaration(): TypeDeclarationWithFieldNotes {
     // tests depend on spacing
     const sigs = this.fields
       .filter((f) => f.isPrimaryKey)
       .map((f) => {
         return `${f.fieldName}:${f.javascriptType}`;
       });
-    return `export type ${this.primaryKeyTypeName}={${sigs.join(';')}}`;
+    const description = `The primary key type for ${fmtVal(
+      this.modelName
+    )} model.
+    This type is used to update and delete models, and is the return type
+    when you create a new ${fmtVal(this.modelName)}.`;
+    const notes: { [fieldName: string]: string } = this.fields.reduce(
+      (acc, f) => {
+        const copy: { [fieldName: string]: string } = { ...acc };
+        if (f.isInvisible) {
+          copy[f.fieldName] = `${fmtVarName(
+            f.fieldName
+          )} is included in ${fmtVal(this.primaryKeyTypeName)} ${kleur.dim(
+            `(column is a primary key)`
+          )}`;
+        }
+        return copy;
+      },
+      {} as { [fieldName: string]: string }
+    );
+    return {
+      declaration: `export type ${this.primaryKeyTypeName}={${sigs.join(';')}}`,
+      description,
+      notes
+    };
   }
 
-   /**
+  /**
    * The model's create type.
    * Fields are omitted if the column is GENERATED.
    * Fields are optional if the column is auto_increment or has a default value.
    */
-  get createTypeDeclaration(): string {
+  get createTypeDeclaration(): TypeDeclarationWithFieldNotes {
     // tests depend on spacing
     const sigs = this.fields
-      .filter(f => !f.isGeneratedAlways)
+      .filter((f) => !f.isGeneratedAlways)
       .map((f) => {
         const opt = f.isAutoIncrement || f.hasDefault ? '?' : '';
         const orNull = f.isNullable ? '|null' : '';
         return `${f.fieldName}${opt}:${f.javascriptType}${orNull}`;
-      })
-    return `export type ${this.createTypeName}={${sigs.join(';')}}`;
+      });
+    const description = `
+        Data passed to create a new ${fmtVal(this.modelName)} model.
+        Fields where the underlying column is 
+        ${kleur.red('GENERATED')} are omitted.
+        Fields where the underlying column is 
+        ${kleur.red('auto_increment')} or has a default value are optional.`;
+    const notes: { [fieldName: string]: string } = this.fields.reduce(
+      (acc, f) => {
+        const copy: { [fieldName: string]: string } = { ...acc };
+        if (f.isGeneratedAlways) {
+          copy[f.fieldName] = `${fmtVarName(
+            f.fieldName
+          )} is omitted from ${fmtVal(this.createTypeName)} ${kleur.dim(
+            `(column is ${kleur.red('GENERATED')})`
+          )}`;
+        } else if (f.isAutoIncrement) {
+          copy[f.fieldName] = `${fmtVarName(
+            f.fieldName
+          )} is optional in ${fmtVal(this.createTypeName)} ${kleur.dim(
+            `(column is auto_increment)`
+          )}`;
+        } else if (f.hasDefault) {
+          copy[f.fieldName] = `${fmtVarName(
+            f.fieldName
+          )} is optional in ${fmtVal(this.createTypeName)} ${kleur.dim(
+            `(column has a default)`
+          )}`;
+        }
+        return copy;
+      },
+      {} as { [fieldName: string]: string }
+    );
+    return {
+      declaration: `export type ${this.createTypeName}={${sigs.join(';')}}`,
+      description,
+      notes
+    };
   }
-   /**
+  /**
    * The model's update type.
    * Fields omitted if the column is GENERATED or a primary key.
    */
-  get updateTypeDeclaration(): string {
+  get updateTypeDeclaration(): TypeDeclarationWithFieldNotes {
     // tests depend on spacing
     const sigs = this.fields
-      .filter(f => !f.isGeneratedAlways && !f.isPrimaryKey)
+      .filter((f) => !f.isGeneratedAlways && !f.isPrimaryKey)
       .map((f) => {
         const orNull = f.isNullable ? '|null' : '';
         return `${f.fieldName}?:${f.javascriptType}${orNull}`;
-      })
-    return `export type ${this.updateTypeName}={${sigs.join(';')}}`;
+      });
+
+    const description = `
+        Data passed to update an existing ${fmtVal(this.modelName)} model.
+        Fields where the underlying column is 
+        ${kleur.red('GENERATED')} or is a primary key are omitted.`;
+    const notes: { [fieldName: string]: string } = this.fields.reduce(
+      (acc, f) => {
+        const copy: { [fieldName: string]: string } = { ...acc };
+        if (f.isGeneratedAlways) {
+          copy[f.fieldName] = `${fmtVarName(
+            f.fieldName
+          )} is omitted from ${fmtVal(this.updateTypeName)} ${kleur.dim(
+            `(column is GENERATED)`
+          )}`;
+        } else if (f.isPrimaryKey) {
+          copy[f.fieldName] = `${fmtVarName(
+            f.fieldName
+          )} is omitted from ${fmtVal(this.updateTypeName)} ${kleur.dim(
+            `(column is a primary key)`
+          )}`;
+        }
+        return copy;
+      },
+      {} as { [fieldName: string]: string }
+    );
+    return {
+      declaration: `export type ${this.updateTypeName}={${sigs.join(';')}}`,
+      description,
+      notes
+    };
   }
 
-  get findUniqueTypeDeclaration(): string {
-    const sigs = [this.primaryKeyTypeName, ...this.findUniqueTypes];
+  get findUniqueTypeDeclaration(): TypeDeclarationWithNotes {
+    const uniqueTypes = this.findUniqueTypes;
+    const sigs = [
+      this.primaryKeyTypeName,
+      ...uniqueTypes.map((t) => t.declaration)
+    ];
+    const description = `
+      Type representing how to uniquely select a ${fmtVal(
+        this.modelName
+      )} model.
+      This includes the ${fmtVal(this.primaryKeyTypeName)} primary key type 
+      plus types derived from the table's other unique indexes.`;
+    const notes: string[] = uniqueTypes.map(
+      (t) => `Index: ${fmtVal(t.indexName)}`
+    );
     // tests depend on maintaining this spacing
-    return `export type ${this.findUniqueTypeName}=${sigs.join('|')}`;
+    return {
+      declaration: `export type ${this.findUniqueTypeName}=${sigs.join('|')}`,
+      description,
+      notes
+    };
   }
 
-  get dbTypeDeclaration(): string {
+  get dbTypeDeclaration(): TypeDeclarationWithDescription {
     const sigs = [
       this.modelName,
       this.selectAllTypeName,
@@ -168,7 +333,13 @@ export class Model {
       this.updateTypeName,
       this.findUniqueTypeName
     ];
-    return `export type ${this.dbTypeName}=ModelDb<${sigs.join(',')}>`;
+    const description = `The ${fmtVal('ModelDb')} type for the ${fmtVal(
+      this.modelName
+    )} model. `;
+    return {
+      declaration: `export type ${this.dbTypeName}=ModelDb<${sigs.join(',')}>`,
+      description
+    };
   }
 
   toJSON(): ModelDefinition {

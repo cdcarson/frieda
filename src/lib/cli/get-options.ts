@@ -33,7 +33,8 @@ export const getOptions = async (
   promptAlways = false
 ): Promise<GetOptionsResult> => {
   const merged = await getMergedOptions(cliArgs);
-  let { databaseUrlResult, outputDirectoryResult, schemaDirectoryResult } = merged;
+  let { databaseUrlResult, outputDirectoryResult, schemaDirectoryResult } =
+    merged;
   if (promptAlways || !databaseUrlResult || merged.envFileError) {
     console.log();
 
@@ -112,8 +113,7 @@ export const getOptions = async (
     envFile: databaseUrlResult.envFile,
     outputDirectory: outputDirectoryResult.relativePath,
     schemaDirectory: schemaDirectoryResult.relativePath,
-    compileJs,
-    
+    compileJs
   };
 
   const changedKeys = Object.keys(options).filter((k) => {
@@ -128,13 +128,12 @@ export const getOptions = async (
       [
         ...Object.keys(options).map((k) => {
           const value = options[k as keyof Options];
-          const fmted = typeof value === 'string' ? fmtPath(value) : fmtVal(JSON.stringify(value))
-          
-          return [
-            fmtVarName(k),
-            fmted,
-            changedKeys.includes(k) ? 'yes' : 'no'
-          ];
+          const fmted =
+            typeof value === 'string'
+              ? fmtPath(value)
+              : fmtVal(JSON.stringify(value));
+
+          return [fmtVarName(k), fmted, changedKeys.includes(k) ? 'yes' : 'no'];
         })
       ],
       ['Option', 'Value', 'Changed']
@@ -360,7 +359,7 @@ export const validateDatabaseUrl = (urlStr: unknown): boolean => {
 };
 
 export const promptDirectory = async (
-  key: keyof Pick<Options, 'outputDirectory'|'schemaDirectory'>,
+  key: keyof Pick<Options, 'outputDirectory' | 'schemaDirectory'>,
   currentValue?: string,
   currentRcValue?: string
 ): Promise<DirectoryResult> => {
@@ -413,13 +412,15 @@ export const promptDirectory = async (
 };
 
 export const validateDirectory = async (
-  key: keyof Pick<Options, 'outputDirectory'|'schemaDirectory'>,
+  key: keyof Pick<Options, 'outputDirectory' | 'schemaDirectory'>,
   relativePath: string
 ): Promise<DirectoryResult> => {
   const dir = await getDirectory(relativePath);
   if (!dir.isDirectory && dir.exists) {
     throw new Error(
-      `Error: ${fmtVarName(key)} directory path ${fmtPath(dir.relativePath)} is a file.`
+      `Error: ${fmtVarName(key)} directory path ${fmtPath(
+        dir.relativePath
+      )} is a file.`
     );
   }
   if (!dir.isUnderCwd) {

@@ -157,19 +157,16 @@ describe('Database', () => {
     });
   });
   describe('fetchSchema', () => {
-   
     it('should make the right calls', async () => {
       const ftSpy = vi
         .spyOn(database, 'fetchTable')
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .mockResolvedValue({} as any);
-      const namesSpy = vi
-        .spyOn(database, 'fetchTableNames')
-        .mockResolvedValue({
-          databaseName: 'foo',
-          tableNames: ['a', 'b']
-        });
-  
+      const namesSpy = vi.spyOn(database, 'fetchTableNames').mockResolvedValue({
+        databaseName: 'foo',
+        tableNames: ['a', 'b']
+      });
+
       const result = await database.fetchSchema();
       expect(result.databaseName).toBe('foo');
       expect(ftSpy).toHaveBeenCalledTimes(2);
@@ -180,13 +177,11 @@ describe('Database', () => {
         .spyOn(database, 'fetchTable')
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .mockResolvedValue({} as any);
-      const namesSpy = vi
-        .spyOn(database, 'fetchTableNames')
-        .mockResolvedValue({
-          databaseName: 'foo',
-          tableNames: []
-        });
-  
+      const namesSpy = vi.spyOn(database, 'fetchTableNames').mockResolvedValue({
+        databaseName: 'foo',
+        tableNames: []
+      });
+
       const result = await database.fetchSchema();
       expect(result.databaseName).toBe('foo');
       expect(ftSpy).not.toHaveBeenCalled();

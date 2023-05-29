@@ -25,7 +25,6 @@ export type FieldModification = {
   getSql: () => Promise<Sql>;
 };
 
-
 export const getFieldModifications = (
   table: FetchedTable,
   column: Column
@@ -158,7 +157,6 @@ export const getEditJsonTypeAnnotationSql = async (
   table: FetchedTable,
   column: Column
 ): Promise<Sql> => {
-
   const annotationType = await promptAnnotationType('json');
   let comment = column.Comment;
   const annotations = getCommentAnnotations(column).filter(
@@ -171,7 +169,7 @@ export const getEditJsonTypeAnnotationSql = async (
   if (annotationType) {
     comment = [comment, `@json(${annotationType})`].join(' ').trim();
   }
-  
+
   let colDef = getColumnDef(table, column);
   const rx = /COMMENT\s+'.*'/;
   if (rx.test(colDef)) {
@@ -623,10 +621,8 @@ export const addField = async (
 };
 
 const promptAnnotationType = async (
-  annotation: Annotation,
+  annotation: Annotation
 ): Promise<string | null> => {
-
-  
   log.info(
     kleur.italic(
       squishWords(`

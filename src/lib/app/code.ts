@@ -1,6 +1,6 @@
 import type { Schema } from './schema.js';
 import prettier from 'prettier';
-import { blockComment, getPrettierOptions } from './utils.js';
+import { blockComment, getPrettierOptions, squishWords } from './utils.js';
 import { TS_COMPILER_OPTIONS } from './constants.js';
 import { tsquery } from '@phenomnomnominal/tsquery';
 import { Project } from 'ts-morph';
@@ -15,6 +15,7 @@ import {
 } from './types.js';
 import type { FileSystem } from './file-system.js';
 import type { Options } from './options.js';
+import stripAnsi from 'strip-ansi';
 
 export class Code {
   static async create(
@@ -96,6 +97,7 @@ export class Code {
       this.#typesDLineNumbers[name.getText()] =
         ast.getLineAndCharacterOfPosition(node.getStart()).line + 1;
     });
+    await Promise.all(this.#files.map(f => this.fs.saveFile(f.relativePath, f.contents)))
   }
 
   get bannerComment(): string {
@@ -117,7 +119,6 @@ export class Code {
   }
 
   getSearchIndexesSourceCode(): string {
-    
     const map = JSON.stringify(this.schema.fullTextSearchIndexes);
     return `
         ${this.bannerComment}
@@ -213,117 +214,127 @@ export class Code {
   getTypesDSourceCode(): string {
     const typeDeclarations = this.schema.models
       .map((m) => {
-        const invisibleFields = m.fields.filter((f) => f.isInvisible);
-        const generatedFields = m.fields.filter((f) => f.isGeneratedAlways);
+        const modelTypeDeclaration = m.modelTypeDeclaration;
         const baseModelComment = [
-          `The base type for the ${m.modelName} model.`
+          ...squishWords(stripAnsi(modelTypeDeclaration.description), 70).split(
+            '\n'
+          )
         ];
-        if (invisibleFields.length > 0) {
+        if (Object.values(modelTypeDeclaration.notes).length > 0) {
           baseModelComment.push(
-            'Optional fields (`undefined` if the model is queried with `SELECT *`):',
-            ...invisibleFields.map(
-              (f) => `- \`${f.fieldName}\` (column is \`INVISIBLE\`)`
+            ...Object.values(modelTypeDeclaration.notes).map(
+              (note) => `- ${stripAnsi(note)}`
             )
           );
         }
+
+        const selectAllTypeDeclaration = m.selectAllTypeDeclaration;
 
         const selectAllComment = [
-          `The representation of the \`${m.modelName}\` model when fetched using \`SELECT *\`,`,
-          `omitting fields where the underlying column is \`INVISIBLE\`.`
+          ...squishWords(
+            stripAnsi(selectAllTypeDeclaration.description),
+            70
+          ).split('\n')
         ];
-        if (invisibleFields.length > 0) {
+        if (Object.values(selectAllTypeDeclaration.notes).length > 0) {
           selectAllComment.push(
-            'Omitted fields:',
-            ...invisibleFields.map(
-              (f) => `- \`${f.fieldName}\` (column is \`INVISIBLE\`)`
+            ...Object.values(selectAllTypeDeclaration.notes).map(
+              (note) => `- ${stripAnsi(note)}`
             )
           );
         }
 
+        const primaryKeyTypeDeclaration = m.primaryKeyTypeDeclaration;
         const primaryKeyComment = [
-          `The primary key type for ${m.modelName}.`,
-          `This type is used to update and delete models, and is the return type`,
-          `when you create a ${m.modelName} model.`
+          ...squishWords(
+            stripAnsi(primaryKeyTypeDeclaration.description),
+            70
+          ).split('\n')
         ];
+        if (Object.values(primaryKeyTypeDeclaration.notes).length > 0) {
+          primaryKeyComment.push(
+            ...Object.values(primaryKeyTypeDeclaration.notes).map(
+              (note) => `- ${stripAnsi(note)}`
+            )
+          );
+        }
 
-        const optionalInCreate = m.fields.filter(
-          (f) => f.isAutoIncrement || f.hasDefault
-        );
+        const createTypeDeclaration = m.createTypeDeclaration;
         const createComment = [
-          `Data passed to create a new \`${m.modelName}\` model.`
+          ...squishWords(
+            stripAnsi(createTypeDeclaration.description),
+            70
+          ).split('\n')
         ];
-        if (optionalInCreate.length > 0) {
+        if (Object.values(createTypeDeclaration.notes).length > 0) {
           createComment.push(
-            'Optional fields:',
-            ...optionalInCreate.map((f) => {
-              if (f.isAutoIncrement) {
-                return `- \`${f.fieldName}\` (column is \`auto_increment\`)`;
-              }
-              return `- \`${f.fieldName}\` (column has a default value)`;
-            })
-          );
-        }
-        if (generatedFields.length > 0) {
-          createComment.push(
-            'Omitted fields:',
-            ...generatedFields.map(
-              (f) => `- \`${f.fieldName}\` (column is \`GENERATED\`)`
-            )
-          );
-        }
-        const omittedInUpdatePrimaryKeys = m.fields.filter(
-          (f) => f.isPrimaryKey
-        );
-        const updateComment = [
-          `Data passed to update an existing \`${m.modelName}\` model.`
-        ];
-        if (
-          omittedInUpdatePrimaryKeys.length > 0 ||
-          generatedFields.length > 0
-        ) {
-          updateComment.push(
-            'Omitted fields:',
-            ...omittedInUpdatePrimaryKeys.map(
-              (f) => `- \`${f.fieldName}\` (column is a primary key)`
-            ),
-            ...generatedFields.map(
-              (f) => `- \`${f.fieldName}\` (column is \`GENERATED\`)`
+            ...Object.values(createTypeDeclaration.notes).map(
+              (note) => `- ${stripAnsi(note)}`
             )
           );
         }
 
-        const findUniqueComment = [
-          `Type representing how to uniquely select a \`${m.modelName}\` model`,
-          `including the \`${m.primaryKeyTypeName}\` primary key type`,
-          `and any other unique indexes found in the table's schema.`
+        const updateTypeDeclaration = m.updateTypeDeclaration;
+        const updateComment = [
+          ...squishWords(
+            stripAnsi(updateTypeDeclaration.description),
+            70
+          ).split('\n')
         ];
+        if (Object.values(updateTypeDeclaration.notes).length > 0) {
+          updateComment.push(
+            ...Object.values(updateTypeDeclaration.notes).map(
+              (note) => `- ${stripAnsi(note)}`
+            )
+          );
+        }
+        const findUniqueTypeDeclaration = m.findUniqueTypeDeclaration;
+        const findUniqueComment = [
+          ...squishWords(
+            stripAnsi(findUniqueTypeDeclaration.description),
+            70
+          ).split('\n')
+        ];
+        if (findUniqueTypeDeclaration.notes.length > 0) {
+          findUniqueComment.push(
+            'Unique indexes:',
+            ...findUniqueTypeDeclaration.notes.map(
+              (note) => `- ${stripAnsi(note)}`
+            )
+          );
+        }
+
+        const dbTypeDeclaration = m.dbTypeDeclaration;
         const dbComment = [
-          `The \`ModelDb\` type for the ${m.modelName} model. `
+          ...squishWords(
+            stripAnsi(findUniqueTypeDeclaration.description),
+            70
+          ).split('\n')
         ];
 
         return `
       /** ${m.modelName} types */
 
       ${blockComment(baseModelComment)}
-      ${m.modelTypeDeclaration}
+      ${modelTypeDeclaration.declaration}
 
       ${blockComment(selectAllComment)}
-      ${m.selectAllTypeDeclaration}
+      ${selectAllTypeDeclaration.declaration}
 
       ${blockComment(primaryKeyComment)}
-      ${m.primaryKeyTypeDeclaration}
+      ${primaryKeyTypeDeclaration.declaration}
 
       ${blockComment(createComment)}
-      ${m.createTypeDeclaration}
+      ${createTypeDeclaration.declaration}
 
       ${blockComment(updateComment)}
-      ${m.updateTypeDeclaration}
+      ${updateTypeDeclaration.declaration}
 
       ${blockComment(findUniqueComment)}
-      ${m.findUniqueTypeDeclaration}
+      ${findUniqueTypeDeclaration.declaration}
 
       ${blockComment(dbComment)}
-      ${m.dbTypeDeclaration}
+      ${dbTypeDeclaration.declaration}
       
       `;
       })

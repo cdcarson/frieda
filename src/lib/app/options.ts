@@ -27,7 +27,7 @@ import {
 import { parse } from 'dotenv';
 import ora from 'ora';
 import kleur from 'kleur';
-import prettier from 'prettier'
+import prettier from 'prettier';
 export class Options {
   #fs: FileSystem;
   #cliOptions: CliOptions;
@@ -49,19 +49,13 @@ export class Options {
       .options({
         explore: {
           alias: 'x',
-          type: 'boolean',
-          description: 'Explore/modify schema.'
-        },
-        model: {
-          alias: 'm',
           type: 'string',
-          description: 'The model to explore.'
+          description: squishWords(
+            'Explore/modify schema. You can optionally pass a schema path (like UserAccount or UserAccount.emailVerified) to specify a model and/or field.',
+            getStdOutCols() - 18
+          )
         },
-        field: {
-          alias: 'f',
-          type: 'string',
-          description: 'The field to explore.'
-        },
+
         'env-file': {
           alias: 'e',
           type: 'string',
@@ -102,14 +96,14 @@ export class Options {
           description: 'Show help.'
         }
       })
-      .group(['explore', 'model', 'field'], 'Schema Options:')
+      .group(['explore'], 'Schema Options:')
       .group(
         ['env-file', 'output-directory', 'schema-directory', 'compile-js'],
         'Code Generation Options:'
       )
       .group(['init', 'help'], 'Options:');
     this.#cliOptions = app.parseSync();
-    
+
     this.showHelp = () => app.showHelp();
   }
 
@@ -123,22 +117,10 @@ export class Options {
       ? this.#cliOptions.init
       : false;
   }
-  get explore(): boolean {
-    return typeof this.#cliOptions.explore === 'boolean'
+  get explore(): string | null {
+    return typeof this.#cliOptions.explore === 'string'
       ? this.#cliOptions.explore
-      : false;
-  }
-  get model(): string {
-    return typeof this.#cliOptions.model === 'string' &&
-      this.#cliOptions.model.trim().length > 0
-      ? this.#cliOptions.model.trim()
-      : '';
-  }
-  get field(): string {
-    return typeof this.#cliOptions.field === 'string' &&
-      this.#cliOptions.field.trim().length > 0
-      ? this.#cliOptions.field.trim()
-      : '';
+      : null;
   }
 
   get compileJs(): boolean {
@@ -181,7 +163,7 @@ export class Options {
 
   async initialize(cwd: string): Promise<void> {
     const spinner = ora('Reading current options').start();
-    this.#prettierOptions = await prettier.resolveConfig(cwd) || {}
+    this.#prettierOptions = (await prettier.resolveConfig(cwd)) || {};
     const { rcFile, rcOptions } = await this.readRc();
     this.#rcFile = rcFile;
     this.#rcOptions = rcOptions;
@@ -340,8 +322,8 @@ export class Options {
       envFile: databaseDetails.envFile,
       outputDirectory: outputDirectoryResult.relativePath,
       schemaDirectory: schemaDirectoryResult.relativePath,
-      compileJs,
-    }
+      compileJs
+    };
 
     this.#buildOptions = buildOptions;
 
@@ -351,12 +333,18 @@ export class Options {
     });
     log.table([
       [fmtVarName('envFile'), fmtPath(buildOptions.envFile)],
-      [kleur.dim(' - Database URL'), maskDatabaseURLPassword(databaseDetails.databaseUrl)],
-      [kleur.dim(' - Environment Variable'), fmtVarName(databaseDetails.databaseUrlKey)],
+      [
+        kleur.dim(' - Database URL'),
+        maskDatabaseURLPassword(databaseDetails.databaseUrl)
+      ],
+      [
+        kleur.dim(' - Environment Variable'),
+        fmtVarName(databaseDetails.databaseUrlKey)
+      ],
       [fmtVarName('outputDirectory'), fmtPath(buildOptions.outputDirectory)],
       [fmtVarName('schemaDirectory'), fmtPath(buildOptions.schemaDirectory)],
-      [fmtVarName('compileJs'), fmtVal(JSON.stringify(buildOptions.compileJs))],
-    ])
+      [fmtVarName('compileJs'), fmtVal(JSON.stringify(buildOptions.compileJs))]
+    ]);
     if (changedKeys.length > 0) {
       const save = await prompt({
         type: 'confirm',
@@ -364,14 +352,18 @@ export class Options {
         message: `Save options to ${fmtPath(FRIEDA_RC_FILE_NAME)}?`
       });
       if (save) {
-        const saveSpinner = ora(`Saving ${fmtPath(FRIEDA_RC_FILE_NAME)}`).start();
-        await this.#fs.prettifyAndSaveFile(FRIEDA_RC_FILE_NAME, JSON.stringify(buildOptions), 'json');
-        saveSpinner.succeed(`${fmtPath(FRIEDA_RC_FILE_NAME)} saved.`)
+        const saveSpinner = ora(
+          `Saving ${fmtPath(FRIEDA_RC_FILE_NAME)}`
+        ).start();
+        await this.#fs.prettifyAndSaveFile(
+          FRIEDA_RC_FILE_NAME,
+          JSON.stringify(buildOptions),
+          'json'
+        );
+        saveSpinner.succeed(`${fmtPath(FRIEDA_RC_FILE_NAME)} saved.`);
       }
     }
   }
-
-  
 
   async promptEnvFile(currentValue?: string): Promise<DatabaseDetails> {
     let databaseDetails: DatabaseDetails | undefined;
@@ -384,11 +376,11 @@ export class Options {
     });
     const spinner = ora('Validating database URL from file');
     try {
-      databaseDetails = await this.validateEnvFile( relPath.trim())
-      spinner.succeed('Database URL valid.')
+      databaseDetails = await this.validateEnvFile(relPath.trim());
+      spinner.succeed('Database URL valid.');
     } catch (error) {
       spinner.fail((error as Error).message);
-      return await this.promptEnvFile('')
+      return await this.promptEnvFile('');
     }
     return databaseDetails;
   }
@@ -500,8 +492,8 @@ export class Options {
     };
   }
 
-  async promptDirectory (
-    key: keyof Pick<Options, 'outputDirectory'|'schemaDirectory'>,
+  async promptDirectory(
+    key: keyof Pick<Options, 'outputDirectory' | 'schemaDirectory'>,
     currentValue?: string,
     currentRcValue?: string
   ): Promise<DirectoryResult> {
@@ -515,14 +507,13 @@ export class Options {
     });
     const spinner = ora('Validating directory');
     try {
-      directoryResult = await this.validateDirectory(key, relPath.trim())
-      spinner.succeed('Directory valid.')
+      directoryResult = await this.validateDirectory(key, relPath.trim());
+      spinner.succeed('Directory valid.');
     } catch (error) {
       spinner.fail((error as Error).message);
-      return await this.promptDirectory(key, '', currentRcValue)
+      return await this.promptDirectory(key, '', currentRcValue);
     }
-    
-   
+
     if (
       directoryResult.exists &&
       !directoryResult.isEmpty &&
@@ -544,5 +535,5 @@ export class Options {
       }
     }
     return directoryResult;
-  };
+  }
 }
