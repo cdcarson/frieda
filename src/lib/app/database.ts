@@ -11,31 +11,30 @@ import type {
 } from './types.js';
 
 export class Database {
-  #connection: Connection;
-  constructor(connection: Connection) {
-    this.#connection = connection;
+  constructor(public readonly connection: Connection) {
+    
   }
   async fetchCreateTableSql(tableName: string): Promise<string> {
     const query = sql`SHOW CREATE TABLE ${bt(tableName)};`;
-    const result = await this.#connection.execute(query.sql);
+    const result = await this.connection.execute(query.sql);
     return (result.rows[0] as CreateTableRow)['Create Table'];
   }
 
   async fetchTableColumns(tableName: string): Promise<ColumnRow[]> {
     const query = sql`SHOW FULL COLUMNS FROM ${bt(tableName)};`;
-    const result = await this.#connection.execute(query.sql);
+    const result = await this.connection.execute(query.sql);
     return result.rows as ColumnRow[];
   }
 
   async fetchTableIndexes(tableName: string): Promise<IndexRow[]> {
     const query = sql`SHOW INDEXES FROM ${bt(tableName)};`;
-    const result = await this.#connection.execute(query.sql);
+    const result = await this.connection.execute(query.sql);
     return result.rows as IndexRow[];
   }
 
   async fetchTableNames(): Promise<FetchTableNamesResult> {
     const query = sql`SHOW FULL TABLES;`;
-    const executedQuery = await this.#connection.execute(query.sql);
+    const executedQuery = await this.connection.execute(query.sql);
     const nameKey = executedQuery.fields[0].name;
     const result: FetchTableNamesResult = {
       databaseName: nameKey.replace(/^tables_in_/gi, ''),

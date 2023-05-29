@@ -1,19 +1,27 @@
 import {
+  fmtPath,
   fmtVal,
   fmtVarName,
   log,
   maskDatabaseURLPassword,
-  onUserCancelled
+  onUserCancelled,
+  squishWords
 } from './utils.js';
-import type { Code } from './code.js';
+import { Code } from './code.js';
 import type { Database } from './database.js';
 import type { FileSystem } from './file-system.js';
 import type { Model } from './model.js';
 import type { Options } from './options.js';
-import type { Schema } from './schema.js';
+import { Schema } from './schema.js';
 import { prompt } from './utils.js';
 import kleur from 'kleur';
 import type { Field } from './field.js';
+import sql, { Sql, raw } from 'sql-template-tag';
+import { bt } from '$lib/index.js';
+import { format } from 'sql-formatter';
+import type { Annotation, ParsedAnnotation, SchemaChange } from './types.js';
+import ora from 'ora';
+import { edit } from 'external-editor';
 
 export class Explorer {
   currentModel: Model | undefined;
@@ -211,6 +219,8 @@ export class Explorer {
 
   async promptFieldChange(m: Model, f: Field) {
     type Next =
+      | 'cancel'
+      | 'exit'
       | 'typeTinyInt'
       | 'typeBigInt'
       | 'typeJson'
@@ -224,7 +234,12 @@ export class Explorer {
       title: string;
       value: Next;
     };
-    const choices: Choice[] = [];
+    const choices: Choice[] = [
+      {
+        value: 'cancel',
+        title: 'Cancel'
+      }
+    ];
     if (f.mysqlBaseType === 'tinyint') {
       if (f.isTinyIntOne) {
         choices.push({
@@ -248,14 +263,14 @@ export class Explorer {
           title: `Type as javascript ${fmtVal('string')} (remove ${kleur.red(
             '@bigint'
           )} type annotation)`,
-          value: 'typeTinyInt'
+          value: 'typeBigInt'
         });
       } else {
         choices.push({
           title: `Type as javascript ${fmtVal('bigint')} (add ${kleur.red(
             '@bigint'
           )} type annotation)`,
-          value: 'typeTinyInt'
+          value: 'typeBigInt'
         });
       }
     }
@@ -309,5 +324,268 @@ export class Explorer {
         value: 'setInvisible'
       });
     }
+    choices.push({
+      title: 'Edit field by hand',
+      value: 'editByHand'
+    });
+    choices.push({
+      title: 'Drop field',
+      value: 'drop'
+    });
+
+    const next = await prompt<Next>({
+      message: 'Modify field',
+      type: 'select',
+      name: 'next',
+      choices
+    });
+    if ('cancel' === next) {
+      return await this.fieldScreen(m, f);
+    }
+    if ('exit' === next) {
+      return onUserCancelled();
+    }
+    if ('typeTinyInt' === next) {
+      let colDef = this.getModelColumnDefinition(m, f);
+      colDef = colDef.replace(
+        /tinyint(?:\(\d*\))?/,
+        f.isTinyIntOne ? 'tinyint' : 'tinyint(1)'
+      );
+
+      const change = sql`
+        ALTER TABLE ${bt(m.table.name)}
+        MODIFY COLUMN ${raw(colDef)}
+      `;
+      return await this.executeSchemaChange(change);
+    }
+    if ('typeBigInt' === next) {
+      let colDef = this.getModelColumnDefinition(m, f);
+      let comment = this.removeCommentAnnotationsByType(f, 'bigint');
+      comment = f.bigIntAnnotation
+        ? comment
+        : [comment, '@bigint'].join(' ').trim();
+      colDef = this.replaceOrAddColDefComment(colDef, comment)
+      const change = sql`
+        ALTER TABLE ${bt(m.table.name)}
+        MODIFY COLUMN ${raw(colDef)}
+      `;
+      return await this.executeSchemaChange(change);
+    }
+    if ('typeJson' === next) {
+      const type = await this.promptJsonType(f.jsonAnnotation? f.jsonAnnotation.typeArgument : '')
+      let colDef = this.getModelColumnDefinition(m, f);
+      let comment = this.removeCommentAnnotationsByType(f, 'json');
+      comment = type.length > 0 ? [comment, `@json(${type})`].join(' ').trim() : comment;
+      colDef = this.replaceOrAddColDefComment(colDef, comment)
+      const change = sql`
+        ALTER TABLE ${bt(m.table.name)}
+        MODIFY COLUMN ${raw(colDef)}
+      `;
+      return await this.executeSchemaChange(change);
+    }
+    if ('typeEnum' === next) {
+      const type = await this.promptEnumType(f.enumAnnotation?.typeArgument || '')
+      let colDef = this.getModelColumnDefinition(m, f);
+      let comment = this.removeCommentAnnotationsByType(f, 'enum');
+      comment = type.length > 0 ? [comment, `@enum(${type})`].join(' ').trim() : comment;
+      colDef = this.replaceOrAddColDefComment(colDef, comment)
+      const change = sql`
+        ALTER TABLE ${bt(m.table.name)}
+        MODIFY COLUMN ${raw(colDef)}
+      `;
+      return await this.executeSchemaChange(change);
+    }
+  }
+
+  async executeSchemaChange(
+    change: Sql,
+    expectedModelName?: string,
+    expectedFieldName?: string
+  ): Promise<void> {
+    const prettified = format(change.sql);
+
+    const previousScreen = async () => {
+      const model = this.schema.models.find(
+        (m) => m.modelName === expectedModelName
+      );
+      if (!model) {
+        return await this.schemaScreen();
+      }
+      const field = model.fields.find((f) => f.fieldName === expectedFieldName);
+      if (!field) {
+        return await this.modelScreen(model);
+      }
+
+      return await this.fieldScreen(model, field);
+    };
+    log.info([
+      kleur.bold('Schema change'),
+      ...prettified.split('\n').map((s) => kleur.red(s))
+    ]);
+    const goAhead = await prompt({
+      type: 'confirm',
+      name: 'goAhead',
+      message: `Make this change?`
+    });
+
+    if (!goAhead) {
+      return previousScreen();
+    }
+
+    try {
+      await this.db.connection.execute(prettified);
+      await this.fetchSchema({
+        changeSql: prettified,
+        previousSchema: this.schema.fetchedSchema
+      });
+      await this.generateCode();
+      return previousScreen();
+    } catch (error) {
+      log.error([kleur.red('Schema change failed'), (error as Error).message]);
+      const editByHand = await prompt({
+        message: 'Edit by hand?',
+        type: 'confirm',
+        name: 'editByHand'
+      });
+      if (editByHand) {
+        const edited = edit(prettified);
+        return await this.executeSchemaChange(raw(edited));
+      }
+      return previousScreen();
+    }
+  }
+
+  replaceOrAddColDefComment(colDef: string, newCommentText: string): string {
+    const rx = /COMMENT\s+'.*'/;
+    if (rx.test(colDef)) {
+      colDef = colDef.replace(rx, '');
+    }
+    if (newCommentText.length === 0) {
+      return colDef;
+    }
+    return colDef + ` COMMENT '${newCommentText.replaceAll(`'`, `''`)}'`;
+  }
+
+  removeCommentAnnotationsByType(field: Field, a: Annotation): string {
+    const annotations = field.typeAnnotations.filter(
+      (ann) => ann.annotation === a
+    );
+    let comment = field.column.Comment;
+    annotations.forEach((a) => {
+      comment = comment.replace(a.fullAnnotation, '');
+    });
+    return comment.trim();
+  }
+
+  getModelColumnDefinition(model: Model, field: Field): string {
+    const rx = new RegExp(`^\\s*\`${field.column.Field}\``);
+    const lines = model.table.createSql.split('\n');
+    for (const line of lines) {
+      if (rx.test(line)) {
+        return line.replace(/,\s*$/, '');
+      }
+    }
+    throw new Error('could not find column definition.');
+  }
+
+  async promptJsonType  (initial?: string): Promise<string>  {
+    log.info([
+      `${fmtVal('@json')} type annotation`,
+      kleur.dim('Any valid typescript import or inline type is ok. Examples:'),
+      kleur.red(`import('stripe').Transaction`),
+      kleur.red(`import('../api.js').Preferences`),
+      kleur.red(`Partial<import('../api.js').Preferences>`),
+      kleur.red('{foo: string; bar: number, baz: number[]}')
+    ]);
+    const jsonType = await prompt<string>({
+      type: 'text',
+      name: 'jsonType',
+      message: `${fmtVal('@json')} type annotation (leave blank to remove or omit)`,
+      initial: initial || ''
+    });
+    return jsonType.trim();
+  };
+  async promptSetType  (annotation?: ParsedAnnotation): Promise<string> {
+   
+    log.info([
+      ...kleur
+        .italic(
+          squishWords(
+            `
+            The ${fmtVal('@set')} annotation can optionally specify a type. 
+            If omitted the Set type will be derived from the 
+            column's ${fmtVal('set')} definition.
+            `
+          )
+        )
+        .split('\n'),
+      kleur.dim('Example'),
+      kleur.red(`import('../api.js').Color`)
+    ]);
+    const t = await prompt<string>({
+      type: 'text',
+      name: 'type',
+      message: `${fmtVal('@set')} type annotation (leave blank to omit)`,
+      initial: annotation?.typeArgument || ''
+    });
+    return t.trim();
+  };
+  
+  async promptEnumType  (initial?: string): Promise<string>  {
+    log.info([
+      ...kleur
+        .italic(
+          squishWords(
+            `
+            ${fmtVal('enum')} columns can optionally specify a type
+            with the ${fmtVal('@enum')} type annotation. 
+            If omitted the type will be derived from the 
+            column's ${fmtVal('enum')} definition.
+            `
+          )
+        )
+        .split('\n'),
+      kleur.dim('Any valid typescript import is ok. Example:'),
+      kleur.red(`import('../api.js').Color`)
+    ]);
+    const t = await prompt<string>({
+      type: 'text',
+      name: 'type',
+      message: `${fmtVal('@enum')} type annotation (leave blank to remove or omit)`,
+      initial: initial || ''
+    });
+    return t.trim();
+  };
+  async fetchSchema(change?: SchemaChange) {
+    const spinner = ora('Fetching schema').start();
+    const fetchedSchema = await this.db.fetchSchema();
+    this.schema = await Schema.create(
+      fetchedSchema,
+      this.options,
+      this.fs,
+      change
+    );
+    spinner.succeed('Schema fetched.');
+    const changeFiles = this.schema.changeFiles.map(
+      (f) => ` - ${fmtPath(f.relativePath)}`
+    );
+    if (changeFiles.length > 0) {
+      changeFiles.unshift(kleur.bold('Schema changes:'));
+    }
+    log.info([
+      kleur.bold('Current schema:'),
+      ` - ${fmtPath(this.schema.currentSchemaFile.relativePath)}`,
+      ...changeFiles
+    ]);
+  }
+
+  async generateCode() {
+    const spinner = ora('Generating code').start();
+    this.code = await Code.create(this.schema, this.fs, this.options);
+    spinner.succeed('Code generated.');
+    log.info([
+      kleur.bold('Generated files:'),
+      ...this.code.files.map((f) => ` - ${fmtPath(f.relativePath)}`)
+    ]);
   }
 }
