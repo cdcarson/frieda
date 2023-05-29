@@ -104,7 +104,6 @@ export type DatabaseDetails = {
   envFile: string;
 };
 
-/** Userland types */
 
 export type Index = {
   indexName: string;
@@ -116,7 +115,7 @@ export type Index = {
   type: string;
 };
 
-export const ANNOTATIONS = ['bigint', 'enum', 'set', 'json'] as const;
+export const ANNOTATIONS = ['bigint', 'set', 'json'] as const;
 export type Annotation = (typeof ANNOTATIONS)[number];
 
 export type ParsedAnnotation = {

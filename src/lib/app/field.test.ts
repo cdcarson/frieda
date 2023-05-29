@@ -220,24 +220,7 @@ describe('Field', () => {
     expect(new Field({ ...column }).jsonAnnotation).toBeUndefined();
   });
 
-  it('enumAnnotation', () => {
-    expect(
-      new Field({ ...column, Comment: '@enum(MyType)' }).enumAnnotation
-    ).toEqual({
-      fullAnnotation: '@enum(MyType)',
-      annotation: 'enum',
-      typeArgument: 'MyType'
-    });
-    // this guy requires a type
-    expect(
-      new Field({ ...column, Comment: '@enum()' }).enumAnnotation
-    ).toBeUndefined();
-    expect(
-      new Field({ ...column, Comment: '@enum' }).enumAnnotation
-    ).toBeUndefined();
-
-    expect(new Field({ ...column }).enumAnnotation).toBeUndefined();
-  });
+  
 
   it('isTinyIntOne', () => {
     expect(new Field({ ...column, Type: 'tinyint(1)' }).isTinyIntOne).toBe(

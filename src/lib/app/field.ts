@@ -1,8 +1,4 @@
-import type {
-  ColumnRow,
-  ParsedAnnotation,
-  Annotation,
-} from './types.js';
+import type { ColumnRow, ParsedAnnotation, Annotation } from './types.js';
 import camelcase from 'camelcase';
 import { fmtVal, getParenthesizedArgs } from './utils.js';
 import { DEFAULT_JSON_FIELD_TYPE } from './constants.js';
@@ -97,25 +93,6 @@ export class Field {
    * This annotation requires a type, so if none is provided,
    * returns undefined
    */
-  get enumAnnotation(): Required<ParsedAnnotation> | undefined {
-    const typeAnnotation = this.typeAnnotations.find(
-      (a) => a.annotation === 'enum'
-    );
-    if (
-      !typeAnnotation ||
-      !typeAnnotation.typeArgument ||
-      typeAnnotation.typeArgument.trim().length === 0
-    ) {
-      return;
-    }
-
-    return typeAnnotation as Required<ParsedAnnotation>;
-  }
-
-  /**
-   * This annotation requires a type, so if none is provided,
-   * returns undefined
-   */
   get jsonAnnotation(): Required<ParsedAnnotation> | undefined {
     const typeAnnotation = this.typeAnnotations.find(
       (a) => a.annotation === 'json'
@@ -188,6 +165,9 @@ export class Field {
     return 'string';
   }
 
+
+  get javascriptEnumerableType(): string 
+
   get javascriptType(): string {
     if ('json' === this.castType) {
       return this.jsonAnnotation
@@ -196,27 +176,19 @@ export class Field {
     }
 
     if ('set' === this.castType) {
-      // castType is only set if the annotation exists, so this is safe
 
-      if (
-        this.setAnnotation &&
-        this.setAnnotation.typeArgument &&
-        this.setAnnotation.typeArgument.trim().length > 0
-      ) {
-        return `Set<${this.setAnnotation.typeArgument.trim()}>`;
+      if (this.setAnnotation) {
+        const strings = getParenthesizedArgs(this.column.Type, 'set')
+          .split(',')
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0)
+          .join('|');
+        return strings.length > 0 ? `Set<${strings}>` : `Set<string>`;
       }
-      const strings = getParenthesizedArgs(this.column.Type, 'set')
-        .split(',')
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0)
-        .join('|');
-      return strings.length > 0 ? `Set<${strings}>` : `Set<string>`;
+      return 'string'
     }
 
     if ('enum' === this.mysqlBaseType) {
-      if (this.enumAnnotation) {
-        return this.enumAnnotation.typeArgument;
-      }
       const strings = getParenthesizedArgs(this.column.Type, 'enum')
         .split(',')
         .map((s) => s.trim())
@@ -241,7 +213,7 @@ export class Field {
     }
   }
 
-  get jsTypeExplanation (): string {
+  get jsTypeExplanation(): string {
     if (!this.mysqlBaseType) {
       return `Unhandled column type ${
         this.column.Type
@@ -267,23 +239,17 @@ export class Field {
       return `Default type for ${fmtVal('bigint')} columns.`;
     }
     if ('enum' === this.mysqlBaseType) {
-      if (this.enumAnnotation) {
-        return `Using type from the ${kleur.red('@enum')} type annotation.`;
-      }
       return `Using the column's enum definition.`;
     }
-  
+
     if ('set' === this.mysqlBaseType) {
       if (this.setAnnotation) {
-        if (this.setAnnotation.typeArgument && this.setAnnotation.typeArgument.trim().length > 0) {
-          return `Using type from the ${kleur.red('@set')} type annotation.`;
-        }
         return `Using the ${kleur.red('@set')} type annotation.`;
       }
     }
-  
+
     return `Default type for ${fmtVal(this.mysqlBaseType)} columns.`;
-  };
+  }
 
   toJSON(): FieldDefinition {
     return {

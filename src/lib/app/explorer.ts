@@ -2,6 +2,7 @@ import {
   fmtPath,
   fmtVal,
   fmtVarName,
+  getParenthesizedArgs,
   log,
   maskDatabaseURLPassword,
   onUserCancelled,
@@ -224,7 +225,6 @@ export class Explorer {
       | 'typeTinyInt'
       | 'typeBigInt'
       | 'typeJson'
-      | 'typeEnum'
       | 'typeSet'
       | 'rename'
       | 'setInvisible'
@@ -287,31 +287,13 @@ export class Explorer {
         });
       }
     }
-    if (f.mysqlBaseType === 'enum') {
-      if (f.enumAnnotation) {
-        choices.push({
-          title: `Edit or remove the ${kleur.red('@enum')} type annotation`,
-          value: 'typeEnum'
-        });
-      } else {
-        choices.push({
-          title: `Add an ${kleur.red('@enum')} type annotation`,
-          value: 'typeEnum'
-        });
-      }
-    }
+   
     if (f.mysqlBaseType === 'set') {
-      if (f.setAnnotation) {
-        choices.push({
-          title: `Edit or remove the ${kleur.red('@set')} type annotation`,
-          value: 'typeSet'
-        });
-      } else {
-        choices.push({
-          title: `Add an ${kleur.red('@set')} type annotation`,
-          value: 'typeSet'
-        });
-      }
+      choices.push({
+        title: `Toggle the ${kleur.red('@set')} type annotation`,
+        value: 'typeSet'
+      });
+      
     }
     if (f.isInvisible) {
       choices.push({
@@ -383,11 +365,31 @@ export class Explorer {
       `;
       return await this.executeSchemaChange(change);
     }
-    if ('typeEnum' === next) {
-      const type = await this.promptEnumType(f.enumAnnotation?.typeArgument || '')
+    
+    if ('typeSet' === next) {
+      const strings = getParenthesizedArgs(f.column.Type, 'set')
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0)
+        .join('|');
+      const typeAsSet = await prompt({
+        type: 'select',
+        name: 'typeAs',
+        choices: [
+          {
+            title: `Type as javascript ${fmtVal(`Set<${strings}>`)}`,
+            value: true
+          },
+          {
+            title: `Type as javascript ${fmtVal(`string`)} (a comma separated list of values)`,
+            value: true
+          }
+        ]
+      });
+
       let colDef = this.getModelColumnDefinition(m, f);
-      let comment = this.removeCommentAnnotationsByType(f, 'enum');
-      comment = type.length > 0 ? [comment, `@enum(${type})`].join(' ').trim() : comment;
+      let comment = this.removeCommentAnnotationsByType(f, 'set');
+      comment = typeAsSet ? [comment, `@set`].join(' ').trim() : comment;
       colDef = this.replaceOrAddColDefComment(colDef, comment)
       const change = sql`
         ALTER TABLE ${bt(m.table.name)}
@@ -505,57 +507,7 @@ export class Explorer {
     });
     return jsonType.trim();
   };
-  async promptSetType  (annotation?: ParsedAnnotation): Promise<string> {
-   
-    log.info([
-      ...kleur
-        .italic(
-          squishWords(
-            `
-            The ${fmtVal('@set')} annotation can optionally specify a type. 
-            If omitted the Set type will be derived from the 
-            column's ${fmtVal('set')} definition.
-            `
-          )
-        )
-        .split('\n'),
-      kleur.dim('Example'),
-      kleur.red(`import('../api.js').Color`)
-    ]);
-    const t = await prompt<string>({
-      type: 'text',
-      name: 'type',
-      message: `${fmtVal('@set')} type annotation (leave blank to omit)`,
-      initial: annotation?.typeArgument || ''
-    });
-    return t.trim();
-  };
   
-  async promptEnumType  (initial?: string): Promise<string>  {
-    log.info([
-      ...kleur
-        .italic(
-          squishWords(
-            `
-            ${fmtVal('enum')} columns can optionally specify a type
-            with the ${fmtVal('@enum')} type annotation. 
-            If omitted the type will be derived from the 
-            column's ${fmtVal('enum')} definition.
-            `
-          )
-        )
-        .split('\n'),
-      kleur.dim('Any valid typescript import is ok. Example:'),
-      kleur.red(`import('../api.js').Color`)
-    ]);
-    const t = await prompt<string>({
-      type: 'text',
-      name: 'type',
-      message: `${fmtVal('@enum')} type annotation (leave blank to remove or omit)`,
-      initial: initial || ''
-    });
-    return t.trim();
-  };
   async fetchSchema(change?: SchemaChange) {
     const spinner = ora('Fetching schema').start();
     const fetchedSchema = await this.db.fetchSchema();
