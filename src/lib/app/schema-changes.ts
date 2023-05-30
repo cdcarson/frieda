@@ -9,6 +9,8 @@ import { bt, type MysqlBaseType } from '$lib/index.js';
 import type { Schema } from './schema.js';
 import type { Annotation } from './types.js';
 
+export const invisibleRx = /(\/\*!\d+\s+INVISIBLE\s*\*\/)|(INVISIBLE)/i;
+
 export const getModifyModelByHandSql = (model: Model): string => {
   const colDefs = model.fields.map(
     (f) => sql`MODIFY COLUMN ${raw(getColumnDef(model, f))}`
@@ -453,7 +455,7 @@ export const getColumnDef = (model: Model, field: Field): string => {
   const lines = model.table.createSql.split('\n');
   for (const line of lines) {
     if (rx.test(line)) {
-      return line.replace(/,\s*$/, '');
+      return line.replace(/,\s*$/, '').replace(invisibleRx, 'INVISIBLE');
     }
   }
   throw new Error('could not find column definition.');
@@ -530,7 +532,7 @@ export const getToggleTinyIntBooleanSql = (
 
 export const getToggleInvisibleSql = (model: Model, field: Field): string => {
   let colDef = getColumnDef(model, field);
-  colDef = colDef.replace('/*!80023 INVISIBLE */', '');
+  colDef = colDef.replace(invisibleRx, '');
   if (!field.isInvisible) {
     colDef += ' INVISIBLE';
   }

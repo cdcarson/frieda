@@ -16,6 +16,7 @@ import type {
 } from './types.js';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
+import { getFileLink } from './utils.js';
 
 export class Schema {
   #models: Model[] = [];
@@ -71,7 +72,7 @@ export class Schema {
     this.fetchedSchema.tables.forEach((t) => {
       this.#schemaSqlLineNumbers[t.name] = lines.findIndex((line) =>
         line.startsWith(`CREATE TABLE \`${t.name}\``)
-      );
+      ) + 1;
     });
 
     this.#currentSchemaFile = {
@@ -133,6 +134,10 @@ export class Schema {
     );
   }
 
+  get schemaSqlLineNumbers(): LineNumbers {
+    return this.#schemaSqlLineNumbers
+  }
+
   get databaseName(): string {
     return this.fetchedSchema.databaseName;
   }
@@ -159,9 +164,15 @@ export class Schema {
     return this.#fullTextSearchIndexes;
   }
 
+  getTableCreateLink(tableName: string): string {
+    return getFileLink(this.currentSchemaFile.relativePath, this.schemaSqlLineNumbers[tableName])
+  }
+
   getCreateTablesSql(fetched: FetchedSchema): string {
     return fetched.tables.map((t) => t.createSql).join('\n\n');
   }
+
+
 
   getSchemaHash(sql: string): string {
     const hash = createHash('sha512');

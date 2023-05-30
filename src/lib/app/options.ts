@@ -44,8 +44,8 @@ export class Options {
       .scriptName('frieda')
       .wrap(null)
       .version(false)
-      .help(false)
-      .usage('$0 [options]', 'Generate code.')
+      .help(true)
+      
       .options({
         explore: {
           alias: 'x',

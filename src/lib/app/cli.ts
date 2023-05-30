@@ -70,7 +70,7 @@ export class Cli {
     await this.options.initialize(this.#cwd);
     await this.fetchSchema();
     await this.generateCode();
-    if (this.options.explore) {
+    if (this.options.explore !== null) {
       const explorer = new Explorer(
         this.schema,
         this.code,

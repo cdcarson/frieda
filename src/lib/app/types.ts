@@ -140,6 +140,7 @@ export type SchemaChange = {
 };
 
 export type TypeDeclarationWithDescription = {
+  typeName: string;
   declaration: string;
   description: string;
 };

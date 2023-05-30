@@ -126,6 +126,7 @@ export class Model {
       {} as { [fieldName: string]: string }
     );
     return {
+      typeName: this.modelName,
       declaration: `export type ${this.modelName}={${sigs.join(';')}}`,
       description,
       notes
@@ -144,6 +145,7 @@ export class Model {
         const orNull = f.isNullable ? '|null' : '';
         return `${f.fieldName}:${f.javascriptType}${orNull}`;
       });
+    
     const description = `
         The representation the ${fmtVal(this.modelName)} model
         when queried with ${kleur.red('SELECT *')}.
@@ -166,8 +168,10 @@ export class Model {
       },
       {} as { [fieldName: string]: string }
     );
+    const type = sigs.length === 0 ? 'Record<string,never>' : `{${sigs.join(';')}}`
     return {
-      declaration: `export type ${this.selectAllTypeName}={${sigs.join(';')}}`,
+      typeName: this.selectAllTypeName,
+      declaration: `export type ${this.selectAllTypeName}=${type}`,
       description,
       notes
     };
@@ -187,19 +191,19 @@ export class Model {
     const notes: { [fieldName: string]: string } = this.fields.reduce(
       (acc, f) => {
         const copy: { [fieldName: string]: string } = { ...acc };
-        if (f.isInvisible) {
+        if (f.isPrimaryKey) {
           copy[f.fieldName] = `${fmtVarName(
             f.fieldName
-          )} is included in ${fmtVal(this.primaryKeyTypeName)} ${kleur.dim(
-            `(column is a primary key)`
-          )}`;
+          )} is included in ${fmtVal(this.primaryKeyTypeName)} (column is a primary key.)`;
         }
         return copy;
       },
       {} as { [fieldName: string]: string }
     );
+    const type = sigs.length === 0 ? 'Record<string,never>' : `{${sigs.join(';')}}`
     return {
-      declaration: `export type ${this.primaryKeyTypeName}={${sigs.join(';')}}`,
+      typeName: this.primaryKeyTypeName,
+      declaration: `export type ${this.primaryKeyTypeName}=${type}`,
       description,
       notes
     };
@@ -231,28 +235,25 @@ export class Model {
         if (f.isGeneratedAlways) {
           copy[f.fieldName] = `${fmtVarName(
             f.fieldName
-          )} is omitted from ${fmtVal(this.createTypeName)} ${kleur.dim(
-            `(column is ${kleur.red('GENERATED')})`
-          )}`;
+          )} is omitted from ${fmtVal(this.createTypeName)} (column is ${kleur.red('GENERATED')}`;
         } else if (f.isAutoIncrement) {
           copy[f.fieldName] = `${fmtVarName(
             f.fieldName
-          )} is optional in ${fmtVal(this.createTypeName)} ${kleur.dim(
-            `(column is auto_increment)`
-          )}`;
+          )} is optional in ${fmtVal(this.createTypeName)} (column is auto_increment.)`;
         } else if (f.hasDefault) {
           copy[f.fieldName] = `${fmtVarName(
             f.fieldName
-          )} is optional in ${fmtVal(this.createTypeName)} ${kleur.dim(
-            `(column has a default)`
-          )}`;
+          )} is optional in ${fmtVal(this.createTypeName)} (column has a default.)`
+          
         }
         return copy;
       },
       {} as { [fieldName: string]: string }
     );
+    const type = sigs.length === 0 ? 'Record<string,never>' : `{${sigs.join(';')}}`
     return {
-      declaration: `export type ${this.createTypeName}={${sigs.join(';')}}`,
+      typeName: this.createTypeName,
+      declaration: `export type ${this.createTypeName}=${type}`,
       description,
       notes
     };
@@ -280,22 +281,20 @@ export class Model {
         if (f.isGeneratedAlways) {
           copy[f.fieldName] = `${fmtVarName(
             f.fieldName
-          )} is omitted from ${fmtVal(this.updateTypeName)} ${kleur.dim(
-            `(column is GENERATED)`
-          )}`;
+          )} is omitted from ${fmtVal(this.updateTypeName)} (column is ${kleur.red('GENERATED')}.)`;
         } else if (f.isPrimaryKey) {
           copy[f.fieldName] = `${fmtVarName(
             f.fieldName
-          )} is omitted from ${fmtVal(this.updateTypeName)} ${kleur.dim(
-            `(column is a primary key)`
-          )}`;
+          )} is omitted from ${fmtVal(this.updateTypeName)} (column is a primary key.)`;
         }
         return copy;
       },
       {} as { [fieldName: string]: string }
     );
+    const type = sigs.length === 0 ? 'Record<string,never>' : `{${sigs.join(';')}}`
     return {
-      declaration: `export type ${this.updateTypeName}={${sigs.join(';')}}`,
+      typeName: this.updateTypeName,
+      declaration: `export type ${this.updateTypeName}=${type}`,
       description,
       notes
     };
@@ -314,10 +313,11 @@ export class Model {
       This includes the ${fmtVal(this.primaryKeyTypeName)} primary key type 
       plus types derived from the table's other unique indexes.`;
     const notes: string[] = uniqueTypes.map(
-      (t) => `Index: ${fmtVal(t.indexName)}`
+      (t) => `Unique index: ${fmtVal(t.indexName)}`
     );
     // tests depend on maintaining this spacing
     return {
+      typeName: this.findUniqueTypeName,
       declaration: `export type ${this.findUniqueTypeName}=${sigs.join('|')}`,
       description,
       notes
@@ -337,6 +337,7 @@ export class Model {
       this.modelName
     )} model. `;
     return {
+      typeName: this.dbTypeName,
       declaration: `export type ${this.dbTypeName}=ModelDb<${sigs.join(',')}>`,
       description
     };

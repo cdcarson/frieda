@@ -1,6 +1,6 @@
 import type { Schema } from './schema.js';
 import prettier from 'prettier';
-import { blockComment, getPrettierOptions, squishWords } from './utils.js';
+import { blockComment, getFileLink, getPrettierOptions, squishWords } from './utils.js';
 import { TS_COMPILER_OPTIONS } from './constants.js';
 import { tsquery } from '@phenomnomnominal/tsquery';
 import { Project } from 'ts-morph';
@@ -31,6 +31,8 @@ export class Code {
   #files: GeneratedFile[] = [];
   #typesDLineNumbers: LineNumbers = {};
 
+  #typesDFile: GeneratedFile|undefined
+
   private constructor(
     public readonly schema: Schema,
     public readonly fs: FileSystem,
@@ -43,6 +45,13 @@ export class Code {
 
   get typesDLineNumbers(): LineNumbers {
     return this.#typesDLineNumbers;
+  }
+
+  get typesDFile(): GeneratedFile {
+    if (! this.#typesDFile) {
+      throw new Error('Code not yet generated.')
+    }
+    return this.#typesDFile
   }
 
   async initialize() {
@@ -59,7 +68,7 @@ export class Code {
         })
       };
     });
-    const typesDFile = tsFiles.find(
+    this.#typesDFile = tsFiles.find(
       (f) => f.basename === TypescriptFileName.typesD
     ) as GeneratedFile;
 
@@ -83,11 +92,11 @@ export class Code {
             : f.text;
           return { ...this.fs.getPathResult(relPath), contents };
         });
-      this.#files = [...jsFiles, typesDFile];
+      this.#files = [...jsFiles, this.#typesDFile];
     } else {
       this.#files = [...tsFiles];
     }
-    const ast = tsquery.ast(typesDFile.contents);
+    const ast = tsquery.ast(this.#typesDFile.contents);
     const nodes: ts.TypeAliasDeclaration[] = tsquery(
       ast,
       'TypeAliasDeclaration'
@@ -98,6 +107,11 @@ export class Code {
         ast.getLineAndCharacterOfPosition(node.getStart()).line + 1;
     });
     await Promise.all(this.#files.map(f => this.fs.saveFile(f.relativePath, f.contents)))
+  }
+
+  getTypesDFileLink(typeName: string): string {
+    const line = this.typesDLineNumbers[typeName];
+    return getFileLink(this.typesDFile.relativePath, line)
   }
 
   get bannerComment(): string {
@@ -223,7 +237,7 @@ export class Code {
         if (Object.values(modelTypeDeclaration.notes).length > 0) {
           baseModelComment.push(
             ...Object.values(modelTypeDeclaration.notes).map(
-              (note) => `- ${stripAnsi(note)}`
+              (note) => squishWords(squishWords(`- ${stripAnsi(note)}`.trim()).split('\n').join(' ')).split('\n').join(' ')
             )
           );
         }
@@ -239,7 +253,7 @@ export class Code {
         if (Object.values(selectAllTypeDeclaration.notes).length > 0) {
           selectAllComment.push(
             ...Object.values(selectAllTypeDeclaration.notes).map(
-              (note) => `- ${stripAnsi(note)}`
+              (note) => squishWords(squishWords(`- ${stripAnsi(note)}`.trim()).split('\n').join(' ')).split('\n').join(' ')
             )
           );
         }
@@ -254,7 +268,7 @@ export class Code {
         if (Object.values(primaryKeyTypeDeclaration.notes).length > 0) {
           primaryKeyComment.push(
             ...Object.values(primaryKeyTypeDeclaration.notes).map(
-              (note) => `- ${stripAnsi(note)}`
+              (note) => squishWords(squishWords(`- ${stripAnsi(note)}`.trim()).split('\n').join(' ')).split('\n').join(' ')
             )
           );
         }
@@ -269,7 +283,7 @@ export class Code {
         if (Object.values(createTypeDeclaration.notes).length > 0) {
           createComment.push(
             ...Object.values(createTypeDeclaration.notes).map(
-              (note) => `- ${stripAnsi(note)}`
+              (note) => squishWords(squishWords(`- ${stripAnsi(note)}`.trim()).split('\n').join(' ')).split('\n').join(' ')
             )
           );
         }
@@ -284,7 +298,7 @@ export class Code {
         if (Object.values(updateTypeDeclaration.notes).length > 0) {
           updateComment.push(
             ...Object.values(updateTypeDeclaration.notes).map(
-              (note) => `- ${stripAnsi(note)}`
+              (note) => squishWords(squishWords(`- ${stripAnsi(note)}`.trim()).split('\n').join(' ')).split('\n').join(' ')
             )
           );
         }
@@ -299,7 +313,7 @@ export class Code {
           findUniqueComment.push(
             'Unique indexes:',
             ...findUniqueTypeDeclaration.notes.map(
-              (note) => `- ${stripAnsi(note)}`
+              (note) => squishWords(squishWords(`- ${stripAnsi(note)}`.trim()).split('\n').join(' ')).split('\n').join(' ')
             )
           );
         }

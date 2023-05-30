@@ -5,7 +5,8 @@ import {
   formatSql,
   log,
   maskDatabaseURLPassword,
-  onUserCancelled
+  onUserCancelled,
+  squishWords
 } from './utils.js';
 import { Code } from './code.js';
 import type { Database } from './database.js';
@@ -16,11 +17,17 @@ import { Schema } from './schema.js';
 import { prompt } from './utils.js';
 import kleur from 'kleur';
 import type { Field } from './field.js';
-
-import type { Annotation, SchemaChange } from './types.js';
+import openEditor from 'open-editor';
+import type {
+  Annotation,
+  SchemaChange,
+  TypeDeclarationWithFieldNotes,
+  TypeDeclarationWithNotes
+} from './types.js';
 import ora from 'ora';
 import { edit } from 'external-editor';
 import {
+  getAddFieldSql,
   getAddModelSql,
   getDropFieldSql,
   getDropModelSql,
@@ -34,6 +41,7 @@ import {
   getToggleTinyIntBooleanSql
 } from './schema-changes.js';
 import camelcase from 'camelcase';
+import { getFileLink } from './utils.js';
 
 export class Explorer {
   constructor(
@@ -148,7 +156,7 @@ export class Explorer {
 
   async schemaScreen() {
     log.header(`↓  Schema: ${this.schema.databaseName}`);
-    log.info(kleur.bold('Schema'));
+    log.info(`${kleur.bold('Schema:')} ${fmtVal(this.schema.databaseName)}`);
     log.table([
       ['Database', fmtVal(this.schema.databaseName)],
       ['URL', maskDatabaseURLPassword(this.options.databaseDetails.databaseUrl)]
@@ -207,11 +215,11 @@ export class Explorer {
 
   async modelScreen(m: Model) {
     log.header(`↓ Model: ${m.modelName}`);
-    log.info(kleur.bold('Model'));
-    log.table([
-      ['Model', fmtVal(m.modelName)],
-      ['Table', fmtVal(m.tableName)]
-    ]);
+    log.info(
+      `${kleur.bold('Model:')} ${fmtVal(m.modelName)} in ${fmtVal(
+        this.schema.databaseName
+      )}`
+    );
     console.log();
     log.info(kleur.bold('Fields') + kleur.dim(` (${m.fields.length})`));
     log.table(
@@ -222,11 +230,67 @@ export class Explorer {
           kleur.dim(f.column.Type)
         ])
       ],
-      ['Field', 'JS Type', 'Column Type']
+      ['Field', 'Javascript Type', 'Column Type']
+    );
+    console.log();
+
+    log.info(kleur.bold('Field Type Notes'));
+    log.table(
+      [
+        ...m.fields.map((f) => [
+          fmtVarName(f.fieldName),
+          fmtVal(f.javascriptType),
+          f.jsTypeExplanation
+        ])
+      ],
+      ['Field', 'Javascript Type', 'Note']
+    );
+    console.log();
+    log.info([
+      kleur.bold('Model Types'),
+      ...[
+        m.modelTypeDeclaration,
+        m.selectAllTypeDeclaration,
+        m.primaryKeyTypeDeclaration,
+        m.createTypeDeclaration,
+        m.updateTypeDeclaration,
+        m.findUniqueTypeDeclaration
+      ].flatMap((d) => {
+        const { typeName, notes } = d;
+        const arr = [
+          fmtVal(typeName) +
+            ': ' +
+            fmtPath(this.code.getTypesDFileLink(typeName)),
+          ...(Array.isArray(notes) ? notes : Object.values(notes)).map((s) => {
+            return `- ${squishWords(s)}`;
+          }),
+          ''
+        ];
+        return arr;
+      })
+    ]);
+
+    // log.table([
+    //   ...[m.modelName, m.selectAllTypeName, m.primaryKeyTypeName, m.createTypeName, m.updateTypeName, m.findUniqueTypeName].map(typeName => {
+    //     return [fmtVal(typeName), fmtPath(this.code.getTypesDFileLink(typeName))]
+    //   })
+    // ])
+
+    console.log();
+    log.info(
+      kleur.bold('CREATE TABLE') +
+        ' ' +
+        fmtPath(this.schema.getTableCreateLink(m.tableName))
     );
     log.header(`↑ Model: ${m.modelName}`);
 
+    return await this.modelPromptNext(m);
+  }
+
+  async modelPromptNext(m: Model): Promise<void> {
     type Next =
+      | 'showModel'
+      | 'addField'
       | 'editModel'
       | 'dropModel'
       | 'field'
@@ -234,11 +298,13 @@ export class Explorer {
       | 'schema'
       | 'exit';
     const choices: { title: string; value: Next }[] = [
-      { title: 'Edit Model', value: 'editModel' },
-      { title: 'Drop Model', value: 'dropModel' },
-      { title: 'Show / Modify Individual Field', value: 'field' },
-      { title: 'Show Another Model', value: 'model' },
-      { title: 'Show Schema', value: 'schema' },
+      { title: 'Show model info', value: 'showModel' },
+      { title: 'Show an individual field', value: 'field' },
+      { title: 'Add field', value: 'addField' },
+      { title: 'Edit model', value: 'editModel' },
+      { title: 'Drop model', value: 'dropModel' },
+      { title: 'Show another model', value: 'model' },
+      { title: 'Show schema', value: 'schema' },
       { title: 'Exit', value: 'exit' }
     ];
     const next = await prompt<Next>({
@@ -269,25 +335,112 @@ export class Explorer {
       const change = getModifyModelByHandSql(m);
       return await this.executeSchemaChange(change, m.modelName);
     }
+    if (next === 'addField') {
+      const { statement, columnName } = await getAddFieldSql(m);
+      return await this.executeSchemaChange(statement, camelcase(columnName));
+    }
+    if (next === 'showModel') {
+      return await this.modelScreen(m);
+    }
   }
 
   async fieldScreen(m: Model, f: Field) {
     log.header(`↓ Field: ${f.fieldName}`);
-    log.table([
-      ['Model', fmtVal(m.modelName)],
-      ['Field', fmtVarName(f.fieldName)],
-      ['Column', kleur.dim(f.columnName)]
-    ]);
+    log.info(
+      `${kleur.bold('Field:')} ${fmtVarName(f.fieldName)} in ${fmtVal(
+        this.schema.databaseName
+      )}.${fmtVal(m.modelName)}`
+    );
+
     console.log();
-    log.info(kleur.bold('Javascript Type'));
-    log.table([
+    log.info(kleur.bold('Field Type'));
+    log.table(
       [
-        'JS Type',
-        fmtVal(f.javascriptType),
-        kleur.dim(`(${f.jsTypeExplanation})`)
+        [
+          fmtVarName(f.fieldName),
+          fmtVal(f.javascriptType),
+          kleur.dim(f.column.Type)
+        ]
       ],
-      ['Column Type', kleur.dim(f.column.Type)]
-    ]);
+      ['Field', 'Javascript Type', 'Column Type']
+    );
+    console.log();
+    log.info(kleur.bold('Field Type Notes'));
+    log.table(
+      [
+        [fmtVarName(f.fieldName), fmtVal(f.javascriptType), f.jsTypeExplanation]
+      ],
+      ['Field', 'Javascript Type', 'Note']
+    );
+    console.log();
+
+    const modelNotesForField: string[] = [];
+
+    if (m.modelTypeDeclaration.notes[f.fieldName]) {
+      modelNotesForField.push(
+        `${fmtVal(m.modelName)}: ${fmtPath(
+          this.code.getTypesDFileLink(m.modelName)
+        )}`,
+        '- ' +
+          squishWords(m.modelTypeDeclaration.notes[f.fieldName])
+            .split(`\n`)
+            .join(' '),
+        ''
+      );
+    }
+    if (m.selectAllTypeDeclaration.notes[f.fieldName]) {
+      modelNotesForField.push(
+        `${fmtVal(m.selectAllTypeName)}: ${fmtPath(
+          this.code.getTypesDFileLink(m.selectAllTypeName)
+        )}`,
+        '- ' +
+          squishWords(m.selectAllTypeDeclaration.notes[f.fieldName])
+            .split('\n')
+            .join(' '),
+        ''
+      );
+    }
+    if (m.primaryKeyTypeDeclaration.notes[f.fieldName]) {
+      modelNotesForField.push(
+        `${fmtVal(m.primaryKeyTypeName)}: ${fmtPath(
+          this.code.getTypesDFileLink(m.primaryKeyTypeName)
+        )}`,
+        '- ' +
+          squishWords(m.primaryKeyTypeDeclaration.notes[f.fieldName])
+            .split('\n')
+            .join(' '),
+        ''
+      );
+    }
+    if (m.createTypeDeclaration.notes[f.fieldName]) {
+      modelNotesForField.push(
+        `${fmtVal(m.createTypeName)}: ${fmtPath(
+          this.code.getTypesDFileLink(m.createTypeName)
+        )}`,
+        '- ' +
+          squishWords(m.createTypeDeclaration.notes[f.fieldName])
+            .split('\n')
+            .join(' '),
+        ''
+      );
+    }
+    if (m.updateTypeDeclaration.notes[f.fieldName]) {
+      modelNotesForField.push(
+        `${fmtVal(m.updateTypeName)}: ${fmtPath(
+          this.code.getTypesDFileLink(m.updateTypeName)
+        )}`,
+        '- ' +
+          squishWords(m.updateTypeDeclaration.notes[f.fieldName])
+            .split('\n')
+            .join(' '),
+        ''
+      );
+    }
+    if (modelNotesForField.length === 0) {
+      modelNotesForField.push(kleur.dim('[none]'));
+    }
+    log.info([kleur.bold('Model Type Notes'), ...modelNotesForField]);
+
     log.header(`↑ Field: ${f.fieldName}`);
     type Next = 'change' | 'field' | 'model' | 'schema' | 'exit';
     type Choice = {
@@ -543,39 +696,6 @@ export class Explorer {
     }
   }
 
-  replaceOrAddColDefComment(colDef: string, newCommentText: string): string {
-    const rx = /COMMENT\s+'.*'/;
-    if (rx.test(colDef)) {
-      colDef = colDef.replace(rx, '');
-    }
-    if (newCommentText.length === 0) {
-      return colDef;
-    }
-    return colDef + ` COMMENT '${newCommentText.replaceAll(`'`, `''`)}'`;
-  }
-
-  removeCommentAnnotationsByType(field: Field, a: Annotation): string {
-    const annotations = field.typeAnnotations.filter(
-      (ann) => ann.annotation === a
-    );
-    let comment = field.column.Comment;
-    annotations.forEach((a) => {
-      comment = comment.replace(a.fullAnnotation, '');
-    });
-    return comment.trim();
-  }
-
-  getModelColumnDefinition(model: Model, field: Field): string {
-    const rx = new RegExp(`^\\s*\`${field.column.Field}\``);
-    const lines = model.table.createSql.split('\n');
-    for (const line of lines) {
-      if (rx.test(line)) {
-        return line.replace(/,\s*$/, '');
-      }
-    }
-    throw new Error('could not find column definition.');
-  }
-
   async fetchSchema(change?: SchemaChange) {
     const spinner = ora('Fetching schema').start();
     const fetchedSchema = await this.db.fetchSchema();
@@ -607,60 +727,5 @@ export class Explorer {
       kleur.bold('Generated files:'),
       ...this.code.files.map((f) => ` - ${fmtPath(f.relativePath)}`)
     ]);
-  }
-
-  getFieldModelNotes(model: Model, field: Field) {
-    const notes: string[] = [];
-    if (field.isInvisible) {
-      notes.push(
-        `${fmtVarName(field.fieldName)} is optional in ${fmtVal(
-          model.modelName
-        )} ${kleur.dim(`(column is INVISIBLE)`)}`
-      );
-      notes.push(
-        `${fmtVarName(field.fieldName)} is omitted from in ${fmtVal(
-          model.selectAllTypeName
-        )} ${kleur.dim(`(column is INVISIBLE)`)}`
-      );
-    }
-    if (field.isPrimaryKey) {
-      notes.push(
-        `${fmtVarName(field.fieldName)} is included in ${fmtVal(
-          model.primaryKeyTypeName
-        )} ${kleur.dim(`(column is a primary key)`)}`
-      );
-    }
-    if (field.isGeneratedAlways) {
-      notes.push(
-        `${fmtVarName(field.fieldName)} is omitted from ${fmtVal(
-          model.createTypeName
-        )} ${kleur.dim(`(column is GENERATED)`)}`
-      );
-    } else if (field.isAutoIncrement) {
-      notes.push(
-        `${fmtVarName(field.fieldName)} is optional in ${fmtVal(
-          model.createTypeName
-        )} ${kleur.dim(`(column is auto_increment)`)}`
-      );
-    } else if (field.hasDefault) {
-      notes.push(
-        `${fmtVarName(field.fieldName)} is optional in ${fmtVal(
-          model.createTypeName
-        )} ${kleur.dim(`(column has a default value)`)}`
-      );
-    }
-    if (field.isGeneratedAlways) {
-      notes.push(
-        `${fmtVarName(field.fieldName)} is omitted from ${fmtVal(
-          model.updateTypeName
-        )} ${kleur.dim(`(column is GENERATED)`)}`
-      );
-    } else if (field.isPrimaryKey) {
-      notes.push(
-        `${fmtVarName(field.fieldName)} is omitted from ${fmtVal(
-          model.updateTypeName
-        )} ${kleur.dim(`(column is a primary key)`)}`
-      );
-    }
   }
 }

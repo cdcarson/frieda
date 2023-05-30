@@ -71,8 +71,8 @@ export const onUserCancelled = (): never => {
   process.exit(0);
 };
 
-const message = (message: string | string[]) => {
-  console.log(fromStringOrArray(message, 0));
+const message = (message: string | string[], indent = 0) => {
+  console.log(fromStringOrArray(message, indent));
 };
 
 export const log = {
@@ -187,3 +187,7 @@ export const getPrettierOptions = async (
 export const formatSql = (input: string): string => {
   return sqlFmt(input, { language: 'mysql' });
 };
+
+export const getFileLink = (relPath: string, line: number, col = 1): string => {
+  return `${relPath}:${line}:${col}`
+}
