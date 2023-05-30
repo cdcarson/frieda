@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../frieda-userland-ts"
+		},
+		{
+			"path": "../frieda-userland-js"
+		}
+	],
+	"settings": {}
+}

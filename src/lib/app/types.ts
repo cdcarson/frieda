@@ -91,9 +91,9 @@ export type BuildOptions = {
 };
 
 export type CliOptions = Partial<BuildOptions> & {
-  help?: boolean;
   init?: boolean;
-  explore?: string;
+  modelName?: string;
+  fieldName?: string;
 };
 
 export type DatabaseDetails = {
@@ -151,3 +151,6 @@ export type TypeDeclarationWithFieldNotes = TypeDeclarationWithDescription & {
 export type TypeDeclarationWithNotes = TypeDeclarationWithDescription & {
   notes: string[];
 };
+
+
+export type CliCommand = 'generate' | 'schema' 

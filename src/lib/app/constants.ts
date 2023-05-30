@@ -1,14 +1,16 @@
+import kleur from 'kleur';
 import type prettier from 'prettier';
+import { fmtPath, fmtVarName } from './utils.js';
 export const FRIEDA_RC_FILE_NAME = '.friedarc.json';
 export const ENV_DB_URL_KEYS = ['FRIEDA_DATABASE_URL', 'DATABASE_URL'] as const;
 export const DEFAULT_JSON_FIELD_TYPE = 'unknown';
-export const OPTION_DESCRIPTIONS = {
-  envFile: `The path to an environment variables file containing either ${ENV_DB_URL_KEYS.join(
+export const BUILD_OPTION_DESCRIPTIONS = {
+  envFile: `The path to an environment variables file containing either ${ENV_DB_URL_KEYS.map(s => fmtVarName(s)).join(
     ' or '
-  )}. Valid URL format: ${'mysql://<user>:<password>@<host>'}.`,
-  outputDirectory: `The relative path to a directory where generated code will be placed. This should be a dedicated directory, convenient to but separate from your own code.`,
-  schemaDirectory: `The relative path to a directory where schema information will be saved. This should be a dedicated directory.`,
-  compileJs: `Whether to compile and output javascript code rather than typescript files.`
+  )}. Valid URL format: ${kleur.cyan('mysql://<user>:<password>@<host>')}.`,
+  outputDirectory: `The relative path to a directory where generated code will be placed. This should be a dedicated directory, convenient to but separate from your own code. For example: ${fmtPath('src/db/_generated')}.`,
+  schemaDirectory: `The relative path to a directory where schema information will be saved. This should be a dedicated directory. Example: ${fmtPath('schema')}`,
+  compileJs: `Whether to generate javascript code rather than typescript.`
 };
 
 export const DEFAULT_PRETTIER_OPTIONS: prettier.Options = {

@@ -2,27 +2,34 @@ import kleur from 'kleur';
 import { FileSystem } from './file-system.js';
 import { Options } from './options.js';
 import { Database } from './database.js';
-import { FRIEDA_VERSION } from '$lib/version.js';
 import { connect } from '@planetscale/database';
 import ora from 'ora';
-import type { FetchedSchema, SchemaChange } from './types.js';
+import type {
+  CliCommand,
+  CliOptions,
+  FetchedSchema,
+  SchemaChange
+} from './types.js';
 import { Code } from './code.js';
 import { Schema } from './schema.js';
-import { fmtPath, log } from './utils.js';
-import { Explorer } from './explorer.js';
+import { fmtPath, log, prompt } from './utils.js';
+import { showQuickStart } from './cli-screens.js';
+import type { Model } from './model.js';
 
 export class Cli {
   #cwd: string;
+  #command: CliCommand;
   #fs: FileSystem;
   #options: Options;
   #database: Database | undefined;
   #fetchedSchema: FetchedSchema | undefined;
   #schema: Schema | undefined;
   #code: Code | undefined;
-  constructor(cwd: string, argv: string[]) {
+  constructor(cwd: string, command: CliCommand, cliOptions: CliOptions) {
     this.#cwd = cwd;
+    this.#command = command;
     this.#fs = new FileSystem(cwd);
-    this.#options = new Options(this.fs, argv);
+    this.#options = new Options(this.fs, cliOptions);
   }
   get fs(): FileSystem {
     return this.#fs;
@@ -60,26 +67,9 @@ export class Cli {
   }
 
   async execute() {
-    console.log(kleur.bold('frieda'), kleur.dim(`v${FRIEDA_VERSION}`), '🦮');
-    console.log();
-    if (this.options.help) {
-      this.options.showHelp();
-      console.log();
-      return;
-    }
     await this.options.initialize(this.#cwd);
     await this.fetchSchema();
     await this.generateCode();
-    if (this.options.explore !== null) {
-      const explorer = new Explorer(
-        this.schema,
-        this.code,
-        this.fs,
-        this.database,
-        this.options
-      );
-      await explorer.run();
-    }
   }
 
   async fetchSchema(change?: SchemaChange) {
@@ -98,20 +88,63 @@ export class Cli {
     if (changeFiles.length > 0) {
       changeFiles.unshift(kleur.bold('Schema changes:'));
     }
-    log.info([
-      kleur.bold('Current schema:'),
-      ` - ${fmtPath(this.schema.currentSchemaFile.relativePath)}`,
-      ...changeFiles
-    ]);
+    log.message(
+      [this.schema.currentSchemaFile, ...this.schema.changeFiles].map(
+        (f) => `   - ${fmtPath(f.relativePath)}`
+      )
+    );
   }
 
   async generateCode() {
     const spinner = ora('Generating code').start();
     this.#code = await Code.create(this.schema, this.fs, this.options);
     spinner.succeed('Code generated.');
-    log.info([
-      kleur.bold('Generated files:'),
-      ...this.code.files.map((f) => ` - ${fmtPath(f.relativePath)}`)
+    log.message([
+      ...this.code.files.map((f) => `   - ${fmtPath(f.relativePath)}`)
     ]);
+  }
+
+  async promptSchemaNext(): Promise<void> {
+    type Next = 'showModels' | 'createModel' | 'showQuickStart' | 'showModel' | 'Exit';
+    const choices: {title: string;
+      value: Next;
+    }[ ] = [
+      {
+        title: 'Show models'
+      }
+    ]
+  }
+
+  async promptModel(modelName?: string): Promise<Model> {
+    type Choice = {
+      title: string;
+      value: Model;
+    };
+    const choices: Choice[] = this.schema.models.map((m) => {
+      return {
+        title: m.modelName,
+        value: m
+      };
+    });
+
+    const suggest = (inp: string, choices: Choice[]) => {
+      return choices.filter(
+        (c) =>
+          c.title.toLowerCase().startsWith(inp.toLowerCase()) ||
+          c.value.tableName.toLowerCase().startsWith(inp.toLowerCase())
+      );
+    };
+    const initialChoice = suggest(modelName || '', choices)[0] || choices[0];
+    return (await prompt({
+      type: 'autocomplete',
+      name: 'model',
+      message: 'Model',
+      initial: initialChoice.title,
+      choices,
+      limit: 5,
+      suggest: async (inp: string, choices) => {
+        return suggest(inp, choices as Choice[]);
+      }
+    })) as unknown as Model;
   }
 }

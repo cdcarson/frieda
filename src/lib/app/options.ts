@@ -2,7 +2,7 @@ import yargs from 'yargs';
 import {
   ENV_DB_URL_KEYS,
   FRIEDA_RC_FILE_NAME,
-  OPTION_DESCRIPTIONS
+  BUILD_OPTION_DESCRIPTIONS
 } from './constants.js';
 import type { FileSystem } from './file-system.js';
 import type {
@@ -31,95 +31,28 @@ import prettier from 'prettier';
 export class Options {
   #fs: FileSystem;
   #cliOptions: CliOptions;
-  #rcFile: FileResult | undefined;
   #buildOptions: BuildOptions | undefined;
-  #rcOptions: Partial<BuildOptions> | undefined;
   #databaseDetails: DatabaseDetails | undefined;
   #prettierOptions: prettier.Options | undefined;
-  showHelp: () => void;
-  constructor(fs: FileSystem, argv: string[]) {
+  constructor(fs: FileSystem, cliOptions: CliOptions) {
     this.#fs = fs;
-    const helpWidth = getStdOutCols() - 30;
-    const app = yargs(argv)
-      .scriptName('frieda')
-      .wrap(null)
-      .version(false)
-      .help(true)
-      
-      .options({
-        explore: {
-          alias: 'x',
-          type: 'string',
-          description: squishWords(
-            'Explore/modify schema. You can optionally pass a schema path (like UserAccount or UserAccount.emailVerified) to specify a model and/or field.',
-            getStdOutCols() - 18
-          )
-        },
-
-        'env-file': {
-          alias: 'e',
-          type: 'string',
-          description: squishWords(OPTION_DESCRIPTIONS.envFile, helpWidth)
-        },
-        'output-directory': {
-          alias: 'o',
-          type: 'string',
-          description: squishWords(
-            OPTION_DESCRIPTIONS.outputDirectory,
-            helpWidth
-          )
-        },
-        'schema-directory': {
-          alias: 's',
-          type: 'string',
-          description: squishWords(
-            OPTION_DESCRIPTIONS.schemaDirectory,
-            helpWidth
-          )
-        },
-        'compile-js': {
-          alias: 'j',
-          type: 'boolean',
-          description: squishWords(OPTION_DESCRIPTIONS.compileJs, helpWidth)
-        },
-        init: {
-          alias: 'i',
-          type: 'boolean',
-          description: squishWords(
-            '(Re)initialize options in .friedarc.json.',
-            helpWidth
-          )
-        },
-        help: {
-          alias: 'h',
-          type: 'boolean',
-          description: 'Show help.'
-        }
-      })
-      .group(['explore'], 'Schema Options:')
-      .group(
-        ['env-file', 'output-directory', 'schema-directory', 'compile-js'],
-        'Code Generation Options:'
-      )
-      .group(['init', 'help'], 'Options:');
-    this.#cliOptions = app.parseSync();
-
-    this.showHelp = () => app.showHelp();
+    this.#cliOptions = cliOptions;    
   }
 
-  get help(): boolean {
-    return typeof this.#cliOptions.help === 'boolean'
-      ? this.#cliOptions.help
-      : false;
-  }
+  
   get init(): boolean {
     return typeof this.#cliOptions.init === 'boolean'
       ? this.#cliOptions.init
       : false;
   }
-  get explore(): string | null {
-    return typeof this.#cliOptions.explore === 'string'
-      ? this.#cliOptions.explore
+  get modelName(): string | null {
+    return typeof this.#cliOptions.modelName === 'string' && this.#cliOptions.modelName.trim().length > 0
+      ? this.#cliOptions.modelName.trim()
+      : null;
+  }
+  get fieldName(): string | null {
+    return typeof this.#cliOptions.fieldName === 'string' && this.#cliOptions.fieldName.trim().length > 0
+      ? this.#cliOptions.fieldName.trim()
       : null;
   }
 
@@ -164,10 +97,8 @@ export class Options {
   async initialize(cwd: string): Promise<void> {
     const spinner = ora('Reading current options').start();
     this.#prettierOptions = (await prettier.resolveConfig(cwd)) || {};
-    const { rcFile, rcOptions } = await this.readRc();
-    this.#rcFile = rcFile;
-    this.#rcOptions = rcOptions;
-
+    const { rcOptions } = await this.readRc();
+    
     let databaseDetails: DatabaseDetails | undefined;
     let envFileError: Error | undefined;
     const envFile: string =
@@ -244,7 +175,7 @@ export class Options {
 
       log.info([
         kleur.bold('Environment Variables File'),
-        ...squishWords(OPTION_DESCRIPTIONS.envFile).split('\n'),
+        ...squishWords(BUILD_OPTION_DESCRIPTIONS.envFile).split('\n'),
         `Current value in ${fmtPath(FRIEDA_RC_FILE_NAME)}: ${
           rcOptions.envFile ? fmtPath(rcOptions.envFile) : kleur.dim('not set')
         }`
@@ -259,7 +190,7 @@ export class Options {
       console.log();
       log.info([
         kleur.bold('Output Directory'),
-        ...squishWords(OPTION_DESCRIPTIONS.outputDirectory).split('\n'),
+        ...squishWords(BUILD_OPTION_DESCRIPTIONS.outputDirectory).split('\n'),
         `Current value in ${fmtPath(FRIEDA_RC_FILE_NAME)}: ${
           rcOptions.outputDirectory
             ? fmtPath(rcOptions.outputDirectory)
@@ -280,7 +211,7 @@ export class Options {
       console.log();
       log.info([
         kleur.bold('Schema Directory'),
-        ...squishWords(OPTION_DESCRIPTIONS.schemaDirectory).split('\n'),
+        ...squishWords(BUILD_OPTION_DESCRIPTIONS.schemaDirectory).split('\n'),
         `Current value in ${fmtPath(FRIEDA_RC_FILE_NAME)}: ${
           rcOptions.schemaDirectory
             ? fmtPath(rcOptions.schemaDirectory)
@@ -301,7 +232,7 @@ export class Options {
       console.log();
       log.info([
         kleur.bold('Compile to Javascript'),
-        ...squishWords(OPTION_DESCRIPTIONS.compileJs).split('\n'),
+        ...squishWords(BUILD_OPTION_DESCRIPTIONS.compileJs).split('\n'),
         `Current value in ${fmtPath(FRIEDA_RC_FILE_NAME)}: ${
           typeof rcOptions.compileJs === 'boolean'
             ? fmtVal(JSON.stringify(rcOptions.compileJs))
