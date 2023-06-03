@@ -1,4 +1,3 @@
-import yargs from 'yargs';
 import {
   ENV_DB_URL_KEYS,
   FRIEDA_RC_FILE_NAME,
@@ -16,10 +15,8 @@ import {
   fmtPath,
   fmtVal,
   fmtVarName,
-  getStdOutCols,
   isPlainObject,
   log,
-  maskDatabaseURLPassword,
   prompt,
   promptValidateString,
   squishWords
@@ -45,14 +42,19 @@ export class Options {
       ? this.#cliOptions.init
       : false;
   }
-  get modelName(): string | null {
-    return typeof this.#cliOptions.modelName === 'string' && this.#cliOptions.modelName.trim().length > 0
-      ? this.#cliOptions.modelName.trim()
+  get skipFetch(): boolean {
+    return typeof this.#cliOptions.skipFetch === 'boolean'
+      ? this.#cliOptions.skipFetch
+      : false;
+  }
+  get model(): string | null {
+    return typeof this.#cliOptions.model === 'string' 
+      ? this.#cliOptions.model.trim()
       : null;
   }
-  get fieldName(): string | null {
-    return typeof this.#cliOptions.fieldName === 'string' && this.#cliOptions.fieldName.trim().length > 0
-      ? this.#cliOptions.fieldName.trim()
+  get field(): string | null {
+    return typeof this.#cliOptions.field === 'string' 
+      ? this.#cliOptions.field.trim()
       : null;
   }
 
@@ -262,25 +264,12 @@ export class Options {
       const key = k as keyof BuildOptions;
       return buildOptions[key] !== rcOptions[key];
     });
-    log.table([
-      [fmtVarName('envFile'), fmtPath(buildOptions.envFile)],
-      [
-        kleur.dim(' - Database URL'),
-        maskDatabaseURLPassword(databaseDetails.databaseUrl)
-      ],
-      [
-        kleur.dim(' - Environment Variable'),
-        fmtVarName(databaseDetails.databaseUrlKey)
-      ],
-      [fmtVarName('outputDirectory'), fmtPath(buildOptions.outputDirectory)],
-      [fmtVarName('schemaDirectory'), fmtPath(buildOptions.schemaDirectory)],
-      [fmtVarName('compileJs'), fmtVal(JSON.stringify(buildOptions.compileJs))]
-    ]);
+    
     if (changedKeys.length > 0) {
       const save = await prompt({
         type: 'confirm',
         name: 'save',
-        message: `Save options to ${fmtPath(FRIEDA_RC_FILE_NAME)}?`
+        message: `Save changes to ${fmtPath(FRIEDA_RC_FILE_NAME)}?`
       });
       if (save) {
         const saveSpinner = ora(

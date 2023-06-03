@@ -5,6 +5,8 @@ import ora from 'ora';
 import prettier from 'prettier';
 import { DEFAULT_PRETTIER_OPTIONS } from './constants.js';
 import { format as sqlFmt } from 'sql-formatter';
+import type { Model } from './model.js';
+import type { Field } from './field.js';
 
 export const isPlainObject = (obj: unknown) => {
   return Object.prototype.toString.call(obj) === '[object Object]';
@@ -71,11 +73,35 @@ export const onUserCancelled = (): never => {
   process.exit(0);
 };
 
-const message = (message: string | string[], indent = 0) => {
-  console.log(fromStringOrArray(message, indent));
+const message = (message: string | string[], indent = 2) => {
+  console.log(fromStringOrArray(message, indent, true));
+};
+
+export const columnize = (rows: string[][], indent = 2) => {
+  const firstColWidth =
+    Math.max(...rows.map((row) => stripAnsi(row[0] || '').length)) + 2;
+  const secondColWidth = getStdOutCols() - indent - firstColWidth;
+  rows.forEach((row) => {
+    const squishedSecondCol = squishWords(row[1] || '', secondColWidth).split('\n');
+    const firstLine = [
+      ' '.repeat(indent),
+      row[0] || '',
+      ' '.repeat(firstColWidth - stripAnsi(row[0] || '').length),
+      squishedSecondCol.shift()
+    ];
+    console.log(firstLine.join(''));
+    while(squishedSecondCol.length > 0) {
+      const line = [
+        ' '.repeat(indent + firstColWidth),
+        squishedSecondCol.shift()
+      ]
+      console.log(line.join(''));
+    }
+  });
 };
 
 export const log = {
+  columnize,
   warn: (message: string | string[]) => {
     ora(fromStringOrArray(message)).warn();
   },
@@ -86,12 +112,15 @@ export const log = {
     ora(fromStringOrArray(message)).info();
   },
   message,
-  header: (title: string) => {
+  screenSeparator: (title: string, isHeader: boolean) => {
+    const withArrow = (isHeader ? `↓ ` : `↑ `) + title + ' ';
     const width = getStdOutCols();
-    const before = Math.floor((width - (title.length + 2)) / 2);
-    console.log(
-      kleur.dim(`${'-'.repeat(before)} ${title} ${'-'.repeat(before)}`)
-    );
+    const after = width - withArrow.length - 2;
+
+    console.log();
+
+    console.log(kleur.dim(withArrow + '-'.repeat(after)));
+    console.log();
   },
   table: (data: string[][], header?: string[]) => {
     const numCols = Math.max(
@@ -119,7 +148,7 @@ export const log = {
           headerStr += spaces(colWidths[i] - str.length);
         }
       }
-      message(headerStr);
+      message(headerStr, 0);
     }
 
     for (let i = 0; i < data.length; i++) {
@@ -132,16 +161,22 @@ export const log = {
           rowStr += spaces(colWidths[j] - stripAnsi(str).length);
         }
       }
-      message(rowStr);
+      message(rowStr, 0);
     }
   }
 };
 
 export const spaces = (length: number) => ' '.repeat(length);
 
-const fromStringOrArray = (message: string | string[], indent = 2): string => {
+const fromStringOrArray = (
+  message: string | string[],
+  indent = 2,
+  indentFirstLine = false
+): string => {
   return (Array.isArray(message) ? message : [message])
-    .map((s, i) => (i === 0 ? s : `${' '.repeat(indent)}${s}`))
+    .map((s, i) =>
+      i === 0 && !indentFirstLine ? s : `${' '.repeat(indent)}${s}`
+    )
     .join('\n');
 };
 
@@ -189,5 +224,16 @@ export const formatSql = (input: string): string => {
 };
 
 export const getFileLink = (relPath: string, line: number, col = 1): string => {
-  return `${relPath}:${line}:${col}`
-}
+  return `${relPath}:${line}:${col}`;
+};
+
+export const getFieldColumnDefinition = (m: Model, f: Field): string => {
+  const rx = new RegExp(`^\\s*\`${f.column.Field}\``);
+  const lines = m.table.createSql.split('\n');
+  for (const line of lines) {
+    if (rx.test(line)) {
+      return line.replace(/,\s*$/, '').trim();
+    }
+  }
+  throw new Error('could not find column definition.');
+};

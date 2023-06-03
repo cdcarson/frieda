@@ -33,7 +33,7 @@ import {
   getDropModelSql,
   getEditFieldManuallySql,
   getEditJsonAnnotationSql,
-  getModifyModelByHandSql,
+  getBulkEditModelFieldsSql,
   getRenameFieldSql,
   getToggleBigIntAnnotationSql,
   getToggleInvisibleSql,
@@ -155,7 +155,7 @@ export class Explorer {
   }
 
   async schemaScreen() {
-    log.header(`↓  Schema: ${this.schema.databaseName}`);
+    log.screenSeparator(`↓  Schema: ${this.schema.databaseName}`);
     log.info(`${kleur.bold('Schema:')} ${fmtVal(this.schema.databaseName)}`);
     log.table([
       ['Database', fmtVal(this.schema.databaseName)],
@@ -174,7 +174,7 @@ export class Explorer {
       ],
       ['Model Name', 'Table Name']
     );
-    log.header(`↑ Schema: ${this.schema.databaseName}`);
+    log.screenSeparator(`↑ Schema: ${this.schema.databaseName}`);
 
     type Next = 'addModel' | 'showModel' | 'exit';
     const choices: { title: string; value: Next }[] = [
@@ -214,7 +214,7 @@ export class Explorer {
   }
 
   async modelScreen(m: Model) {
-    log.header(`↓ Model: ${m.modelName}`);
+    log.screenSeparator(`↓ Model: ${m.modelName}`);
     log.info(
       `${kleur.bold('Model:')} ${fmtVal(m.modelName)} in ${fmtVal(
         this.schema.databaseName
@@ -282,7 +282,7 @@ export class Explorer {
         ' ' +
         fmtPath(this.schema.getTableCreateLink(m.tableName))
     );
-    log.header(`↑ Model: ${m.modelName}`);
+    log.screenSeparator(`↑ Model: ${m.modelName}`);
 
     return await this.modelPromptNext(m);
   }
@@ -332,7 +332,7 @@ export class Explorer {
       return await this.executeSchemaChange(change, m.modelName);
     }
     if (next === 'editModel') {
-      const change = getModifyModelByHandSql(m);
+      const change = getBulkEditModelFieldsSql(m);
       return await this.executeSchemaChange(change, m.modelName);
     }
     if (next === 'addField') {
@@ -345,7 +345,7 @@ export class Explorer {
   }
 
   async fieldScreen(m: Model, f: Field) {
-    log.header(`↓ Field: ${f.fieldName}`);
+    log.screenSeparator(`↓ Field: ${f.fieldName}`);
     log.info(
       `${kleur.bold('Field:')} ${fmtVarName(f.fieldName)} in ${fmtVal(
         this.schema.databaseName
@@ -441,7 +441,7 @@ export class Explorer {
     }
     log.info([kleur.bold('Model Type Notes'), ...modelNotesForField]);
 
-    log.header(`↑ Field: ${f.fieldName}`);
+    log.screenSeparator(`↑ Field: ${f.fieldName}`);
     type Next = 'change' | 'field' | 'model' | 'schema' | 'exit';
     type Choice = {
       title: string;
@@ -496,12 +496,7 @@ export class Explorer {
       title: string;
       value: Next;
     };
-    const choices: Choice[] = [
-      {
-        value: 'cancel',
-        title: 'Cancel'
-      }
-    ];
+    const choices: Choice[] = [];
     if (f.mysqlBaseType === 'tinyint') {
       if (f.isTinyIntOne) {
         choices.push({
@@ -586,6 +581,10 @@ export class Explorer {
       title: 'Drop field',
       value: 'drop'
     });
+    choices.push({
+      value: 'cancel',
+      title: 'Cancel'
+    })
 
     const next = await prompt<Next>({
       message: 'Modify field',
@@ -714,7 +713,7 @@ export class Explorer {
     }
     log.info([
       kleur.bold('Current schema:'),
-      ` - ${fmtPath(this.schema.currentSchemaFile.relativePath)}`,
+      ` - ${fmtPath(this.schema.currentSchemaSqlFile.relativePath)}`,
       ...changeFiles
     ]);
   }

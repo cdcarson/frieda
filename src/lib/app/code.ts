@@ -327,7 +327,6 @@ export class Code {
         ];
 
         return `
-      /** ${m.modelName} types */
 
       ${blockComment(baseModelComment)}
       ${modelTypeDeclaration.declaration}

@@ -17,11 +17,13 @@ import type {
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { getFileLink } from './utils.js';
+import { CURRENT_SCHEMA_SQL_FILE_NAME, CURRENT_SCHEMA_JSON_FILE_NAME } from './constants.js';
 
 export class Schema {
   #models: Model[] = [];
   #cast: SchemaCastMap = {};
-  #currentSchemaFile: GeneratedFile;
+  #currentSchemaSqlFile: GeneratedFile;
+  #currentSchemaJsonFile: GeneratedFile;
   #changeFiles: GeneratedFile[] = [];
   #schemaHash = '';
   #schemaSqlLineNumbers: LineNumbers = {};
@@ -42,12 +44,18 @@ export class Schema {
     public readonly options: Options,
     public readonly fs: FileSystem
   ) {
-    this.#currentSchemaFile = {
+    this.#currentSchemaSqlFile = {
       ...this.fs.getPathResult(
-        join(this.options.schemaDirectory, 'current-schema.sql')
+        join(this.options.schemaDirectory, CURRENT_SCHEMA_SQL_FILE_NAME)
       ),
       contents: ''
     };
+    this.#currentSchemaJsonFile ={
+      ...this.fs.getPathResult(
+        join(this.options.schemaDirectory, CURRENT_SCHEMA_JSON_FILE_NAME)
+      ),
+      contents: ''
+    }
   }
 
   async generate(change?: SchemaChange) {
@@ -63,7 +71,7 @@ export class Schema {
     const schemaSql = this.getCreateTablesSql(this.fetchedSchema);
     this.#schemaHash = this.getSchemaHash(schemaSql);
     const schemaSqlContent = [
-      `-- Schema fetched ${this.fetchedSchema.fetched.toUTCString()}`,
+      `-- Schema fetched ${new Date(this.fetchedSchema.fetched).toUTCString()}`,
       schemaSql
     ].join('\n\n');
 
@@ -75,12 +83,18 @@ export class Schema {
       ) + 1;
     });
 
-    this.#currentSchemaFile = {
+    this.#currentSchemaSqlFile = {
       ...this.fs.getPathResult(
-        join(this.options.schemaDirectory, 'current-schema.sql')
+        join(this.options.schemaDirectory, CURRENT_SCHEMA_SQL_FILE_NAME)
       ),
       contents: schemaSqlContent
     };
+    this.#currentSchemaJsonFile = {
+      ...this.fs.getPathResult(
+        join(this.options.schemaDirectory, CURRENT_SCHEMA_JSON_FILE_NAME)
+      ),
+      contents: JSON.stringify(this.fetchedSchema, null, 1)
+    }
     if (change) {
       const d = new Date();
       const changePath = join(
@@ -128,7 +142,7 @@ export class Schema {
         return copy;
       }, {} as { [key: string]: FullTextSearchIndex });
     await Promise.all(
-      [this.#currentSchemaFile, ...this.#changeFiles].map((f) => {
+      [this.#currentSchemaSqlFile, this.#currentSchemaJsonFile, ...this.#changeFiles].map((f) => {
         this.fs.saveFile(f.relativePath, f.contents);
       })
     );
@@ -153,8 +167,11 @@ export class Schema {
     return this.#schemaHash;
   }
 
-  get currentSchemaFile(): GeneratedFile {
-    return this.#currentSchemaFile;
+  get currentSchemaSqlFile(): GeneratedFile {
+    return this.#currentSchemaSqlFile;
+  }
+  get currentSchemaJsonFile(): GeneratedFile {
+    return this.#currentSchemaJsonFile;
   }
   get changeFiles(): GeneratedFile[] {
     return this.#changeFiles;
@@ -165,7 +182,7 @@ export class Schema {
   }
 
   getTableCreateLink(tableName: string): string {
-    return getFileLink(this.currentSchemaFile.relativePath, this.schemaSqlLineNumbers[tableName])
+    return getFileLink(this.currentSchemaSqlFile.relativePath, this.schemaSqlLineNumbers[tableName])
   }
 
   getCreateTablesSql(fetched: FetchedSchema): string {

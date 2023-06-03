@@ -1,5 +1,5 @@
 import { join, raw, type Sql } from 'sql-template-tag';
-import { log, prompt, fmtVal, squishWords, formatSql } from './utils.js';
+import { log, prompt, fmtVal, squishWords, formatSql, getFieldColumnDefinition } from './utils.js';
 import kleur from 'kleur';
 import sql from 'sql-template-tag';
 import { edit } from 'external-editor';
@@ -11,7 +11,7 @@ import type { Annotation } from './types.js';
 
 export const invisibleRx = /(\/\*!\d+\s+INVISIBLE\s*\*\/)|(INVISIBLE)/i;
 
-export const getModifyModelByHandSql = (model: Model): string => {
+export const getBulkEditModelFieldsSql = (model: Model): string => {
   const colDefs = model.fields.map(
     (f) => sql`MODIFY COLUMN ${raw(getColumnDef(model, f))}`
   );
@@ -451,15 +451,9 @@ export const getAddFieldSql = async (
 };
 
 export const getColumnDef = (model: Model, field: Field): string => {
-  const rx = new RegExp(`^\\s*\`${field.column.Field}\``);
-  const lines = model.table.createSql.split('\n');
-  for (const line of lines) {
-    if (rx.test(line)) {
-      return line.replace(/,\s*$/, '').replace(invisibleRx, 'INVISIBLE');
-    }
-  }
-  throw new Error('could not find column definition.');
-};
+  const def = getFieldColumnDefinition(model, field);
+  return def.replace(invisibleRx, 'INVISIBLE')
+}
 
 export const getToggleBigIntAnnotationSql = (
   model: Model,
@@ -498,6 +492,21 @@ export const getDropFieldSql = (model: Model, field: Field): string => {
   `;
   return formatSql(statement.sql);
 };
+export const getRenameModelSql = async (
+  model: Model,
+): Promise<{ statement: string; tableName: string }> => {
+  const tableName = await prompt<string>({
+    message: `Rename column ${model.tableName}`,
+    type: 'text',
+    name: 'name'
+  });
+  
+  const statement = sql`
+    RENAME TABLE ${bt(model.tableName)} TO ${bt(tableName)}
+  `;
+  return { statement: formatSql(statement.sql), tableName };
+};
+
 export const getRenameFieldSql = async (
   model: Model,
   field: Field

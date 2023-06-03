@@ -2,6 +2,9 @@ import kleur from 'kleur';
 import type prettier from 'prettier';
 import { fmtPath, fmtVarName } from './utils.js';
 export const FRIEDA_RC_FILE_NAME = '.friedarc.json';
+
+export const CURRENT_SCHEMA_SQL_FILE_NAME = 'current-schema.sql'
+export const CURRENT_SCHEMA_JSON_FILE_NAME = 'current-schema.json'
 export const ENV_DB_URL_KEYS = ['FRIEDA_DATABASE_URL', 'DATABASE_URL'] as const;
 export const DEFAULT_JSON_FIELD_TYPE = 'unknown';
 export const BUILD_OPTION_DESCRIPTIONS = {
