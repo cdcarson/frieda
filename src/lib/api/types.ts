@@ -81,8 +81,6 @@ export type ModelDefinition = {
 
 export type SchemaDefinition = {
   databaseName: string;
-  friedaVersion: string;
-  schemaHash: string;
   models: ModelDefinition[];
   cast: SchemaCastMap;
 };
