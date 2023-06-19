@@ -183,15 +183,14 @@ export const getPrettierOptions = async (
   return (await prettier.resolveConfig(cwd)) || DEFAULT_PRETTIER_OPTIONS;
 };
 
-
 export const getFileLink = (relPath: string, line: number, col = 1): string => {
-  return `${relPath}:${line}:${col}`
-}
+  return `${relPath}:${line}:${col}`;
+};
 
 /**
  * Adds an underscore to names not beginning with an alphabetical character,
  * thereby making a valid javascript identifier.
  */
 export const getValidJavascriptIdentifier = (name: string): string => {
-  return /^[a-z]/i.test(name) ? name : `_${name}`
-}
+  return /^[a-z]/i.test(name) ? name : `_${name}`;
+};

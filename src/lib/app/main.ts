@@ -1,4 +1,4 @@
-import yargs from 'yargs'
+import yargs from 'yargs';
 import type { FriedaCliArgs } from './types.js';
 import { Options } from './options.js';
 import kleur from 'kleur';
@@ -18,17 +18,26 @@ export const main = async (cwd: string, args: string[]) => {
     .wrap(null)
     .option('env-file', {
       alias: 'e',
-      description: squishWords(OPTION_DESCRIPTIONS.envFile, getStdOutCols() - 30),
+      description: squishWords(
+        OPTION_DESCRIPTIONS.envFile,
+        getStdOutCols() - 30
+      ),
       type: 'string'
     })
     .option('output-directory', {
       alias: 'o',
-      description: squishWords(OPTION_DESCRIPTIONS.outputDirectory, getStdOutCols() - 30),
+      description: squishWords(
+        OPTION_DESCRIPTIONS.outputDirectory,
+        getStdOutCols() - 30
+      ),
       type: 'string'
     })
     .option('compile-js', {
       alias: 'j',
-      description: squishWords(OPTION_DESCRIPTIONS.compileJs, getStdOutCols() - 30),
+      description: squishWords(
+        OPTION_DESCRIPTIONS.compileJs,
+        getStdOutCols() - 30
+      ),
       type: 'boolean'
     })
     .option('init', {
@@ -40,19 +49,18 @@ export const main = async (cwd: string, args: string[]) => {
       alias: 'h',
       description: squishWords(OPTION_DESCRIPTIONS.help, getStdOutCols() - 30),
       type: 'boolean'
-    })
-    console.log(kleur.bold('frieda'), kleur.dim(`v${FRIEDA_VERSION}`), '🦮');
+    });
+  console.log(kleur.bold('frieda'), kleur.dim(`v${FRIEDA_VERSION}`), '🦮');
+  console.log();
   const cliArgs: Partial<FriedaCliArgs> = app.parseSync();
   if (cliArgs.help) {
     app.showHelp();
     return;
   }
-  const options = await Options.create(cwd, cliArgs)
+  const options = await Options.create(cwd, cliArgs);
   const fetchedSchema = await fetchSchema(options.connection);
-  const schema = parseSchema(fetchedSchema)
+  const schema = parseSchema(fetchedSchema);
   const files = await generateCode(options, schema);
-  log.info([
-    'Files:',
-    ...files.map(f => ` - ${relative(cwd, f)}`)
-  ])
-}
+  log.info(['Files:', ...files.map((f) => ` - ${relative(cwd, f)}`)]);
+  console.log();
+};

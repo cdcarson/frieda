@@ -1,8 +1,7 @@
-import camelcase from "camelcase";
-import type { FetchedTable, ParsedIndex, ParsedModel } from "./types.js";
-import { getValidJavascriptIdentifier } from "./utils.js";
-import { parseField } from "./parse-field.js";
-
+import camelcase from 'camelcase';
+import type { FetchedTable, ParsedIndex, ParsedModel } from './types.js';
+import { getValidJavascriptIdentifier } from './utils.js';
+import { parseField } from './parse-field.js';
 
 export const parseTableIndexes = (table: FetchedTable): ParsedIndex[] => {
   const indexNames = Array.from(new Set(table.indexes.map((i) => i.Key_name)));
@@ -23,7 +22,9 @@ export const parseTableIndexes = (table: FetchedTable): ParsedIndex[] => {
 
 export const parseModel = (table: FetchedTable): ParsedModel => {
   const tableName = table.name;
-  const modelName = getValidJavascriptIdentifier(camelcase(tableName, {pascalCase: true}))
+  const modelName = getValidJavascriptIdentifier(
+    camelcase(tableName, { pascalCase: true })
+  );
 
   const selectAllTypeName = `${modelName}SelectAll`;
   const primaryKeyTypeName = `${modelName}PrimaryKey`;
@@ -34,7 +35,7 @@ export const parseModel = (table: FetchedTable): ParsedModel => {
   const appDbKey = getValidJavascriptIdentifier(camelcase(tableName));
   const fields = table.columns.map((c) => parseField(c));
   const indexes = parseTableIndexes(table);
-  
+
   return {
     table,
     tableName,
@@ -47,7 +48,6 @@ export const parseModel = (table: FetchedTable): ParsedModel => {
     dbTypeName,
     appDbKey,
     fields,
-    indexes,
-    
+    indexes
   };
 };
