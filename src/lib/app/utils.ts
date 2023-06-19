@@ -61,3 +61,11 @@ export const removeCommentAnnotationsByType = (
 export const sqlSingleQuoteEscape = (s: string): string => {
   return `'${s.replaceAll(`'`, `''`)}'`;
 };
+
+/**
+ * Adds an underscore to names not beginning with an alphabetical character,
+ * thereby making a valid javascript identifier.
+ */
+export const getValidJavascriptIdentifier = (name: string): string => {
+  return /^[a-z]/i.test(name) ? name : `_${name}`
+}
