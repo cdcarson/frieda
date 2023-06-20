@@ -110,7 +110,7 @@ export type ModelSelectColumnsInput<M extends Record<string, unknown>> =
   S extends ModelSelectColumnsInput<M>,
   SelectAll extends { [K in keyof M]?: M[K] }
 > = S extends (keyof M)[]
-  ? Required<{ [K in S[number]]: M[K] }>
+  ? Required<{ [K in S[number]]: Required<M>[K] }>
   : S extends 'all'
   ? Required<M>
   : SelectAll;
