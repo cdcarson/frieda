@@ -281,7 +281,7 @@ export const getUpdateTypeDeclaration = (model: ParsedModel): string => {
   const comment = [`/**`, ...commentLines.map((s) => ` * ${s}`), ` */`].join(
     '\n'
   );
-  const declaration = `export type ${model.createTypeName} = {
+  const declaration = `export type ${model.updateTypeName} = {
     ${props.join(';\n')}
   }`;
   return [comment, declaration].join('\n');
