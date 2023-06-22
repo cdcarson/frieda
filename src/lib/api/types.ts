@@ -92,12 +92,18 @@ export type SchemaCastMap = {
   [orgTableOrgCol: string]: CastType;
 };
 
+export interface DbExecuteError {
+  query: Sql,
+  message: string;
+  originalError: unknown
+}
+
 export type DbLoggingOptions = {
   performanceLogger?: (
     executedQuery: ExecutedQuery,
     roundTripMs: number
   ) => void;
-  errorLogger?: (error: Error) => void;
+  errorLogger?: (error: DbExecuteError) => void;
 };
 
 export type ModelSelectColumnsInput<M extends Record<string, unknown>> =
@@ -105,7 +111,7 @@ export type ModelSelectColumnsInput<M extends Record<string, unknown>> =
   | 'all'
   | undefined;
 
-  export type SelectedModel<
+export type SelectedModel<
   M extends Record<string, unknown>,
   S extends ModelSelectColumnsInput<M>,
   SelectAll extends { [K in keyof M]?: M[K] }
@@ -147,3 +153,5 @@ export type FullTextSearchIndex = {
 export type ModelWithSearchRelevance<M extends Record<string, unknown>> = M & {
   _searchRelevance?: number;
 };
+
+

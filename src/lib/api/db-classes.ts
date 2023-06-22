@@ -5,6 +5,7 @@ import type {
 } from '@planetscale/database';
 import type {
   CustomModelCast,
+  DbExecuteError,
   DbLoggingOptions,
   FieldDefinition,
   ModelDefinition,
@@ -19,6 +20,12 @@ import sql, { join, empty, raw, type Sql } from 'sql-template-tag';
 import { createCastFunction } from './create-cast-function.js';
 
 import { bt, getLimitOffset, getOrderBy, getWhere } from './sql-utils.js';
+
+export class ExecuteError extends Error implements DbExecuteError {
+  constructor(public readonly originalError: unknown, public readonly query: Sql) {
+    super(originalError instanceof Error ? originalError.message : 'unkown error')
+  }
+}
 
 export class BaseDb {
   #connOrTx: Connection | Transaction;
@@ -59,11 +66,11 @@ export class BaseDb {
     );
   }
 
-  get errorLogger(): (error: Error) => void {
+  get errorLogger(): (error: ExecuteError) => void {
     return (
       this.loggingOptions.errorLogger ||
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      ((_e: Error) => {
+      ((_e: ExecuteError) => {
         /** noop */
       })
     );
@@ -84,12 +91,7 @@ export class BaseDb {
       return result;
     } catch (error) {
       this.errorLogger(
-        new Error('execute failed', {
-          cause: {
-            query: query,
-            originalError: error
-          }
-        })
+        new ExecuteError(error, query)
       );
       throw new Error(`Internal server error.`);
     }
@@ -120,6 +122,8 @@ export class BaseDb {
     }
     return result;
   }
+
+  
 }
 
 export class ModelDb<
