@@ -28,7 +28,7 @@ export const generateCode = async (
   `;
   const modelsDCode: { filePath: string; code: string } = {
     filePath: join(options.cwd, options.outputDirectory, 'models.d.ts'),
-    code: getModelsDSourceCode(schema, bannerComment)
+    code: getModelsDSourceCode(schema, options, bannerComment)
   };
   modelsDCode.code = prettier.format(modelsDCode.code, {
     ...options.prettierOptions,
@@ -94,6 +94,7 @@ export const generateCode = async (
 
 export const getModelsDSourceCode = (
   schema: ParsedSchema,
+  options: Options,
   bannerComment: string
 ): string => {
   const modelTypeDeclarations = schema.models
@@ -112,6 +113,7 @@ export const getModelsDSourceCode = (
   return `
   ${bannerComment}
   import type {ModelDb} from '@nowzoo/frieda';
+  ${options.typeImports.join('\n')}
 
   ${modelTypeDeclarations}
   `;

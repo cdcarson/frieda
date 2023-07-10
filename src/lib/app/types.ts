@@ -4,6 +4,7 @@ export type FriedaOptions = {
   envFile: string;
   outputDirectory: string;
   compileJs: boolean;
+  typeImports: string[]
 };
 export type FriedaCliArgs = FriedaOptions & {
   init: boolean;
