@@ -1,6 +1,6 @@
 {
   "name": "@nowzoo/frieda",
-  "version": "0.1.6",
+  "version": "0.2.0",
   "scripts": {
     "dev": "vite dev",
     "build": "vite build && npm run package",
