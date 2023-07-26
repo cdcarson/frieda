@@ -22,8 +22,13 @@ import { createCastFunction } from './create-cast-function.js';
 import { bt, getLimitOffset, getOrderBy, getWhere } from './sql-utils.js';
 
 export class ExecuteError extends Error implements DbExecuteError {
-  constructor(public readonly originalError: unknown, public readonly query: Sql) {
-    super(originalError instanceof Error ? originalError.message : 'unkown error')
+  constructor(
+    public readonly originalError: unknown,
+    public readonly query: Sql
+  ) {
+    super(
+      originalError instanceof Error ? originalError.message : 'unkown error'
+    );
   }
 }
 
@@ -90,9 +95,7 @@ export class BaseDb {
       this.performanceLogger(result, Date.now() - start);
       return result;
     } catch (error) {
-      this.errorLogger(
-        new ExecuteError(error, query)
-      );
+      this.errorLogger(new ExecuteError(error, query));
       throw new Error(`Internal server error.`);
     }
   }
@@ -122,8 +125,6 @@ export class BaseDb {
     }
     return result;
   }
-
-  
 }
 
 export class ModelDb<
@@ -289,6 +290,43 @@ export class ModelDb<
       );
     }
     return Number(ct);
+  }
+
+  async createMany(input: { data: CreateData[] }): Promise<void> {
+    const rawColumnNamesSet: Set<string> = input.data.reduce((acc, c) => {
+      const s = new Set(acc);
+      Object.keys(c).forEach((k) => s.add(k));
+      return s;
+    }, new Set<string>());
+    const rawColumnNames = Array.from(rawColumnNamesSet);
+    const columnNames: Sql[] = rawColumnNames.map((c) => bt(c));
+    const inserts: Sql[] = input.data.map((record) => {
+      const insertValues: Sql[] = [];
+      rawColumnNames.forEach((c) => {
+        if (record[c] === null) {
+          insertValues.push(raw('NULL'));
+        } else {
+          if (this.jsonKeys.includes(c)) {
+            insertValues.push(sql`${JSON.stringify(record[c])}`);
+          } else if (this.setKeys.includes(c) && record[c] instanceof Set) {
+            const stringValue: string = Array.from(
+              (record[c] as Set<string>).values()
+            ).join(',');
+            insertValues.push(sql`${stringValue}`);
+          } else {
+            insertValues.push(sql`${record[c]}`);
+          }
+        }
+      });
+      return sql`(${join(insertValues, ',')})`;
+    });
+    const statement = sql`
+      INSERT INTO ${bt(this.tableName)} 
+        (${join(columnNames)})
+        VALUES 
+        ${join(inserts, ',\n')}
+    `;
+    await this.execute(statement);
   }
 
   async create(input: { data: CreateData }): Promise<PrimaryKey> {
