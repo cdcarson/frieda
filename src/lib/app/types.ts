@@ -23,6 +23,7 @@ export type ParsedAnnotation = {
 export type FetchTableNamesResult = {
   databaseName: string;
   tableNames: string[];
+  viewNames: string[];
 };
 
 /**
@@ -73,6 +74,7 @@ export type FetchedSchema = {
   fetched: Date;
   databaseName: string;
   tables: FetchedTable[];
+  views: FetchedView[];
 };
 
 export type FetchedTable = {
@@ -81,6 +83,12 @@ export type FetchedTable = {
   indexes: IndexRow[];
   createSql: string;
 };
+
+export type FetchedView = {
+  name: string;
+  columns: ColumnRow[];
+  createSql: string;
+}
 
 export type ColumnPropertySignature = {
   propertySignature: string | undefined;
@@ -92,6 +100,7 @@ export type ParsedSchema = {
   fetched: Date;
   databaseName: string;
   models: ParsedModel[];
+  views: ParsedView[];
 };
 
 export type ParsedModel = {
@@ -108,6 +117,16 @@ export type ParsedModel = {
   readonly fields: ParsedField[];
   readonly indexes: ParsedIndex[];
 };
+
+export type ParsedView = {
+  readonly view: FetchedView;
+  readonly modelName: string;
+  readonly tableName: string;
+  readonly selectAllTypeName: string;
+  readonly dbTypeName: string;
+  readonly appDbKey: string;
+  readonly fields: ParsedField[];
+}
 
 export type ParsedIndex = {
   indexName: string;

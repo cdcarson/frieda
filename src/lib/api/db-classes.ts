@@ -127,15 +127,12 @@ export class BaseDb {
   }
 }
 
-export class ModelDb<
+export class ViewDb<
   M extends Record<string, unknown>,
-  ModelSelectAll extends { [K in keyof M]?: M[K] },
-  PrimaryKey extends { [K in keyof M]?: M[K] },
-  CreateData extends { [K in keyof M]?: M[K] },
-  UpdateData extends { [K in keyof M]?: M[K] },
-  FindUniqueParams extends { [K in keyof M]?: M[K] }
+  ModelSelectAll extends { [K in keyof M]?: M[K] } = M
 > extends BaseDb {
   #model: ModelDefinition;
+
   constructor(
     modelName: string,
     conn: Connection | Transaction,
@@ -164,27 +161,6 @@ export class ModelDb<
 
   get keys(): (keyof M & string)[] {
     return this.fields.map((f) => f.fieldName);
-  }
-
-  get primaryKeys(): (keyof M & string)[] {
-    return this.fields.filter((f) => f.isPrimaryKey).map((f) => f.fieldName);
-  }
-
-  protected get jsonKeys(): (keyof M & string)[] {
-    return this.fields
-      .filter((f) => f.castType === 'json')
-      .map((f) => f.fieldName);
-  }
-
-  protected get setKeys(): (keyof M & string)[] {
-    return this.fields
-      .filter((f) => f.castType === 'set')
-      .map((f) => f.fieldName);
-  }
-
-  protected get autoIncrementingPrimaryKey(): (keyof M & string) | null {
-    const field = this.fields.find((f) => f.isAutoIncrement);
-    return field ? field.fieldName : null;
   }
 
   async findMany<S extends ModelSelectColumnsInput<M> = undefined>(input: {
@@ -258,20 +234,7 @@ export class ModelDb<
     }
     return result;
   }
-  async findUnique<S extends ModelSelectColumnsInput<M> = undefined>(input: {
-    where: FindUniqueParams;
-    select?: S;
-  }): Promise<SelectedModel<M, S, ModelSelectAll> | null> {
-    return await this.findFirst(input);
-  }
-  async findUniqueOrThrow<
-    S extends ModelSelectColumnsInput<M> = undefined
-  >(input: {
-    where: FindUniqueParams;
-    select?: S;
-  }): Promise<SelectedModel<M, S, ModelSelectAll>> {
-    return await this.findFirstOrThrow(input);
-  }
+
   async countBigInt(input: { where: ModelWhereInput<M> }): Promise<bigint> {
     const where = getWhere(input.where, this.tableName);
     const query = sql`SELECT COUNT(*) AS \`ct\` FROM ${bt(
@@ -290,6 +253,51 @@ export class ModelDb<
       );
     }
     return Number(ct);
+  }
+}
+
+export class ModelDb<
+  M extends Record<string, unknown>,
+  ModelSelectAll extends { [K in keyof M]?: M[K] },
+  PrimaryKey extends { [K in keyof M]?: M[K] },
+  CreateData extends { [K in keyof M]?: M[K] },
+  UpdateData extends { [K in keyof M]?: M[K] },
+  FindUniqueParams extends { [K in keyof M]?: M[K] }
+> extends ViewDb<M, ModelSelectAll> {
+  get primaryKeys(): (keyof M & string)[] {
+    return this.fields.filter((f) => f.isPrimaryKey).map((f) => f.fieldName);
+  }
+
+  protected get jsonKeys(): (keyof M & string)[] {
+    return this.fields
+      .filter((f) => f.castType === 'json')
+      .map((f) => f.fieldName);
+  }
+
+  protected get setKeys(): (keyof M & string)[] {
+    return this.fields
+      .filter((f) => f.castType === 'set')
+      .map((f) => f.fieldName);
+  }
+
+  protected get autoIncrementingPrimaryKey(): (keyof M & string) | null {
+    const field = this.fields.find((f) => f.isAutoIncrement);
+    return field ? field.fieldName : null;
+  }
+
+  async findUnique<S extends ModelSelectColumnsInput<M> = undefined>(input: {
+    where: FindUniqueParams;
+    select?: S;
+  }): Promise<SelectedModel<M, S, ModelSelectAll> | null> {
+    return await this.findFirst(input);
+  }
+  async findUniqueOrThrow<
+    S extends ModelSelectColumnsInput<M> = undefined
+  >(input: {
+    where: FindUniqueParams;
+    select?: S;
+  }): Promise<SelectedModel<M, S, ModelSelectAll>> {
+    return await this.findFirstOrThrow(input);
   }
 
   async createMany(input: { data: CreateData[] }): Promise<void> {

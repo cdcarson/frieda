@@ -6,7 +6,7 @@ import type {
   SchemaDefinition
 } from '../api/types.js';
 import type { Options } from './options.js';
-import type { ParsedField, ParsedModel, ParsedSchema } from './types.js';
+import type { ParsedField, ParsedModel, ParsedSchema, ParsedView } from './types.js';
 import { basename, join, extname } from 'node:path';
 import { Project } from 'ts-morph';
 import fs from 'fs-extra';
@@ -62,7 +62,7 @@ export const generateCode = async (
       compilerOptions: TS_COMPILER_OPTIONS
     });
     [...otherTsTfiles, modelsDCode].forEach((f) => {
-      project.createSourceFile(f.filePath, f.code);
+      project.createSourceFile(f.filePath, f.code, {overwrite: true});
     });
     const jsFiles: { filePath: string; code: string }[] = project
       .emitToMemory()
@@ -110,13 +110,51 @@ export const getModelsDSourceCode = (
       ].join('\n');
     })
     .join('\n\n');
+  const viewTypeDeclarations = schema.views.map(m => {
+    return [
+      getViewTypeDeclaration(m),
+      getViewDbTypeDeclaration(m)
+    ].join('\n')
+  }).join('\n\n');
+  // console.log(viewTypeDeclarations);
   return `
   ${bannerComment}
-  import type {ModelDb} from '@nowzoo/frieda';
+  import type {ModelDb, ViewDb} from '@nowzoo/frieda';
   ${options.typeImports.join('\n')}
 
   ${modelTypeDeclarations}
+
+  ${viewTypeDeclarations}
   `;
+};
+
+export const getViewTypeDeclaration = (model: ParsedView): string => {
+  const props: string[] = [];
+  const notes: string[] = [];
+  for (const f of model.fields) {
+    if (f.isInvisible) {
+      notes.push(`- ${f.fieldName} is **optional** (column is \`INVISIBLE\`)`);
+    }
+    const orNull = f.isNullable ? '|null' : '';
+    const opt = f.isInvisible ? '?' : '';
+    props.push(`${f.fieldName}${opt}:${f.javascriptType}${orNull}`);
+  }
+  const desc = squishWords(
+    `
+    The base model type for the \`${model.modelName}\` view.
+    `,
+    60
+  )
+    .split(`\n`)
+    .map((s) => s.trim());
+  const commentLines = [...desc, ...notes];
+  const comment = [`/**`, ...commentLines.map((s) => ` * ${s}`), ` */`].join(
+    '\n'
+  );
+  const declaration = `export type ${model.modelName} = {
+    ${props.join(';\n')}
+  }`;
+  return [comment, declaration].join('\n');
 };
 
 export const getModelTypeDeclaration = (model: ParsedModel): string => {
@@ -348,6 +386,28 @@ export const getDbTypeDeclaration = (model: ParsedModel): string => {
   return [comment, declaration].join('\n');
 };
 
+export const getViewDbTypeDeclaration = (model: ParsedView): string => {
+  const desc = squishWords(
+    `
+      Database type for the \`${model.modelName}\` view model. 
+    `,
+    60
+  )
+    .split(`\n`)
+    .map((s) => s.trim());
+  const commentLines = [...desc];
+  const comment = [`/**`, ...commentLines.map((s) => ` * ${s}`), ` */`].join(
+    '\n'
+  );
+  const els = [
+    model.modelName
+  ];
+  const declaration = `export type ${model.dbTypeName}=ViewDb<${els.join(
+    ','
+  )}>`;
+  return [comment, declaration].join('\n');
+};
+
 export const getDatabaseSourceCode = (
   schema: ParsedSchema,
   bannerComment: string
@@ -355,15 +415,23 @@ export const getDatabaseSourceCode = (
   const code = `
   ${bannerComment}
   import type { Transaction, Connection } from '@planetscale/database';
-  import { BaseDb, ModelDb, type DbLoggingOptions, type SchemaDefinition } from '@nowzoo/frieda';
+  import { BaseDb, ModelDb, ViewDb, type DbLoggingOptions, type SchemaDefinition } from '@nowzoo/frieda';
   import schema from './schema.js';
   import type {
-    ${schema.models.map((m) => m.dbTypeName).join(',')}
+    ${[...schema.models, ...schema.views].map((m) => m.dbTypeName).join(',')}
   } from './models.js';
    
     export abstract class ModelsDb extends BaseDb {
       private models: Partial<{
         ${schema.models
+          .map((m) => {
+            return `${m.appDbKey}: ${m.dbTypeName}`;
+          })
+          .join('\n')}
+      }>;
+
+      private views: Partial<{
+        ${schema.views
           .map((m) => {
             return `${m.appDbKey}: ${m.dbTypeName}`;
           })
@@ -377,6 +445,7 @@ export const getDatabaseSourceCode = (
       ) {
         super(conn, schema, loggingOptions);
         this.models = {};
+        this.views = {};
       }
 
       ${schema.models
@@ -391,6 +460,19 @@ export const getDatabaseSourceCode = (
           `;
         })
         .join('\n')}
+
+        ${schema.views
+          .map((m) => {
+            return `
+              get ${m.appDbKey}(): ${m.dbTypeName} {
+                if (! this.views.${m.appDbKey}) {
+                  this.views.${m.appDbKey} = new ViewDb('${m.modelName}', this.connOrTx, schema, this.loggingOptions)
+                }
+                return this.views.${m.appDbKey} 
+              }
+            `;
+          })
+          .join('\n')}
     }
 
     export class TxDb extends ModelsDb {
@@ -458,7 +540,7 @@ export const getSchemaSourceCode = (
   bannerComment: string
 ): string => {
   const cast: SchemaCastMap = {};
-  schema.models.forEach((m) => {
+  [...schema.models, ...schema.views].forEach((m) => {
     m.fields.forEach((f) => {
       const key = [m.tableName, f.columnName].join('.');
       cast[key] = f.castType;
@@ -467,7 +549,7 @@ export const getSchemaSourceCode = (
   const def: SchemaDefinition = {
     databaseName: schema.databaseName,
     cast,
-    models: schema.models.map((m) => {
+    models: [...schema.models, ...schema.views].map((m) => {
       const md: ModelDefinition = {
         modelName: m.modelName,
         tableName: m.tableName,
