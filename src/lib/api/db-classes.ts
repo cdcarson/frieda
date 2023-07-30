@@ -168,6 +168,7 @@ export class ViewDb<
     paging?: OneBasedPagingInput;
     orderBy?: ModelOrderByInput<M>;
     select?: S;
+    cast?: CustomModelCast<SelectedModel<M, S, ModelSelectAll>>
   }): Promise<SelectedModel<M, S, ModelSelectAll>[]> {
     const where = getWhere(input.where, this.tableName);
     const orderBy = getOrderBy(input.orderBy, this.tableName);
@@ -205,7 +206,7 @@ export class ViewDb<
         ${limit}`;
     const { rows } = await this.executeSelect<
       SelectedModel<M, S, ModelSelectAll>
-    >(query);
+    >(query, input.cast);
     return rows;
   }
 
@@ -213,6 +214,7 @@ export class ViewDb<
     where: Partial<M> | Sql;
     orderBy?: ModelOrderByInput<M> | Sql;
     select?: S;
+    cast?: CustomModelCast<SelectedModel<M, S, ModelSelectAll>>
   }): Promise<SelectedModel<M, S, ModelSelectAll> | null> {
     const rows = await this.findMany({
       ...input,
@@ -227,6 +229,7 @@ export class ViewDb<
     where: Partial<M> | Sql;
     orderBy?: ModelOrderByInput<M>;
     select?: S;
+    cast?: CustomModelCast<SelectedModel<M, S, ModelSelectAll>>
   }): Promise<SelectedModel<M, S, ModelSelectAll>> {
     const result = await this.findFirst(input);
     if (!result) {
