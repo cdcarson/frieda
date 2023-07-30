@@ -15,8 +15,8 @@ Frieda aims to provide a dead-simple developer experience for javascript and typ
 ### Goals
 - Create solid, documented javascript code based on a database schema.
 - Provide well-typed `CrUD` and `SELECT` methods for the _boring_ stuff.
-- Allow the developer to write _more interesting_ stuff in vanilla MySQL, with a certain degree of type-safety.
-- Limit having to maintain schema outside the database itself. Javascript types are inferred using certain reasonable assumptions. In the case where an assumption needs to be overridden, or a type needs to be narrowed, Frieda provides the ability to do so in `frieda.config.js`. The primary source of truth, however, is the database schema. There is no separate `xyz.schema` file.
+- Allow the developer to write _more interesting_ stuff in vanilla MySQL, with type-safety.
+- Limit having to maintain schema information outside the database itself. There is one naming convention for javascript models and fields. Javascript types are inferred using a set of reasonable assumptions. In the case where a type assumption needs to be overridden, or a type needs to be narrowed, Frieda provides a way to do so in `frieda.config.js`. The primary source of truth, however, is the database schema. There is no separate `xyz.schema` file, where the _entire_ schema is defined.
 
 
 ### Non-goals
