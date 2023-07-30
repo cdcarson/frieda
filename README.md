@@ -2,37 +2,31 @@
 
 Javascript code generator for the PlanetScale serverless driver.
 
-## Caveat / Welcome
+## Caveats / Welcome
 
-This library is in early development. I think it works ok, but use with caution. Bugs and breaking changes may occur.
+This library is a work in progress. So far it's been developed against a single project and a single database schema. It seems to work fine, but use with caution. Bugs may occur. There are limitations.
 
-That said, bug reports and breaking changes are entirely welcome.
+Bug reports, suggestions and PRs are entirely welcome.
 
 ## Motivation
 
-Frieda's goal is to provide a dead-simple developer experience for javascript and typescript projects using the PlanetScale serverless driver. Frieda aims to create solid, well-typed, useful and inobtrusive application code for that particular stack.
+Frieda aims to provide a dead-simple developer experience for javascript and typescript projects using the PlanetScale serverless driver.
 
-## What it is and isn't
+### Goals
+- Create solid, documented javascript code based on a database schema.
+- Provide well-typed `CrUD` and `SELECT` methods for the _boring_ stuff.
+- Allow the developer to write _more interesting_ stuff in vanilla MySQL, with a certain degree of type-safety.
+- Limit having to maintain schema outside the database itself. Javascript types are inferred using certain reasonable assumptions. In the case where an assumption needs to be overridden, or a type needs to be narrowed, Frieda provides the ability to do so in `frieda.config.js`. The primary source of truth, however, is the database schema. There is no separate `xyz.schema` file.
 
-### What it is
 
-It's a javascript code generator. Given a database schema, Frieda generates:
+### Non-goals
 
-- A "repo" for each table and view. Each repo has methods to select records. Repos derived from actual tables (i.e. not views) have CrUD methods to insert, update and delete records.
-- Casting and type logic to mediate the difference between application data types and how they are represented in the database (or, more accurately, how they are represented over the wire by the serverless driver.)
-- An "AppDb" class containing the repos mentioned above, and with the ability to execute arbitrary, off-the-cuff queries with a degree of type-safety.
-- A few other utilities to help write queries.
+ Frieda is not meant to be an ORM or a query builder. It doesn't understand or manage relations between tables. Beyond certain basic `CrUD` and `SELECT` queries, it does not attempt to write SQL for you. Frieda does not manage the schema or track migrations. If you need these things, try Prisma (to manage the schema) and Kysely (to help write queries.)
 
-### What it isn't
 
-- Frieda is not an ORM. There is no notion of "defining or managing relations between records." This accords with the fact that PlanetScale/Vitess have no notion of foreign key constraints. Such relations are therefore left to your application to manage.
-- Frieda is not a query builder. Beyond the select and CrUD methods mentioned above, it doesn't write SQL for you.
-- It doesn't manage the schema or run migrations.
-- There is no separate data definition language, _per se_. Everything Frieda needs to know about a schema can be gleaned from querying the MySQL schema itself, and applying some reasonable assumptions. In the small number of cases where those assumptions need to be overridden, or further type disambiguation may be necessary, Frieda uses **comment annotations**.
+### So, Frieda may be for you if...
 
-### Frieda may be for you if...
-
-- You're ok with writing at least some SQL by hand.
+- You're cool with writing at least some SQL by hand.
 - You're using PlanetScale and the serverless driver.
 - Your project is in typescript or javascript.
 - You don't need schema / migration management beyond that provided by PlanetScale.
@@ -52,6 +46,13 @@ This will:
   - Whether to save the above settings to `.friedarc.json`
 - Query the schema at `DATABASE_URL`.
 - Generate and save the 
+
+
+## Known Limitations
+
+#### Models are not created for views. 
+ MySQL does not allow comments on view columns. Adding accurately typed views would necessitate introducing a schema file, that is, a separate source of truth from the database, which is not in the cards.
+
 
 # FROM BEFORE
 ## Javascript types
