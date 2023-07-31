@@ -82,12 +82,13 @@ CREATE TABLE `Triangle` (
 
 ```ts
 export type Triangle = {
-  id: string;
-  name: string;
-  description?: string | null;
-  a: number;
-  b: number;
-  c: number;
+	id: string;
+	name: string;
+	url: string;
+	description?: string | null;
+	a: number;
+	b: number;
+	c: number;
 };
 ```
 
@@ -97,11 +98,12 @@ This type contains all the fields in the model. If a field has been marked as `I
 
 ```ts
 export type TriangleSelectAll = {
-  id: string;
-  name: string;
-  a: number;
-  b: number;
-  c: number;
+	id: string;
+	name: string;
+	url: string;
+	a: number;
+	b: number;
+	c: number;
 };
 ```
 
@@ -128,11 +130,12 @@ export type CompanyDashboardUserPrimaryKey = {
 
 ```ts
 export type TriangleCreate = {
-  id?: string;
-  name: string;
-  description?: string | null;
-  a: number;
-  b: number;
+	id?: string;
+	name: string;
+	url: string;
+	description?: string | null;
+	a: number;
+	b: number;
 };
 ```
 
@@ -142,10 +145,11 @@ Represents the data needed to create a model. Fields where the underlying column
 
 ```ts
 export type TriangleUpdate = {
-  name?: string;
-  description?: string | null;
-  a?: number;
-  b?: number;
+	name?: string;
+	url?: string;
+	description?: string | null;
+	a?: number;
+	b?: number;
 };
 ```
 
