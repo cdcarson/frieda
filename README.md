@@ -183,10 +183,18 @@ A convenience type for a specific `ModelDb`. TKTK LINK You probably won't need t
 Most MySQL column types can be mapped unambiguously to javascript types. Frieda recognizes five exceptions to this rule:
 
 1. How to type [`bigint`](#bigint) columns in javascript.
-1. How to represent javascipt `boolean`s in the database.
+1. How to represent javascipt [`boolean`s](#boolean) in the database.
 1. Specifying the javascript type of `json` columns.
 1. Whether to type `set` columns as javascript `Set`
 1. Column types where there's no equivalent in plain javascript, like the [geospatial types](https://dev.mysql.com/doc/refman/8.0/en/spatial-type-overview.html).
+
+#### `boolean`
+
+By convention, any column with the exact type `tinyint(1)` is typed as javascript `boolean` and cast into javascript with `parseInt(value) !== 0`.
+
+All other flavors of `tinyint` (e.g. just `tinyint`) are typed as javascript `number` and cast as `parseInt(value)`.
+
+Note that swapping the column type from `tinyint(1)` to `tinyint` or vice versa has no effect on the range of values the column can represent.
 
 #### `bigint`
 
@@ -197,13 +205,17 @@ By convention, `bigint` columns are typed as javascript `string`. Reasoning:
 
 This convention can be overridden in two ways. First, you can use a [`@bigint` type annotation](#bigint-type-annotation) to mark a particular column.
 
-Second, you can use a custom cast definition:
+Second, you can use a custom model cast TKTK LINK:
 
 ```ts
 type CatPersonStats = {
   catPersonId: string;
   catCount: bigint;
   fleaCount: bigint;
+};
+const customCast: CustomModelCast<CatPersonStats> = {
+  catCount: 'bigint',
+  fleaCount: 'bigint'
 };
 const results = await db.executeSelect<CatPersonStats>(
   sql`
@@ -224,12 +236,13 @@ const results = await db.executeSelect<CatPersonStats>(
           Cat.ownerId
       ) AS CatStats ON CatStats.ownerId = CatPerson.id;
   `,
-  {
-    catCount: 'bigint',
-    fleaCount: 'bigint'
-  }
+  customCast
 );
 ```
+
+#### `boolean`
+
+
 
 ### Type Annotations
 
@@ -269,12 +282,7 @@ Most MySQL column types can be reasonably mapped directly to javascript field ty
 
 Frieda takes care of these cases as follows:
 
-#### `boolean`
 
-- Any column with the exact type `tinyint(1)` is typed as javascript `boolean` and cast into javascript with `parseInt(value) !== 0`.
-- All other flavors of `tinyint` (e.g. just `tinyint`) are typed as javascript `number` and cast as `parseInt(value)`.
-
-Note that swapping the column type from `tinyint(1)` to `tinyint` or vice versa has no effect on the range of values the column can represent.
 
 #### `bigint`
 
