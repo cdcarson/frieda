@@ -171,6 +171,7 @@ export type TriangleDb = ModelDb<
   TriangleFindUnique
 >;
 ```
+
 A convenience type for a specific `ModelDb`. TKTK LINK You probably won't need to use it
 
 ## Known Limitations
