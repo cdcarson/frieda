@@ -161,7 +161,7 @@ Represents the data needed to update a model. Primary keys and `GENERATED` colum
 export type TriangleFindUnique = TrianglePrimaryKey | { url: string };
 ```
 
-Type representing how to uniquely select a model. This always includes the primary key type plus types derived from the table's other unique indexes (e.g. `url` has a unique index).
+Type representing the ways one can uniquely select a model. This always includes the primary key type plus types derived from the table's other unique indexes (e.g., `url` in `Triangle` has a unique index).
 
 #### Model Db Type
 
@@ -176,7 +176,39 @@ export type TriangleDb = ModelDb<
 >;
 ```
 
-A convenience type for a specific `ModelDb`. TKTK LINK You probably won't need to use it
+A convenience type for a specific `ModelDb`. TKTK LINK You probably won't need to use it.
+
+### Field Types
+
+Most MySQL column types can be mapped unambiguously to javascript types. Frieda recognizes five exceptions to this rule:
+
+1. How to type `bigint` columns in javascript.
+1. How to represent javascipt `boolean`s in the database.
+1. Specifying the javascript type of `json` columns.
+1. Whether to type `set` columns as javascript `Set`
+1. Column types where there's no equivalent in plain javascript, like the [geospatial types](https://dev.mysql.com/doc/refman/8.0/en/spatial-type-overview.html).
+
+#### `bigint`
+
+By convention, `bigint` columns are typed as javascript `string`. Reasoning:
+
+- A salient case for `bigint` columns is auto-incrementing primary keys, where it does not make (much) sense to manipulate the values in javascript or compare them other than on equality. If those things are necessary, it's easy to convert the values with`BigInt(id)`.
+- Many folks still use `JSON` to put data on the wire. Typing columns as `bigint` by default would force them to convert the values to string first.
+
+This convention can be overridden in two ways. First, you can 
+
+
+### Type Annotations
+
+#### `@bigint` type annotation
+
+`bigint` columns are typed as javascript `string` by default. Use the `@bigint` type annotation to overide this behavior:
+
+```sql
+-- will be typed and cast to javascript bigint
+ALTER TABLE `CatPerson`
+  MODIFY COLUMN `numCats` bigint unsigned NOT NULL COMMENT '@bigint';
+```
 
 ## Known Limitations
 
