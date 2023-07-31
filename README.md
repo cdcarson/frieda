@@ -2,6 +2,8 @@
 
 Javascript code generator for the PlanetScale serverless driver.
 
+- [Quick Start](#quick-start)
+
 ## Caveats / Welcome
 
 This library is a work in progress. So far it's been developed against a single project and a single database schema. It seems to work fine, but use with caution. Bugs may occur. There are limitations.
@@ -23,7 +25,7 @@ Frieda aims to provide a dead-simple developer experience for javascript and typ
 
 Frieda is not meant to be an ORM or a query builder. It doesn't understand or manage relations between tables. Beyond certain basic `CrUD` and `SELECT` queries, it does not attempt to write SQL for you. Frieda does not manage the schema or track migrations. If you need these things, try Prisma (to manage the schema) and Kysely (to help write queries.)
 
-### So, Frieda may be for you if...
+### Frieda may be for you if...
 
 - You're cool with writing at least some SQL by hand.
 - You're using PlanetScale and the serverless driver.
@@ -33,8 +35,19 @@ Frieda is not meant to be an ORM or a query builder. It doesn't understand or ma
 ## Quick Start
 
 ```bash
+# install...
 npm i @nowzoo/frieda
+# run...
+./node_modules/.bin/frieda --init
 ```
+
+Frieda will ask you the following questions:
+
+- The path to an environment variables file containing the database url.
+- The folder where you want the database code to be generated. This should be a dedicated folder, since Frieda deletes its old contents before generating new code files, but should be convenient to your own code. Something like `src/db/_generated` works great, with your own database code (e.g. where you import the generated code) in `src/db`. 
+- Whether to compile the generated code to javascript or leave it as typescript.  Javascript projects should say 'Yes'; the answer most likey doesn't matter if you're using typescript.
+- Whether to save these answers to `.friedarc.json`.
+
 
 This will:
 
