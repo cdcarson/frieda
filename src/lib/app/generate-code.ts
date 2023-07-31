@@ -59,7 +59,7 @@ export const generateCode = async (
   });
   if (options.compileJs) {
     const project = new Project({
-      compilerOptions: TS_COMPILER_OPTIONS
+      compilerOptions: TS_COMPILER_OPTIONS 
     });
     [...otherTsTfiles, modelsDTsCode].forEach((f) => {
       project.createSourceFile(f.filePath, f.code, { overwrite: true });
