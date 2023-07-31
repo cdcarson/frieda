@@ -5,7 +5,6 @@ import type {
   FetchTableNamesResult,
   FetchedSchema,
   FetchedTable,
-  FetchedView,
   IndexRow
 } from './types.js';
 import sql from 'sql-template-tag';
@@ -47,8 +46,7 @@ export const fetchTableNames = async (
   const nameKey = executedQuery.fields[0].name;
   const result: FetchTableNamesResult = {
     databaseName: nameKey.replace(/^tables_in_/gi, ''),
-    tableNames: [],
-    viewNames: []
+    tableNames: []
   };
   const rows = executedQuery.rows as Record<string, string>[];
   rows.forEach((row: Record<string, string>) => {
@@ -57,12 +55,9 @@ export const fetchTableNames = async (
     const k1: keyof typeof row = keys[1];
     const tableName: string = row[k0];
     const tableType = row[k1] as 'BASE TABLE' | 'VIEW';
-    switch(tableType) {
+    switch (tableType) {
       case 'BASE TABLE':
         result.tableNames.push(tableName);
-        break;
-      case 'VIEW':
-        result.viewNames.push(tableName);
         break;
     }
   });
@@ -86,37 +81,21 @@ export const fetchTable = async (
     createSql: results[2]
   };
 };
-export const fetchView = async (  connection: Connection,
-  tableName: string
-): Promise<FetchedView> => {
-  const results: [ColumnRow[], string] = await Promise.all([
-    fetchTableColumns(connection, tableName),
-    fetchCreateTableSql(connection, tableName)
-  ]);
-  return {
-    name: tableName,
-    columns: results[0],
-    createSql: results[1]
-  };
-}
 
 export const fetchSchema = async (
   connection: Connection
 ): Promise<FetchedSchema> => {
   const spinner = ora('Fetching schema...').start();
-  const { databaseName, tableNames, viewNames } = await fetchTableNames(connection);
+  const { databaseName, tableNames } = await fetchTableNames(connection);
   const tables = await Promise.all(
     tableNames.map((t) => fetchTable(connection, t))
   );
-  const views = await Promise.all(
-    viewNames.map((t) => fetchView(connection, t))
-  );
+
   spinner.succeed('Schema fetched.');
   const fetchedSchema = {
     fetched: new Date(),
     databaseName,
-    tables,
-    views
+    tables
   };
 
   return fetchedSchema;

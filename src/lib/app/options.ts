@@ -73,9 +73,6 @@ export class Options {
     return this.options.compileJs;
   }
 
-  get typeImports(): string[] {
-    return this.options.typeImports;
-  }
   get prettierOptions(): prettier.Options {
     if (!this.#prettierOptions) {
       throw new Error('not initialized');
@@ -200,8 +197,7 @@ export class Options {
     this.#options = {
       compileJs,
       outputDirectory,
-      envFile: databaseOptions.envFile,
-      typeImports: rcOptions.typeImports || []
+      envFile: databaseOptions.envFile
     };
     this.#databaseOptions = databaseOptions;
   }

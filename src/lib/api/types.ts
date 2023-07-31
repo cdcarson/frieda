@@ -93,9 +93,9 @@ export type SchemaCastMap = {
 };
 
 export interface DbExecuteError {
-  query: Sql,
+  query: Sql;
   message: string;
-  originalError: unknown
+  originalError: unknown;
 }
 
 export type DbLoggingOptions = {
@@ -153,5 +153,3 @@ export type FullTextSearchIndex = {
 export type ModelWithSearchRelevance<M extends Record<string, unknown>> = M & {
   _searchRelevance?: number;
 };
-
-

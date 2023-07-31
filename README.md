@@ -44,10 +44,9 @@ npm i @nowzoo/frieda
 Frieda will ask you the following questions:
 
 - The path to an environment variables file containing the database url.
-- The folder where you want the database code to be generated. This should be a dedicated folder, since Frieda deletes its old contents before generating new code files, but should be convenient to your own code. Something like `src/lib/db/__generated` works great, with your own database code (e.g. where you import the generated code) in `src/lib/db`. 
-- Whether to compile the generated code to javascript or leave it as typescript.  Javascript projects should say 'Yes'; the answer most likely doesn't matter if you're using typescript.
+- The folder where you want the database code to be generated. This should be a dedicated folder, since Frieda deletes the old contents before generating new code files, but should be convenient to your own code. Something like `src/lib/db/__generated` works great, with your own database code (e.g. where you import the generated code) in `src/lib/db`.
+- Whether to compile the generated code to javascript or leave it as typescript. Javascript projects should say 'Yes'; the answer most likely doesn't matter if you're using typescript.
 - Whether to save these answers to `.friedarc.json`.
-
 
 Frieda then retrieves the database schema from the url and generates the following files:
 
@@ -216,8 +215,6 @@ All [other column types](#other-column-types) are assumed to have obvious javasc
 
 By convention, any column with the exact type `tinyint(1)` is typed as javascript `boolean` and cast via `parseInt(value) !== 0`. All other flavors of `tinyint` (e.g. just `tinyint`) are typed as javascript `number` and cast as `parseInt(value)`. Note that swapping the column type from `tinyint(1)` to `tinyint` or vice versa has no effect on the range of values the column can represent.
 
-
-
 #### `bigint`
 
 `bigint` columns are typed as javascript `string` by default. Reasoning:
@@ -226,15 +223,15 @@ By convention, any column with the exact type `tinyint(1)` is typed as javascrip
 - Many folks still use `JSON` to put data on the wire. Typing columns as `bigint` by default would force them to convert the values to string first.
 
 This convention can be overridden with a `@bigint` type annotation:
+
 ```sql
 -- will be typed as (and cast to) javascript bigint
 ALTER TABLE `CatPerson`
   MODIFY COLUMN `numCats` bigint unsigned NOT NULL COMMENT '@bigint';
 ```
 
-
-
 #### `json`
+
 By default MySQL `json` columns are typed as `unknown`. You can overcome this by providing a type using the `@json(MyType)` type annotation, in which `MyType` is an inline type (in valid typescript) or an imported type. Examples
 
 ```sql
@@ -259,6 +256,7 @@ MODIFY
 ```
 
 #### `set`
+
 MySQL `set` columns are typed as javascript `string`. Adding the `@set` annotation to a column will change the javascript type to `Set`:
 
 ```sql
@@ -311,9 +309,7 @@ Every other column type will be typed as javascript `string`. This includes (but
 - `time`
 - `bit`
 
-
 ### Typing arbitrary `SELECT` queries
-
 
 Second, you can use a custom model cast TKTK LINK:
 
@@ -354,7 +350,6 @@ const results = await db.executeSelect<CatPersonStats>(
 
 ### type `CustomModelCast`
 
-
 ## Known Limitations
 
 ### Models are not created for views
@@ -380,8 +375,6 @@ Most MySQL column types can be reasonably mapped directly to javascript field ty
 1. Mapping an `enum` column to a typescript `enum` or javascript type.
 
 Frieda takes care of these cases as follows:
-
-
 
 #### `bigint`
 
@@ -410,12 +403,6 @@ ALTER TABLE `FabulousOffer`
     COMMENT '@json(FabulousPricing)';
 -- add "import type { FabulousPricing } from '../wherever/api'" to typeImports in .friedarc.json
 ```
-
-
-
-
-
-
 
 ### Model types
 
