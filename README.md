@@ -211,7 +211,7 @@ ALTER TABLE `CatPerson`
 
 
 #### `json`
-By default MySQL `json` columns are typed as `unknown`. You can overcome this by providing a type using the `@json(MyType)` type annotation. `MyType` can be an inline type in valid typescript or an import. Examples
+By default MySQL `json` columns are typed as `unknown`. You can overcome this by providing a type using the `@json(MyType)` type annotation. `MyType` may ether be an inline type (in valid typescript) or an import. Examples
 
 ```sql
 -- An inline type. Must be valid typescript.
@@ -229,7 +229,7 @@ MODIFY
 ALTER TABLE
   PricingPlan
 MODIFY
-  COLUMN `discounts` json NOT NULL COMMENT '@json(import(''../types.js'').DiscountTier)';
+  COLUMN `discounts` json NOT NULL COMMENT '@json(import(''../types.js'').DiscountTier[])';
 ```
 
 In the latter case, the import path should be relative to the `outputPath` where the database code is generated.
