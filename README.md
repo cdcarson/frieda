@@ -13,16 +13,15 @@ Bug reports, suggestions and PRs are entirely welcome.
 Frieda aims to provide a dead-simple developer experience for javascript and typescript projects using the PlanetScale serverless driver.
 
 ### Goals
-- Create solid, documented javascript code based on a database schema.
-- Provide well-typed `CrUD` and `SELECT` methods for the _boring_ stuff.
-- Allow the developer to write _more interesting_ stuff in vanilla MySQL, with type-safety.
-- Limit having to maintain schema information outside the database itself. There is one naming convention for javascript models and fields. Javascript types are inferred using a set of reasonable assumptions. In the case where a type assumption needs to be overridden, or a type needs to be narrowed, Frieda provides a way to do so in `frieda.config.js`. The primary source of truth, however, is the database schema. There is no separate `xyz.schema` file, where the _entire_ schema is defined.
 
+- Create solid, documented javascript code based on a database schema.
+- Provide well-typed `CrUD` and `SELECT` methods for the boring things.
+- Allow writing more interesting things in vanilla MySQL, with type-safety.
+- Eliminate `xyz.schema` files, and minimize data definition. The single source of truth is the database schema itself. Javascript types are mostly inferred from the schema using a set of reasonable conventions. There are a small number of "type annotations" to deal with cases where a convention might need to be overridden or a javascript type narrowed. These annotations are stored in database column comments.
 
 ### Non-goals
 
- Frieda is not meant to be an ORM or a query builder. It doesn't understand or manage relations between tables. Beyond certain basic `CrUD` and `SELECT` queries, it does not attempt to write SQL for you. Frieda does not manage the schema or track migrations. If you need these things, try Prisma (to manage the schema) and Kysely (to help write queries.)
-
+Frieda is not meant to be an ORM or a query builder. It doesn't understand or manage relations between tables. Beyond certain basic `CrUD` and `SELECT` queries, it does not attempt to write SQL for you. Frieda does not manage the schema or track migrations. If you need these things, try Prisma (to manage the schema) and Kysely (to help write queries.)
 
 ### So, Frieda may be for you if...
 
@@ -31,12 +30,12 @@ Frieda aims to provide a dead-simple developer experience for javascript and typ
 - Your project is in typescript or javascript.
 - You don't need schema / migration management beyond that provided by PlanetScale.
 
-
 ## Quick Start
 
 ```bash
-npx frieda
+npm i @nowzoo/frieda
 ```
+
 This will:
 
 - Ask you a few questions:
@@ -45,16 +44,145 @@ This will:
   - Whether to compile the code to javascript or leave it in typescript.
   - Whether to save the above settings to `.friedarc.json`
 - Query the schema at `DATABASE_URL`.
-- Generate and save the 
+- Generate and save the
 
+## Javascript Types
+
+### Naming Conventions
+
+- Model types are named with the PascalCase'd table name, e.g. `UserAccount`, `UserAccountCreate`, etc. for a table named with some variation of `user_account` or `UserAccount`.
+- Field names are the camelCase'd column name, e.g. `emailVerified` for `email_verified`.
+
+You can use whatever naming convention you want for tables and columns, but there are a couple of edge cases:
+
+- Frieda does not try to fix the case where two tables or two columns within the same table resolve to the same model or field name. For example, tables named `user_account`, `user__account` and `UserAccount` would all result in `UserAccount`. Net: Be consistent when naming tables and columns.
+- If a table or column name would result in an invalid javascript identifier Frieda prepends an underscore. For example, `2023_stats` is a valid MySQL name but an invalid javascript identifier. It would be turned into `_2023Stats`. Net: Try not to do this.
+
+### Model Types
+
+For each table (excluding views) in the database, Frieda generates a set of types for selecting, creating and updating the model. Given the following table...
+
+```sql
+CREATE TABLE `Triangle` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `url` varchar(300) NOT NULL,
+  `description` text INVISIBLE,
+  `a` double NOT NULL,
+  `b` double NOT NULL,
+  `c` double GENERATED ALWAYS AS (sqrt(((`a` * `b`) + (`a` * `b`)))) STORED NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `triangle_url` (`url`)
+)
+```
+
+...the following model types are generated:
+
+#### Base Model Type
+
+```ts
+export type Triangle = {
+  id: string;
+  name: string;
+  description?: string | null;
+  a: number;
+  b: number;
+  c: number;
+};
+```
+
+This type contains all the fields in the model. If a field has been marked as `INVISIBLE` (see `description` above) it will be optional in the base model type, since `INVISIBLE` columns are omitted when the table is queried with `SELECT *`.
+
+#### Select All Type
+
+```ts
+export type TriangleSelectAll = {
+  id: string;
+  name: string;
+  a: number;
+  b: number;
+  c: number;
+};
+```
+
+This type represents the model when queried with `SELECT *`. It omits `INVISIBLE` columns. You probably won't have to use it directly. Frieda uses it to infer the result type of model repo `find*` methods. TKTK LINK
+
+#### Primary Key Type
+
+```ts
+export type TrianglePrimaryKey = {
+  id: string;
+};
+```
+
+This type is returned by the model repo's `create` method, and is used to select models by primary key. It is an object to account for tables with multiple primary keys, e.g.:
+
+```ts
+export type CompanyDashboardUserPrimaryKey = {
+  companyId: string;
+  userId: string;
+};
+```
+
+#### Create Type
+
+```ts
+export type TriangleCreate = {
+  id?: string;
+  name: string;
+  description?: string | null;
+  a: number;
+  b: number;
+};
+```
+
+Represents the data needed to create a model. Fields where the underlying column is `GENERATED` are omitted, (e.g. the `c` column is generated). Fields where the underlying column is `auto_increment` or has a default value are optional.
+
+#### Update Type
+
+```ts
+export type TriangleUpdate = {
+  name?: string;
+  description?: string | null;
+  a?: number;
+  b?: number;
+};
+```
+
+Represents the data needed to update a model. Primary keys and `GENERATED` columns are omitted. All other fields are optional.
+
+#### Find Unique Type
+
+```ts
+export type TriangleFindUnique = TrianglePrimaryKey | { url: string };
+```
+
+Type representing how to uniquely select a model. This always includes the primary key type plus types derived from the table's other unique indexes (e.g. `url` has a unique index).
+
+#### Model Db Type
+
+```ts
+export type TriangleDb = ModelDb<
+  Triangle,
+  TriangleSelectAll,
+  TrianglePrimaryKey,
+  TriangleCreate,
+  TriangleUpdate,
+  TriangleFindUnique
+>;
+```
+A convenience type for a specific `ModelDb`. TKTK LINK You probably won't need to use it
 
 ## Known Limitations
 
-#### Models are not created for views. 
- MySQL does not allow comments on view columns. Adding accurately typed views would necessitate introducing a schema file, that is, a separate source of truth from the database, which is not in the cards.
+### Models are not created for views
 
+MySQL does not allow comments on view columns. So adding _accurately_ typed views would necessitate introducing a schema file, that is, a separate source of truth from the database schema. The separate source of truth thing is a can of worms which Frieda does not want open.
+
+This does not mean you can't have views in your schema. It just means that you have to write the type yourself, and provide appropriate casting when you query the view.
 
 # FROM BEFORE
+
 ## Javascript types
 
 There is no schema file or separate data modeling language, per se. The source of truth about the schema, is, well, the schema itself. In the few cases where a javascript type cannot be sufficiently inferred from the column type, Frieda uses "type annotations" in column `COMMENT`s.

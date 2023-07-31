@@ -330,7 +330,7 @@ export const getUpdateTypeDeclaration = (model: ParsedModel): string => {
 export const getFindUniqueTypeDeclaration = (model: ParsedModel): string => {
   const uniqueTypes: string[] = [model.primaryKeyTypeName];
   const notes: string[] = [];
-  for (const index of model.indexes.filter((i) => i.isUnique)) {
+  for (const index of model.indexes.filter((i) => i.isUnique && i.indexName !== 'PRIMARY')) {
     const propSigs = index.indexedColumns.map((c) => {
       const f = model.fields.find((f) => f.columnName === c) as ParsedField;
       return `${f.fieldName}:${f.javascriptType}`;
