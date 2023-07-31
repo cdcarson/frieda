@@ -17,7 +17,7 @@ Frieda aims to provide a dead-simple developer experience for javascript and typ
 - Create solid, documented javascript code based on a database schema.
 - Provide well-typed `CrUD` and `SELECT` methods for the boring things.
 - Allow writing more interesting things in vanilla MySQL, with type-safety.
-- Eliminate `xyz.schema` files, and minimize data definition. The single source of truth is the database schema itself. Javascript types are mostly inferred from the schema using a set of reasonable conventions. There are a small number of "type annotations" to deal with cases where a convention might need to be overridden or a javascript type narrowed. These annotations are stored in database column comments.
+- Eliminate `xyz.schema` files, and minimize data definition. The single source of truth is the database schema itself. Javascript types are mostly inferred from the schema using a set of reasonable conventions. There are a small number of ["type annotations"](#field-types) to deal with cases where a convention might need to be overridden or a javascript type narrowed. These annotations are stored in database column comments.
 
 ### Non-goals
 
@@ -182,8 +182,8 @@ A convenience type for a specific `ModelDb`. TKTK LINK You probably won't need t
 
 Most MySQL column types can be mapped unambiguously to javascript types. Frieda recognizes five exceptions to this rule:
 
-1. How to type [`bigint`](#bigint) columns in javascript.
 1. How to represent javascipt [`boolean`s](#boolean) in the database.
+1. How to type [`bigint`](#bigint) columns in javascript.
 1. Specifying the javascript type of `json` columns.
 1. Whether to type `set` columns as javascript `Set`
 1. Column types where there's no equivalent in plain javascript, like the [geospatial types](https://dev.mysql.com/doc/refman/8.0/en/spatial-type-overview.html).
@@ -203,7 +203,12 @@ By convention, `bigint` columns are typed as javascript `string`. Reasoning:
 - A salient case for `bigint` columns is auto-incrementing primary keys, where it does not make (much) sense to manipulate the values in javascript or compare them other than on equality. If those things are necessary, it's easy to convert the values with`BigInt(id)`.
 - Many folks still use `JSON` to put data on the wire. Typing columns as `bigint` by default would force them to convert the values to string first.
 
-This convention can be overridden in two ways. First, you can use a [`@bigint` type annotation](#bigint-type-annotation) to mark a particular column.
+This convention can be overridden in two ways. First, you can use a `@bigint` type annotation:
+```sql
+-- will be typed and cast to javascript bigint
+ALTER TABLE `CatPerson`
+  MODIFY COLUMN `numCats` bigint unsigned NOT NULL COMMENT '@bigint';
+```
 
 Second, you can use a custom model cast TKTK LINK:
 
@@ -240,21 +245,24 @@ const results = await db.executeSelect<CatPersonStats>(
 );
 ```
 
-#### `boolean`
-
-
-
-### Type Annotations
-
-#### `@bigint` type annotation
-
-`bigint` columns are typed as javascript `string` by default. Use the `@bigint` type annotation to overide this behavior:
+#### `json`
+By default MySQL `json` columns are typed as `unknown`. You can overcome this by providing a type using the `@bigint` annotation to the column's `COMMENT`. Examples:
 
 ```sql
--- will be typed and cast to javascript bigint
-ALTER TABLE `CatPerson`
-  MODIFY COLUMN `numCats` bigint unsigned NOT NULL COMMENT '@bigint';
+-- with an inline type as valid typescript
+ALTER TABLE `FabulousOffer`
+  MODIFY COLUMN `pricing` json  NOT NULL
+    COMMENT '@json({price; number; discounts: {price: number; quantity: number}[]}';
+
+-- with an imported type
+ALTER TABLE `FabulousOffer`
+  MODIFY COLUMN `pricing` json  NOT NULL
+    COMMENT '@json(FabulousPricing)';
+-- add "import type { FabulousPricing } from '../wherever/api'" to typeImports in .friedarc.json
 ```
+
+
+
 
 ## Known Limitations
 
