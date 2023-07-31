@@ -67,7 +67,9 @@ export const generateCode = async (
     const jsFiles: { filePath: string; code: string }[] = project
       .emitToMemory()
       .getFiles()
+      .filter(f => f.filePath.startsWith(join(options.cwd, options.outputDirectory)))
       .map((f) => {
+
         const b = basename(f.filePath);
         const contents = ['.js', '.ts'].includes(extname(b))
           ? prettier.format(f.text, {
