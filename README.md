@@ -184,8 +184,8 @@ Most MySQL column types can be mapped unambiguously to javascript types. Frieda 
 
 1. How to represent javascipt [`boolean`s](#boolean) in the database.
 1. How to type [`bigint`](#bigint) columns in javascript.
-1. Specifying the javascript type of `json` columns.
-1. Whether to type `set` columns as javascript `Set`
+1. Specifying the javascript type of [`json`](#json) columns.
+1. Whether to type [`set`](#set) columns as javascript `Set`
 1. Column types where there's no equivalent in plain javascript, like the [geospatial types](https://dev.mysql.com/doc/refman/8.0/en/spatial-type-overview.html).
 
 #### `boolean`
@@ -211,7 +211,7 @@ ALTER TABLE `CatPerson`
 
 
 #### `json`
-By default MySQL `json` columns are typed as `unknown`. You can overcome this by providing a type using the `@json(MyType)` type annotation. `MyType` may ether be an inline type (in valid typescript) or an import. Examples
+By default MySQL `json` columns are typed as `unknown`. You can overcome this by providing a type using the `@json(MyType)` type annotation, in which `MyType` is an inline type (in valid typescript) or an imported type. Examples
 
 ```sql
 -- An inline type. Must be valid typescript.
@@ -230,9 +230,23 @@ ALTER TABLE
   PricingPlan
 MODIFY
   COLUMN `discounts` json NOT NULL COMMENT '@json(import(''../types.js'').DiscountTier[])';
+  -- note the import path above should be relative to
+  -- the `outputPath` where the database code is generated
 ```
 
-In the latter case, the import path should be relative to the `outputPath` where the database code is generated.
+#### `set`
+
+
+MySQL set columns are typed as javascript `string`. Adding the `@set` annotation to a column will change the javascript type to `Set`:
+
+```sql
+-- typed as Set<'lg'|'xl'|'xxl'>, using the set definition
+ALTER TABLE `Catapult`
+  MODIFY COLUMN `size` set('lg', 'xl', 'xxl')  NOT NULL
+    COMMENT '@Set';
+
+```
+
 
 ### Typing arbitrary `SELECT` queries
 
@@ -333,22 +347,7 @@ ALTER TABLE `FabulousOffer`
 -- add "import type { FabulousPricing } from '../wherever/api'" to typeImports in .friedarc.json
 ```
 
-#### `set`
 
-MySQL set columns are typed as javascript `string`. Adding the `@set` annotation to a column will change the javascript type to `Set`:
-
-```sql
--- typed as Set<'lg'|'xl'|'xxl'>, using the set definition
-ALTER TABLE `TeeShirt`
-  MODIFY COLUMN `size` set('lg', 'xl', 'xxl')  NOT NULL
-    COMMENT '@Set';
-
--- typed as Set<MyTeeShirtSize>
-ALTER TABLE `TeeShirt`
-  MODIFY COLUMN `size` set('lg', 'xl', 'xxl')  NOT NULL
-    COMMENT '@Set(MyTeeShirtSize)';
--- add "import type { MyTeeShirtSize } from '../wherever/api'" to typeImports in .friedarc.json
-```
 
 #### `enum`
 
