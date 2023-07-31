@@ -186,7 +186,9 @@ Most MySQL column types can be mapped unambiguously to javascript types. Frieda 
 1. How to type [`bigint`](#bigint) columns in javascript.
 1. Specifying the javascript type of [`json`](#json) columns.
 1. Whether to type [`set`](#set) columns as javascript `Set`
-1. Column types where there's no equivalent in plain javascript, like the [geospatial types](https://dev.mysql.com/doc/refman/8.0/en/spatial-type-overview.html).
+1. Column types where there's no equivalent in plain javascript, like the [geospatial types](https://dev.mysql.com/doc/refman/8.0/en/spatial-type-overview.html). These columns are typed as javascript `string`.
+
+All [other column types](#other-column-types) are assumed to have obvious javascript counterparts.
 
 #### `boolean`
 
@@ -235,17 +237,57 @@ MODIFY
 ```
 
 #### `set`
-
-
-MySQL set columns are typed as javascript `string`. Adding the `@set` annotation to a column will change the javascript type to `Set`:
+MySQL `set` columns are typed as javascript `string`. Adding the `@set` annotation to a column will change the javascript type to `Set`:
 
 ```sql
 -- typed as Set<'lg'|'xl'|'xxl'>, using the set definition
 ALTER TABLE `Catapult`
   MODIFY COLUMN `size` set('lg', 'xl', 'xxl')  NOT NULL
     COMMENT '@Set';
-
 ```
+
+#### Other column types
+
+The remainder of the MySQL column types are handled conventionally.
+
+##### Integer column types
+
+Typed as javascript `number` and cast with `parseInt(value)`:
+
+- `tinyint` [except `tinyint(1)` which is boolean by convention](#boolean)
+- `int`
+- `integer`
+- `smallint`
+- `mediumint`
+- `year`
+
+##### Float column types
+
+Typed as javascript `number` and cast with `parseFloat(value)`:
+
+- `float`
+- `double`
+- `real`
+- `decimal`
+- `numeric`
+
+##### Date column types
+
+Typed as javascript `Date` and cast with `new Date(value)`:
+
+- `date`
+- `datetime`
+- `timestamp`
+
+##### String column types
+
+Every other column type will be typed as javascript `string`. This includes (but is not limited to):
+
+- `char`, `binary`, `varchar`, `varbinary`
+- `blob`, `tinyblob`, `mediumblob`, `longblob`
+- `text`, `tinytext`, `mediumtext`, `longtext`
+- `time`
+- `bit`
 
 
 ### Typing arbitrary `SELECT` queries
@@ -349,68 +391,9 @@ ALTER TABLE `FabulousOffer`
 
 
 
-#### `enum`
 
-By default `enum` columns are typed using the MySQL column definition.
 
-```sql
--- typed as 'lg'|'xl'|'xxl'
-ALTER TABLE `TeeShirt`
-  MODIFY COLUMN `size` enum('lg', 'xl', 'xxl')  NOT NULL;
-```
 
-If necessary, you can add an `@enum(MyType)` annotation to specify the type:
-
-```sql
--- typed as MyTeeShirtSize
-ALTER TABLE `TeeShirt`
-  MODIFY COLUMN `size` enum('lg', 'xl', 'xxl')  NOT NULL
-  COMMENT '@enum(MyTeeShirtSize)'
--- add "import type { MyTeeShirtSizes } from '../wherever/api'" to typeImports in .friedarc.json
-```
-
-#### Other column types
-
-The remainder of the MySQL column types are handled conventionally.
-
-##### Integer column types
-
-Typed as javascript `number` and cast with `parseInt(value)`:
-
-- `tinyint` [except `tinyint(1)` which is boolean by convention](#boolean)
-- `int`
-- `integer`
-- `smallint`
-- `mediumint`
-- `year`
-
-##### Float column types
-
-Typed as javascript `number` and cast with `parseFloat(value)`:
-
-- `float`
-- `double`
-- `real`
-- `decimal`
-- `numeric`
-
-##### Date column types
-
-Typed as javascript `Date` and cast with `new Date(value)`:
-
-- `date`
-- `datetime`
-- `timestamp`
-
-##### String column types
-
-Every other column type will be typed as javascript `string`. This includes (but is not limited to):
-
-- `char`, `binary`, `varchar`, `varbinary`
-- `blob`, `tinyblob`, `mediumblob`, `longblob`
-- `text`, `tinytext`, `mediumtext`, `longtext`
-- `time`
-- `bit`
 
 ### Model types
 
