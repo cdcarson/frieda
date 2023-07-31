@@ -182,7 +182,7 @@ A convenience type for a specific `ModelDb`. TKTK LINK You probably won't need t
 
 Most MySQL column types can be mapped unambiguously to javascript types. Frieda recognizes five exceptions to this rule:
 
-1. How to type `bigint` columns in javascript.
+1. How to type [`bigint`](#bigint) columns in javascript.
 1. How to represent javascipt `boolean`s in the database.
 1. Specifying the javascript type of `json` columns.
 1. Whether to type `set` columns as javascript `Set`
