@@ -82,13 +82,13 @@ CREATE TABLE `Triangle` (
 
 ```ts
 export type Triangle = {
-	id: string;
-	name: string;
-	url: string;
-	description?: string | null;
-	a: number;
-	b: number;
-	c: number;
+  id: string;
+  name: string;
+  url: string;
+  description?: string | null;
+  a: number;
+  b: number;
+  c: number;
 };
 ```
 
@@ -98,12 +98,12 @@ This type contains all the fields in the model. If a field has been marked as `I
 
 ```ts
 export type TriangleSelectAll = {
-	id: string;
-	name: string;
-	url: string;
-	a: number;
-	b: number;
-	c: number;
+  id: string;
+  name: string;
+  url: string;
+  a: number;
+  b: number;
+  c: number;
 };
 ```
 
@@ -130,12 +130,12 @@ export type CompanyDashboardUserPrimaryKey = {
 
 ```ts
 export type TriangleCreate = {
-	id?: string;
-	name: string;
-	url: string;
-	description?: string | null;
-	a: number;
-	b: number;
+  id?: string;
+  name: string;
+  url: string;
+  description?: string | null;
+  a: number;
+  b: number;
 };
 ```
 
@@ -145,11 +145,11 @@ Represents the data needed to create a model. Fields where the underlying column
 
 ```ts
 export type TriangleUpdate = {
-	name?: string;
-	url?: string;
-	description?: string | null;
-	a?: number;
-	b?: number;
+  name?: string;
+  url?: string;
+  description?: string | null;
+  a?: number;
+  b?: number;
 };
 ```
 
@@ -195,8 +195,41 @@ By convention, `bigint` columns are typed as javascript `string`. Reasoning:
 - A salient case for `bigint` columns is auto-incrementing primary keys, where it does not make (much) sense to manipulate the values in javascript or compare them other than on equality. If those things are necessary, it's easy to convert the values with`BigInt(id)`.
 - Many folks still use `JSON` to put data on the wire. Typing columns as `bigint` by default would force them to convert the values to string first.
 
-This convention can be overridden in two ways. First, you can 
+This convention can be overridden in two ways. First, you can use a [`@bigint` type annotation](#bigint-type-annotation) to mark a particular column.
 
+Second, you can use a custom cast definition:
+
+```ts
+type CatPersonStats = {
+  catPersonId: string;
+  catCount: bigint;
+  fleaCount: bigint;
+};
+const results = await db.executeSelect<CatPersonStats>(
+  sql`
+    SELECT
+      CatPerson.id AS catPersonId,
+      COALESCE(CatStats.catCount, 0) AS catCount,
+      COALESCE(CatStats.fleaCount, 0) AS fleaCount
+    FROM
+      CatPerson
+      LEFT JOIN (
+        SELECT
+          Cat.ownerId AS ownerId,
+          COUNT(*) AS catCount,
+          SUM(Cat.fleaCount) AS fleaCount
+        FROM
+          Cat
+        GROUP BY
+          Cat.ownerId
+      ) AS CatStats ON CatStats.ownerId = CatPerson.id;
+  `,
+  {
+    catCount: 'bigint',
+    fleaCount: 'bigint'
+  }
+);
+```
 
 ### Type Annotations
 
