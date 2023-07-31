@@ -384,7 +384,6 @@ export const getDatabaseSourceCode = (
       ) {
         super(conn, schema, loggingOptions);
         this.models = {};
-        this.views = {};
       }
 
       ${schema.models
