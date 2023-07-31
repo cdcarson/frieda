@@ -190,25 +190,52 @@ Most MySQL column types can be mapped unambiguously to javascript types. Frieda 
 
 #### `boolean`
 
-By convention, any column with the exact type `tinyint(1)` is typed as javascript `boolean` and cast into javascript with `parseInt(value) !== 0`.
+By convention, any column with the exact type `tinyint(1)` is typed as javascript `boolean` and cast via `parseInt(value) !== 0`. All other flavors of `tinyint` (e.g. just `tinyint`) are typed as javascript `number` and cast as `parseInt(value)`. Note that swapping the column type from `tinyint(1)` to `tinyint` or vice versa has no effect on the range of values the column can represent.
 
-All other flavors of `tinyint` (e.g. just `tinyint`) are typed as javascript `number` and cast as `parseInt(value)`.
 
-Note that swapping the column type from `tinyint(1)` to `tinyint` or vice versa has no effect on the range of values the column can represent.
 
 #### `bigint`
 
-By convention, `bigint` columns are typed as javascript `string`. Reasoning:
+`bigint` columns are typed as javascript `string` by default. Reasoning:
 
 - A salient case for `bigint` columns is auto-incrementing primary keys, where it does not make (much) sense to manipulate the values in javascript or compare them other than on equality. If those things are necessary, it's easy to convert the values with`BigInt(id)`.
 - Many folks still use `JSON` to put data on the wire. Typing columns as `bigint` by default would force them to convert the values to string first.
 
-This convention can be overridden in two ways. First, you can use a `@bigint` type annotation:
+This convention can be overridden with a `@bigint` type annotation:
 ```sql
--- will be typed and cast to javascript bigint
+-- will be typed as (and cast to) javascript bigint
 ALTER TABLE `CatPerson`
   MODIFY COLUMN `numCats` bigint unsigned NOT NULL COMMENT '@bigint';
 ```
+
+
+
+#### `json`
+By default MySQL `json` columns are typed as `unknown`. You can overcome this by providing a type using the `@json(MyType)` type annotation. `MyType` can be an inline type in valid typescript or an import. Examples
+
+```sql
+-- An inline type. Must be valid typescript.
+ALTER TABLE `FabulousOffer`
+  MODIFY COLUMN `pricing` json  NOT NULL
+    COMMENT '@json({price; number; discounts: {price: number; quantity: number}[]}';
+
+-- Type imported from a library.
+ALTER TABLE
+  CompanyStripeAccount
+MODIFY
+  COLUMN `stripeAccount` json NOT NULL COMMENT '@json(import(''stripe'').Stripe.Account)';
+
+-- An imported type from the application.
+ALTER TABLE
+  PricingPlan
+MODIFY
+  COLUMN `discounts` json NOT NULL COMMENT '@json(import(''../types.js'').DiscountTier)';
+```
+
+In the latter case, the import path should be relative to the `outputPath` where the database code is generated.
+
+### Typing arbitrary `SELECT` queries
+
 
 Second, you can use a custom model cast TKTK LINK:
 
@@ -245,23 +272,9 @@ const results = await db.executeSelect<CatPersonStats>(
 );
 ```
 
-#### `json`
-By default MySQL `json` columns are typed as `unknown`. You can overcome this by providing a type using the `@bigint` annotation to the column's `COMMENT`. Examples:
+## API
 
-```sql
--- with an inline type as valid typescript
-ALTER TABLE `FabulousOffer`
-  MODIFY COLUMN `pricing` json  NOT NULL
-    COMMENT '@json({price; number; discounts: {price: number; quantity: number}[]}';
-
--- with an imported type
-ALTER TABLE `FabulousOffer`
-  MODIFY COLUMN `pricing` json  NOT NULL
-    COMMENT '@json(FabulousPricing)';
--- add "import type { FabulousPricing } from '../wherever/api'" to typeImports in .friedarc.json
-```
-
-
+### type `CustomModelCast`
 
 
 ## Known Limitations

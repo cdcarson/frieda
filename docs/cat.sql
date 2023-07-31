@@ -27,3 +27,13 @@ FROM
     GROUP BY
       Cat.ownerId
   ) AS CatStats ON CatStats.ownerId = CatPerson.id;
+
+ALTER TABLE
+  CompanyStripeAccount
+MODIFY
+  COLUMN `stripeAccount` json NOT NULL COMMENT '@json(import(''stripe'').Stripe.Account)';
+
+ALTER TABLE
+  PricingPlan
+MODIFY
+  COLUMN `discounts` json NOT NULL COMMENT '@json(import(''../types.js'').DiscountTier)';

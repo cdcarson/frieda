@@ -54,6 +54,10 @@ export const parseField = (column: ColumnRow): ParsedField => {
           (a) => a.annotation === 'json'
         ) as Required<ParsedAnnotation>)
       : undefined;
+      if (column.Field === 'stripeAccount') {
+        console.log(column.Comment, mysqlBaseType);
+        console.log(typeAnnotations)
+      } 
   if (jsonAnnotation) {
     if (
       typeof jsonAnnotation.typeArgument !== 'string' ||
@@ -62,6 +66,7 @@ export const parseField = (column: ColumnRow): ParsedField => {
       jsonAnnotation = undefined;
     }
   }
+  
   let jsEnumerableStringType: string | undefined;
   if (mysqlBaseType === 'set' || mysqlBaseType === 'enum') {
     const t = getParenthesizedArgs(column.Type, mysqlBaseType || '')
