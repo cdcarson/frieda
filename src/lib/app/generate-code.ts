@@ -7,19 +7,16 @@ import type {
 } from '../api/types.js';
 import type { Options } from './options.js';
 import type { ParsedField, ParsedModel, ParsedSchema } from './types.js';
-import { basename, join, extname } from 'node:path';
-import { Project } from 'ts-morph';
+import { join } from 'node:path';
 import fs from 'fs-extra';
 import { squishWords } from './utils.js';
 import prettier from 'prettier';
-import { TS_COMPILER_OPTIONS } from './constants.js';
 import ora from 'ora';
 export const generateCode = async (
   options: Options,
   schema: ParsedSchema
 ): Promise<string[]> => {
   const spinner = ora('Generating code...').start();
-  let filesToWrite: { filePath: string; code: string }[] = [];
 
   const bannerComment = `
   /**
@@ -57,37 +54,10 @@ export const generateCode = async (
       filePath: o.filePath
     };
   });
-  if (options.compileJs) {
-    const project = new Project({
-      compilerOptions: TS_COMPILER_OPTIONS 
-    });
-    [...otherTsTfiles, modelsDTsCode].forEach((f) => {
-      project.createSourceFile(f.filePath, f.code, { overwrite: true });
-    });
-    const jsFiles: { filePath: string; code: string }[] = project
-      .emitToMemory()
-      .getFiles()
-      .filter((f) =>
-        f.filePath.startsWith(join(options.cwd, options.outputDirectory))
-      )
-      .map((f) => {
-        const b = basename(f.filePath);
-        const contents = ['.js', '.ts'].includes(extname(b))
-          ? prettier.format(f.text, {
-              ...options.prettierOptions,
-              filepath: f.filePath
-            })
-          : f.text;
-        return {
-          filePath: f.filePath,
-          code: contents
-        };
-      });
-    jsFiles.push(modelsDTsCode);
-    filesToWrite = [...jsFiles];
-  } else {
-    filesToWrite = [...otherTsTfiles, modelsDTsCode];
-  }
+  const filesToWrite: { filePath: string; code: string }[] = [
+    ...otherTsTfiles,
+    modelsDTsCode
+  ];
   await fs.ensureDir(join(options.cwd, options.outputDirectory));
   await fs.emptyDir(join(options.cwd, options.outputDirectory));
   await Promise.all(filesToWrite.map((f) => fs.writeFile(f.filePath, f.code)));

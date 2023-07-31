@@ -69,10 +69,6 @@ export class Options {
     return join(this.cwd, this.outputDirectory);
   }
 
-  get compileJs(): boolean {
-    return this.options.compileJs;
-  }
-
   get prettierOptions(): prettier.Options {
     if (!this.#prettierOptions) {
       throw new Error('not initialized');
@@ -150,25 +146,10 @@ export class Options {
 
       outputDirectory = await this.promptOutputDirectory(outputDirectory);
     }
-    let compileJs =
-      typeof this.cliArgs.compileJs === 'boolean'
-        ? this.cliArgs.compileJs
-        : typeof rcOptions.compileJs === 'boolean'
-        ? rcOptions.compileJs
-        : false;
-    if (this.cliArgs.init) {
-      const answers = await prompts({
-        name: 'compileJs',
-        type: 'confirm',
-        message: 'Compile to javascript?',
-        initial: compileJs
-      });
-      compileJs = answers.compileJs;
-    }
+
     const changed =
       databaseOptions.envFile !== rcOptions.envFile ||
-      outputDirectory !== rcOptions.outputDirectory ||
-      compileJs !== rcOptions.compileJs;
+      outputDirectory !== rcOptions.outputDirectory;
     if (changed) {
       const answers = await prompts({
         name: 'saveChanges',
@@ -181,8 +162,7 @@ export class Options {
         rcOptions = {
           ...rcOptions,
           outputDirectory,
-          envFile: databaseOptions.envFile,
-          compileJs
+          envFile: databaseOptions.envFile
         };
         await fs.writeFile(
           this.friedaRcAbsolutePath,
@@ -195,7 +175,6 @@ export class Options {
       }
     }
     this.#options = {
-      compileJs,
       outputDirectory,
       envFile: databaseOptions.envFile
     };

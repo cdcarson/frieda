@@ -8,7 +8,6 @@ export const OPTION_DESCRIPTIONS = {
   outputDirectory: `Output directory path for generated code. It should be convenient to, but separate from, your own code. Example: ${fmtPath(
     'src/db/__generated'
   )} `,
-  compileJs: `Compile to javascript.`,
   init: `(Re)initialize options in ${fmtPath(FRIEDA_RC_FILE_NAME)}.`,
   help: 'Show this help'
 };

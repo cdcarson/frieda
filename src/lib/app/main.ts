@@ -32,14 +32,6 @@ export const main = async (cwd: string, args: string[]) => {
       ),
       type: 'string'
     })
-    .option('compile-js', {
-      alias: 'j',
-      description: squishWords(
-        OPTION_DESCRIPTIONS.compileJs,
-        getStdOutCols() - 30
-      ),
-      type: 'boolean'
-    })
     .option('init', {
       alias: 'i',
       description: squishWords(OPTION_DESCRIPTIONS.init, getStdOutCols() - 30),
