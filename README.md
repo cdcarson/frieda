@@ -12,11 +12,11 @@ Bug reports, suggestions and PRs are entirely welcome.
 
 ## Motivation
 
-Frieda aims to provide a dead-simple developer experience for javascript and typescript projects using the PlanetScale serverless driver.
+Frieda aims to provide a dead-simple developer experience for typescript (and javascript [WIP](#only-typescript-code-is-generated)) projects using the PlanetScale serverless driver.
 
 ### Goals
 
-- Create solid, documented javascript code based on a database schema.
+- Create solid, documented typescript code based on a database schema.
 - Provide well-typed `CrUD` and `SELECT` methods for the boring things.
 - Allow writing more interesting things in vanilla MySQL, with type-safety.
 - Eliminate `xyz.schema` files, and minimize data definition. The single source of truth is the database schema itself. Javascript types are mostly inferred from the schema using a set of reasonable conventions. There are a small number of ["type annotations"](#field-types) to deal with cases where a convention might need to be overridden or a javascript type narrowed. These annotations are stored in database column comments.
@@ -29,7 +29,7 @@ Frieda is not meant to be an ORM or a query builder. It doesn't understand or ma
 
 - You're cool with writing at least some SQL by hand.
 - You're using PlanetScale and the serverless driver.
-- Your project is in typescript or javascript.
+- Your project is in typescript (or javascript [WIP](#only-typescript-code-is-generated))
 - You don't need schema / migration management beyond that provided by PlanetScale.
 
 ## Quick Start
@@ -45,26 +45,21 @@ Frieda will ask you the following questions:
 
 - The path to an environment variables file containing the database url.
 - The folder where you want the database code to be generated. This should be a dedicated folder, since Frieda deletes the old contents before generating new code files, but should be convenient to your own code. Something like `src/lib/db/__generated` works great, with your own database code (e.g. where you import the generated code) in `src/lib/db`.
-- Whether to compile the generated code to javascript or leave it as typescript. Javascript projects should say 'Yes'; the answer most likely doesn't matter if you're using typescript.
 - Whether to save these answers to `.friedarc.json`.
 
-Frieda then retrieves the database schema from the url and generates the following files:
+Frieda then retrieves the database schema from the url and generates the following files, (assuming `src/lib/db/__generated`  is the output pathh):
 
 ```bash
 src
 ├── lib
-    └── db
-        ├── __generated
-        │   ├── database.d.ts
-        │   ├── database.js
-        │   ├── models.d.ts
-        │   ├── schema.d.ts
-        │   ├── schema.js
-        │   ├── search-indexes.d.ts
-        │   └── search-indexes.js
-        ├── api.ts
-        ├── db.ts
-        └── types.ts
+│   └── db
+│       ├── __generated
+│       │   ├── database.ts
+│       │   ├── models.d.ts
+│       │   ├── schema.ts
+│       │   └── search-indexes.ts
+│       └── your database code
+└── etc
 ```
 
 ## Javascript Types
