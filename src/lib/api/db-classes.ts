@@ -100,7 +100,7 @@ export class BaseDb {
     }
   }
 
-  public async executeSelect<M extends Record<string, unknown>>(
+  public async selectMany<M extends Record<string, unknown>>(
     query: Sql,
     customModelCast?: CustomModelCast<M>
   ): Promise<{ executedQuery: ExecutedQuery; rows: M[] }> {
@@ -108,20 +108,20 @@ export class BaseDb {
     return { executedQuery, rows: executedQuery.rows as M[] };
   }
 
-  public async executeSelectFirst<M extends Record<string, unknown>>(
+  public async selectFirst<M extends Record<string, unknown>>(
     query: Sql,
     customModelCast?: CustomModelCast<M>
   ): Promise<M | null> {
-    const { rows } = await this.executeSelect(query, customModelCast);
+    const { rows } = await this.selectMany(query, customModelCast);
     return rows[0] || null;
   }
-  public async executeSelectFirstOrThrow<M extends Record<string, unknown>>(
+  public async selectFirstOrThrow<M extends Record<string, unknown>>(
     query: Sql,
     customModelCast?: CustomModelCast<M>
   ): Promise<M> {
-    const result = await this.executeSelectFirst(query, customModelCast);
+    const result = await this.selectFirst(query, customModelCast);
     if (!result) {
-      throw new Error('executeSelectFirstOrThrow failed to find a record.');
+      throw new Error('selectFirstOrThrow failed to find a record.');
     }
     return result;
   }
@@ -204,7 +204,7 @@ export class ViewDb<
         ${where} 
         ${orderBy} 
         ${limit}`;
-    const { rows } = await this.executeSelect<
+    const { rows } = await this.selectMany<
       SelectedModel<M, S, ModelSelectAll>
     >(query, input.cast);
     return rows;
@@ -243,7 +243,7 @@ export class ViewDb<
     const query = sql`SELECT COUNT(*) AS \`ct\` FROM ${bt(
       this.tableName
     )} ${where}`;
-    const result = await this.executeSelect<{ ct: bigint }>(query, {
+    const result = await this.selectMany<{ ct: bigint }>(query, {
       ct: 'bigint'
     });
     return result.rows[0] ? result.rows[0].ct : 0n;
@@ -303,7 +303,7 @@ export class ModelDb<
     return await this.findFirstOrThrow(input);
   }
 
-  async createMany(input: { data: CreateData[] }): Promise<void> {
+  async createMany(input: { data: CreateData[] }): Promise<ExecutedQuery> {
     const rawColumnNamesSet: Set<string> = input.data.reduce((acc, c) => {
       const s = new Set(acc);
       Object.keys(c).forEach((k) => s.add(k));
@@ -337,7 +337,7 @@ export class ModelDb<
         VALUES 
         ${join(inserts, ',\n')}
     `;
-    await this.execute(statement);
+    return await this.execute(statement);
   }
 
   async create(input: { data: CreateData }): Promise<PrimaryKey> {

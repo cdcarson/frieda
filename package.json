@@ -64,8 +64,10 @@
   "types": "./dist/index.d.ts",
   "type": "module",
   "dependencies": {
+    "@phenomnomnominal/tsquery": "^6.1.2",
     "@planetscale/database": "^1.10.0",
     "camelcase": "^7.0.1",
+    "cli-highlight": "^2.1.11",
     "dotenv": "^16.3.1",
     "fs-extra": "^11.1.1",
     "kleur": "^4.1.5",
@@ -74,6 +76,7 @@
     "prompts": "^2.4.2",
     "sql-template-tag": "^5.0.3",
     "strip-ansi": "^7.1.0",
+    "ts-morph": "^19.0.0",
     "yargs": "^17.7.2"
   }
 }

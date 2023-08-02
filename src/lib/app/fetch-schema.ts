@@ -35,6 +35,7 @@ export const fetchTableIndexes = async (
 ): Promise<IndexRow[]> => {
   const query = sql`SHOW INDEXES FROM ${bt(tableName)};`;
   const result = await connection.execute(query.sql);
+  
   return result.rows as IndexRow[];
 };
 
@@ -43,6 +44,7 @@ export const fetchTableNames = async (
 ): Promise<FetchTableNamesResult> => {
   const query = sql`SHOW FULL TABLES;`;
   const executedQuery = await connection.execute(query.sql);
+  console.log(executedQuery)
   const nameKey = executedQuery.fields[0].name;
   const result: FetchTableNamesResult = {
     databaseName: nameKey.replace(/^tables_in_/gi, ''),

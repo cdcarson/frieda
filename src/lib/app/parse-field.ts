@@ -54,10 +54,7 @@ export const parseField = (column: ColumnRow): ParsedField => {
           (a) => a.annotation === 'json'
         ) as Required<ParsedAnnotation>)
       : undefined;
-  if (column.Field === 'stripeAccount') {
-    console.log(column.Comment, mysqlBaseType);
-    console.log(typeAnnotations);
-  }
+
   if (jsonAnnotation) {
     if (
       typeof jsonAnnotation.typeArgument !== 'string' ||

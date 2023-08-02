@@ -520,7 +520,7 @@ describe('BaseDb.execute', () => {
       rows: []
     });
     await expect(() =>
-      db.executeSelectFirstOrThrow(sql`query`)
+      db.selectFirstOrThrow(sql`query`)
     ).rejects.toThrowError('executeSelectFirstOrThrow');
   });
   it('executeSelectFirstOrThrow succeeds', async () => {
@@ -528,7 +528,7 @@ describe('BaseDb.execute', () => {
     executeSpy.mockResolvedValue({
       rows: [{}]
     });
-    const result = await db.executeSelectFirstOrThrow(sql`query`);
+    const result = await db.selectFirstOrThrow(sql`query`);
     expect(result).toEqual({});
   });
 });
