@@ -26,7 +26,6 @@
   },
   "files": [
     "dist",
-    "build",
     "!dist/**/*.test.*",
     "!dist/**/*.spec.*"
   ],
