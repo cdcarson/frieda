@@ -5,14 +5,7 @@ import { ast, query } from '@phenomnomnominal/tsquery';
 import type ts from 'typescript';
 import fs from 'fs-extra';
 import type { SchemaField, SchemaModel } from './types.js';
-import {
-  fmtPath,
-  getParenthesizedArgs,
-  log,
-  onUserCancelled,
-  prompt,
-  squishWords
-} from './utils.js';
+import { fmtPath, log, onUserCancelled, prompt, squishWords } from './utils.js';
 import prettier from 'prettier';
 import highlight from 'cli-highlight';
 import ora from 'ora';
@@ -119,7 +112,7 @@ export const readSchemaFile = async (
         continue;
       }
       const javascriptType = sig.type.getText().trim();
-      
+
       const field: SchemaField = {
         fieldName: sig.name.getText().trim(),
         javascriptType
@@ -129,12 +122,6 @@ export const readSchemaFile = async (
         continue;
       }
 
-      const relativeImportRx = /^import\s*\(\s*(["'])\.{1,2}\//
-      if (relativeImportRx.test(javascriptType)) {
-        console.log(javascriptType, '-->', javascriptType.replace(relativeImportRx, '$&../'))
-      }
-
-      
       model.fields.push(field);
     }
 

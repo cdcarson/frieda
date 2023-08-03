@@ -173,6 +173,14 @@ export const getParenthesizedArgs = (
   return match ? match[2] : '';
 };
 
+export const extractQuotedStrings = (
+  input: string
+): string[] => {
+  const rx = /(['"])([^'\\]|\\.)*\1/gsu;
+  const matches = input.match(rx);
+  return matches?.map(m => m[0]) || [];
+}
+
 export const blockComment = (lines: string[]): string => {
   return ['/**', ...lines.map((l) => ` * ${l}`), ' */'].join('\n');
 };

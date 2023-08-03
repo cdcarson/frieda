@@ -1,26 +1,41 @@
+import { bt } from '$lib/index.js';
 import type { Connection } from '@planetscale/database';
+import sql from 'sql-template-tag';
 import type {
   ColumnRow,
-  CreateTableRow,
-  FetchTableNamesResult,
   FetchedSchema,
   FetchedTable,
-  IndexRow
+  IndexRow,
+  ShowFullTableResult,
+  TableType
 } from './types.js';
-import sql from 'sql-template-tag';
-import { bt } from '../api/sql-utils.js';
-import ora from 'ora';
 
-export const fetchCreateTableSql = async (
-  connection: Connection,
-  tableName: string
-): Promise<string> => {
-  const query = sql`SHOW CREATE TABLE ${bt(tableName)};`;
-  const result = await connection.execute(query.sql);
-  return (result.rows[0] as CreateTableRow)['Create Table'];
+export const showFullTables = async (
+  connection: Connection
+): Promise<{ databaseName: string; tables: ShowFullTableResult[] }> => {
+  const query = sql`SHOW FULL TABLES;`;
+  const executedQuery = await connection.execute(query.sql);
+  const nameKey = executedQuery.fields[0].name;
+  type Row = {
+    Table_type: TableType;
+    [k: typeof nameKey]: string;
+  };
+  const databaseName = nameKey.replace(/^Tables_in_/i, '');
+  const tables: ShowFullTableResult[] = (executedQuery.rows as Row[])
+    .filter((r) => ['BASE TABLE', 'VIEW'].includes(r.Table_type))
+    .map((r) => {
+      return {
+        name: r[nameKey],
+        type: r.Table_type
+      };
+    });
+  return {
+    databaseName,
+    tables
+  };
 };
 
-export const fetchTableColumns = async (
+const showColumns = async (
   connection: Connection,
   tableName: string
 ): Promise<ColumnRow[]> => {
@@ -29,76 +44,58 @@ export const fetchTableColumns = async (
   return result.rows as ColumnRow[];
 };
 
-export const fetchTableIndexes = async (
+const showIndexes = async (
   connection: Connection,
   tableName: string
 ): Promise<IndexRow[]> => {
   const query = sql`SHOW INDEXES FROM ${bt(tableName)};`;
   const result = await connection.execute(query.sql);
-  
+
   return result.rows as IndexRow[];
 };
 
-export const fetchTableNames = async (
+const fetchView = async (
+  row: ShowFullTableResult<'VIEW'>,
   connection: Connection
-): Promise<FetchTableNamesResult> => {
-  const query = sql`SHOW FULL TABLES;`;
-  const executedQuery = await connection.execute(query.sql);
-  console.log(executedQuery)
-  const nameKey = executedQuery.fields[0].name;
-  const result: FetchTableNamesResult = {
-    databaseName: nameKey.replace(/^tables_in_/gi, ''),
-    tableNames: []
+): Promise<FetchedTable<'VIEW'>> => {
+  const [columns] = await Promise.all([showColumns(connection, row.name)]);
+  return {
+    ...row,
+    columns
   };
-  const rows = executedQuery.rows as Record<string, string>[];
-  rows.forEach((row: Record<string, string>) => {
-    const keys: (keyof typeof row)[] = Object.keys(row);
-    const k0: keyof typeof row = keys[0];
-    const k1: keyof typeof row = keys[1];
-    const tableName: string = row[k0];
-    const tableType = row[k1] as 'BASE TABLE' | 'VIEW';
-    switch (tableType) {
-      case 'BASE TABLE':
-        result.tableNames.push(tableName);
-        break;
-    }
-  });
-
-  return result;
 };
-
-export const fetchTable = async (
-  connection: Connection,
-  tableName: string
-): Promise<FetchedTable> => {
-  const results: [ColumnRow[], IndexRow[], string] = await Promise.all([
-    fetchTableColumns(connection, tableName),
-    fetchTableIndexes(connection, tableName),
-    fetchCreateTableSql(connection, tableName)
+const fetchTable = async (
+  row: ShowFullTableResult<'BASE TABLE'>,
+  connection: Connection
+): Promise<FetchedTable<'BASE TABLE'>> => {
+  const [columns, indexes] = await Promise.all([
+    showColumns(connection, row.name),
+    showIndexes(connection, row.name)
   ]);
   return {
-    name: tableName,
-    columns: results[0],
-    indexes: results[1],
-    createSql: results[2]
+    ...row,
+    columns,
+    indexes
   };
 };
 
 export const fetchSchema = async (
   connection: Connection
 ): Promise<FetchedSchema> => {
-  const spinner = ora('Fetching schema...').start();
-  const { databaseName, tableNames } = await fetchTableNames(connection);
-  const tables = await Promise.all(
-    tableNames.map((t) => fetchTable(connection, t))
+  const { tables: rows, databaseName } = await showFullTables(connection);
+  const tables: FetchedTable[] = await Promise.all(
+    rows.map((tr) => {
+      if (tr.type === 'BASE TABLE') {
+        return fetchTable(tr as ShowFullTableResult<'BASE TABLE'>, connection);
+      } else {
+        return fetchView(tr as ShowFullTableResult<'VIEW'>, connection);
+      }
+    })
   );
 
-  spinner.succeed('Schema fetched.');
-  const fetchedSchema = {
-    fetched: new Date(),
+  return {
     databaseName,
+    fetched: new Date(),
     tables
   };
-
-  return fetchedSchema;
 };

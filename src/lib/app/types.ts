@@ -1,4 +1,4 @@
-import type { CastType, MysqlBaseType } from '../api/types.js';
+import type { CastType, MysqlBaseType } from "$lib/index.js";
 
 export type FriedaOptions = {
   envFile: string;
@@ -9,18 +9,38 @@ export type FriedaCliArgs = FriedaOptions & {
   help: boolean;
 };
 
-export const ANNOTATIONS = ['bigint', 'set', 'json'] as const;
-export type Annotation = (typeof ANNOTATIONS)[number];
+/**
+ * A field from schema.d.ts
+ */
+export type SchemaField = {
+  fieldName: string;
+  javascriptType: string
+}
+/**
+ * A model from schema.d.ts
+ */
+export type SchemaModel = {
+  modelName: string;
+  fields: SchemaField[];
+}
 
-export type ParsedAnnotation = {
-  fullAnnotation: string;
-  annotation: Annotation;
-  typeArgument?: string;
-};
 
-export type FetchTableNamesResult = {
-  databaseName: string;
-  tableNames: string[];
+/**  queried database schema types */
+
+/**
+ * A row from a `SHOW FULL COLUMNS FROM TableName` query.
+ * see https://dev.mysql.com/doc/refman/8.0/en/show-columns.html
+ */
+export type ColumnRow = {
+  Field: string;
+  Type: string;
+  Null: 'YES' | 'NO';
+  Collation: string | null;
+  Key: string;
+  Default: string | null;
+  Extra: string;
+  Comment: string;
+  Privileges: string;
 };
 
 /**
@@ -43,68 +63,55 @@ export type IndexRow = {
   Visible: string;
   Expression: string | null;
 };
-/**
- * A row from `SHOW CREATE TABLE t`
- */
-export type CreateTableRow = {
-  Table: string;
-  'Create Table': string;
-};
 
 /**
- * A row from a `SHOW FULL COLUMNS FROM TableName` query.
- * see https://dev.mysql.com/doc/refman/8.0/en/show-columns.html
+ * The guys we want in our schema. (Not sure if there are any more.)
  */
-export type ColumnRow = {
-  Field: string;
-  Type: string;
-  Null: 'YES' | 'NO';
-  Collation: string | null;
-  Key: string;
-  Default: string | null;
-  Extra: string;
-  Comment: string;
-  Privileges: string;
+export type TableType = 'BASE TABLE' | 'VIEW';
+
+export type ShowFullTableResult<Type extends TableType = TableType> = {
+  name: string;
+  type: Type;
 };
+
+export type FetchedTable<Type extends TableType = TableType> = Type extends 'VIEW'
+  ? {
+      name: string;
+      type: Type;
+      columns: ColumnRow[];
+    }
+  : Type extends 'BASE TABLE'
+  ? {
+      name: string;
+      type: Type;
+      columns: ColumnRow[];
+      indexes: IndexRow[];
+    }
+  : never;
 
 export type FetchedSchema = {
-  fetched: Date;
   databaseName: string;
+  fetched: Date;
   tables: FetchedTable[];
 };
 
-export type FetchedTable = {
-  name: string;
-  columns: ColumnRow[];
-  indexes: IndexRow[];
-  createSql: string;
-};
 
-export type ColumnPropertySignature = {
-  propertySignature: string | undefined;
-  note: string | undefined;
-};
+/*** parsed schema types */
 
-export type ParsedSchema = {
-  fetchedSchema: FetchedSchema;
-  fetched: Date;
-  databaseName: string;
-  models: ParsedModel[];
-};
-
-export type ParsedModel = {
-  readonly table: FetchedTable;
-  readonly modelName: string;
-  readonly tableName: string;
-  readonly selectAllTypeName: string;
-  readonly primaryKeyTypeName: string;
-  readonly createTypeName: string;
-  readonly updateTypeName: string;
-  readonly findUniqueTypeName: string;
-  readonly dbTypeName: string;
-  readonly appDbKey: string;
-  readonly fields: ParsedField[];
-  readonly indexes: ParsedIndex[];
+export type ParsedField = {
+   fieldName: string;
+   columnName: string;
+   isInvisible: boolean;
+   mysqlBaseType: MysqlBaseType | null;
+   isPrimaryKey: boolean;
+   isAutoIncrement: boolean;
+   isUnique: boolean;
+   isNullable: boolean;
+   hasDefault: boolean;
+   defaultValue: string | null | undefined;
+   isGeneratedAlways: boolean;
+   castType: CastType;
+   javascriptType: string;
 };
 
 export type ParsedIndex = {
@@ -115,26 +122,26 @@ export type ParsedIndex = {
   isFullTextSearch: boolean;
 };
 
-export type ParsedField = {
-  readonly column: ColumnRow;
-  readonly fieldName: string;
-  readonly columnName: string;
-  readonly isInvisible: boolean;
-  readonly mysqlBaseType: MysqlBaseType | null;
-  readonly typeAnnotations: ParsedAnnotation[];
-  readonly bigIntAnnotation: ParsedAnnotation | undefined;
-  readonly setAnnotation: ParsedAnnotation | undefined;
-  readonly jsonAnnotation: Required<ParsedAnnotation> | undefined;
-  readonly isTinyIntOne: boolean;
-  readonly isUnsigned: boolean;
-  readonly isPrimaryKey: boolean;
-  readonly isAutoIncrement: boolean;
-  readonly isUnique: boolean;
-  readonly isNullable: boolean;
-  readonly hasDefault: boolean;
-  readonly defaultValue: string | null | undefined;
-  readonly isGeneratedAlways: boolean;
-  readonly castType: CastType;
-  readonly jsEnumerableStringType: string | undefined;
-  readonly javascriptType: string;
+export type ParsedModel<Type extends TableType = TableType> = {
+   type: Type;
+   modelName: string;
+   tableName: string;
+   selectAllTypeName: Type extends 'BASE TABLE' ?  string : undefined;
+   primaryKeyTypeName: Type extends 'BASE TABLE' ?  string : undefined;
+   createTypeName: Type extends 'BASE TABLE' ?  string : undefined;
+   updateTypeName: Type extends 'BASE TABLE' ?  string : undefined;
+   findUniqueTypeName: Type extends 'BASE TABLE' ?  string : undefined;
+   dbTypeName: string;
+   appDbKey: string;
+   fields: ParsedField[];
+   indexes: Type extends 'BASE TABLE' ?  ParsedIndex[] : undefined;
 };
+
+export type ParsedSchema = {
+   models: ParsedModel[];
+
+};
+
+
+
+

@@ -77,7 +77,7 @@ export class Options {
   }
 
   async init() {
-    const readSpinner = ora('Reading options...');
+    const readSpinner = ora('Reading options...').start();
     this.#prettierOptions =
       (await prettier.resolveConfig(this.cwd)) || DEFAULT_PRETTIER_OPTIONS;
     let rcExists = await fs.exists(this.friedaRcAbsolutePath);
