@@ -2,8 +2,7 @@ import kleur from 'kleur';
 import stripAnsi from 'strip-ansi';
 import prompts from 'prompts';
 import ora from 'ora';
-import prettier from 'prettier';
-import { DEFAULT_PRETTIER_OPTIONS } from './constants.js';
+
 
 export const isPlainObject = (obj: unknown) => {
   return Object.prototype.toString.call(obj) === '[object Object]';
@@ -178,18 +177,14 @@ export const extractQuotedStrings = (
 ): string[] => {
   const rx = /(['"])([^'\\]|\\.)*\1/gsu;
   const matches = input.match(rx);
-  return matches?.map(m => m[0]) || [];
+  return matches || [];
 }
 
 export const blockComment = (lines: string[]): string => {
   return ['/**', ...lines.map((l) => ` * ${l}`), ' */'].join('\n');
 };
 
-export const getPrettierOptions = async (
-  cwd: string
-): Promise<prettier.Options> => {
-  return (await prettier.resolveConfig(cwd)) || DEFAULT_PRETTIER_OPTIONS;
-};
+
 
 export const getFileLink = (relPath: string, line: number, col = 1): string => {
   return `${relPath}:${line}:${col}`;

@@ -139,8 +139,17 @@ export type ParsedModel<Type extends TableType = TableType> = {
 
 export type ParsedSchema = {
    models: ParsedModel[];
-
 };
+
+export type DebugSchema = {
+  parsedSchema: ParsedSchema;
+  fetchedSchema: FetchedSchema
+}
+
+export type ReadFileResult = {
+  contents: string;
+  exists: boolean;
+}
 
 
 

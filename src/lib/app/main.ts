@@ -4,8 +4,7 @@ import { Options } from './options.js';
 import kleur from 'kleur';
 import { FRIEDA_VERSION } from '$lib/version.js';
 import { getStdOutCols, squishWords } from './utils.js';
-import { OPTION_DESCRIPTIONS } from './option-descriptions.js';
-import { readSchemaFile } from './read-schema-file.js';
+import { readSchemaDefinitionFile } from './read-schema-definition-file.js';
 import { fetchSchema } from './fetch-schema.js';
 import { parseSchema } from './parse-schema.js';
 import { generateCode } from './generate-code.js';
@@ -19,7 +18,7 @@ export const main = async (cwd: string, args: string[]) => {
     .option('env-file', {
       alias: 'e',
       description: squishWords(
-        OPTION_DESCRIPTIONS.envFile,
+        Options.optionDescriptions.envFile,
         getStdOutCols() - 30
       ),
       type: 'string'
@@ -27,19 +26,19 @@ export const main = async (cwd: string, args: string[]) => {
     .option('output-directory', {
       alias: 'o',
       description: squishWords(
-        OPTION_DESCRIPTIONS.outputDirectory,
+        Options.optionDescriptions.outputDirectory,
         getStdOutCols() - 30
       ),
       type: 'string'
     })
     .option('init', {
       alias: 'i',
-      description: squishWords(OPTION_DESCRIPTIONS.init, getStdOutCols() - 30),
+      description: squishWords(Options.optionDescriptions.init, getStdOutCols() - 30),
       type: 'boolean'
     })
     .option('help', {
       alias: 'h',
-      description: squishWords(OPTION_DESCRIPTIONS.help, getStdOutCols() - 30),
+      description: squishWords(Options.optionDescriptions.help, getStdOutCols() - 30),
       type: 'boolean'
     });
   console.log(kleur.bold('frieda'), kleur.dim(`v${FRIEDA_VERSION}`), '🦮');
@@ -50,13 +49,11 @@ export const main = async (cwd: string, args: string[]) => {
     return;
   }
   const options = await Options.create(cwd, cliArgs);
-  const schemaModels = await readSchemaFile(options);
-  const fetchedSchema = await fetchSchema(options.connection);
+  const schemaModels = await readSchemaDefinitionFile();
+  const {fetchedSchema, tableCreateStatements} = await fetchSchema(options.connection);
   const parsedSchema = parseSchema(schemaModels, fetchedSchema);
-  await generateCode(parsedSchema, fetchedSchema, options);
-  // const fetchedSchema = await fetchSchema(options.connection);
-  // const schema = parseSchema(fetchedSchema);
-  // const files = await generateCode(options, schema);
-  // log.info(['Files:', ...files.map((f) => ` - ${relative(cwd, f)}`)]);
-  // console.log();
+  await generateCode(parsedSchema, fetchedSchema, tableCreateStatements);
+
+  console.log();
+    
 };

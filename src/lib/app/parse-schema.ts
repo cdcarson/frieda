@@ -12,6 +12,7 @@ import type {
   TableType
 } from './types.js';
 import { extractQuotedStrings, getParenthesizedArgs, getValidJavascriptIdentifier } from './utils.js';
+import { DEFAULT_JSON_FIELD_TYPE } from './constants.js';
 
 export const parseSchema = (
   schemaModels: SchemaModel[],
@@ -134,7 +135,7 @@ export const getFieldSetOrEnumJavascriptStringType = (
 
   if (mysqlBaseType === 'set' || mysqlBaseType === 'enum') {
     const arg = getParenthesizedArgs(column.Type, mysqlBaseType);
-    const strs = extractQuotedStrings(arg)
+    const strs = extractQuotedStrings(arg);
     return strs.join('|')
   }
 };
@@ -169,7 +170,7 @@ export const getFieldJavascriptType = (
     case 'bigint':
       return 'string';
     case 'json':
-      return 'unknown';
+      return DEFAULT_JSON_FIELD_TYPE;
     case 'set':
       return `Set<${getFieldSetOrEnumJavascriptStringType(column)}>`;
     case 'enum':

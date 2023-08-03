@@ -1,46 +1,32 @@
-import { SCHEMA_D_TS_FILENAME } from './constants.js';
-import type { Options } from './options.js';
-import { join } from 'node:path';
 import { ast, query } from '@phenomnomnominal/tsquery';
 import type ts from 'typescript';
-import fs from 'fs-extra';
 import type { SchemaField, SchemaModel } from './types.js';
 import { fmtPath, log, onUserCancelled, prompt, squishWords } from './utils.js';
 import prettier from 'prettier';
 import highlight from 'cli-highlight';
 import ora from 'ora';
+import { FilesIO } from './files-io.js';
 
-export const readSchemaFile = async (
-  options: Options
-): Promise<SchemaModel[]> => {
-  const relPath = join(options.outputDirectory, SCHEMA_D_TS_FILENAME);
+export const readSchemaDefinitionFile = async (): Promise<SchemaModel[]> => {
+  const files = FilesIO.get();
+  const relPath = files.schemaDefinitionPath;
   const readSpinner = ora(`Reading ${fmtPath(relPath)}`).start();
-
+  const {exists, contents} = await files.read(files.schemaDefinitionPath)
+  readSpinner.succeed()
   const models: SchemaModel[] = [];
-  const pathToSchemaFile = join(
-    options.outputDirectoryAbsolutePath,
-    SCHEMA_D_TS_FILENAME
-  );
 
-  let fileContents = '';
-  const exists = await fs.exists(pathToSchemaFile);
-  if (exists) {
-    fileContents = await fs.readFile(pathToSchemaFile, 'utf8');
-    readSpinner.succeed(`${fmtPath(relPath)} read.`);
-  } else {
-    readSpinner.info(`${fmtPath(relPath)} not found.`);
-  }
-  if (fileContents.trim().length === 0) {
+  
+  if (!exists || contents.trim().length === 0) {
     return models;
   }
-  const schemaAst = ast(fileContents);
+  const schemaAst = ast(contents);
 
   const importDeclarations = query(schemaAst, 'ImportDeclaration');
   if (importDeclarations.length > 0) {
     log.error([
       ...squishWords(
         `Top level import declaration(s) found in ${fmtPath(
-          join(options.outputDirectory, SCHEMA_D_TS_FILENAME)
+          relPath
         )}. Such imports cannot be preserved. Please use import types instead to refer to external types. Example:`
       ).split('\n'),
       '',

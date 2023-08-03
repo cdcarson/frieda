@@ -79,9 +79,22 @@ const fetchTable = async (
   };
 };
 
+export const showCreateTable = async (
+  table: string,
+  connection: Connection
+): Promise<string> => {
+  const query = sql`SHOW CREATE TABLE ${bt(table)}`;
+  const result = await connection.execute(query.sql, query.values);
+  const row = result.rows.shift() as { 'Create Table': string };
+  return row['Create Table'];
+};
+
 export const fetchSchema = async (
   connection: Connection
-): Promise<FetchedSchema> => {
+): Promise<{
+  fetchedSchema: FetchedSchema;
+  tableCreateStatements: string[];
+}> => {
   const { tables: rows, databaseName } = await showFullTables(connection);
   const tables: FetchedTable[] = await Promise.all(
     rows.map((tr) => {
@@ -93,9 +106,16 @@ export const fetchSchema = async (
     })
   );
 
+  const tableCreateStatements = await Promise.all(
+    rows.map((r) => showCreateTable(r.name, connection))
+  );
+
   return {
-    databaseName,
-    fetched: new Date(),
-    tables
+    fetchedSchema: {
+      databaseName,
+      fetched: new Date(),
+      tables
+    },
+    tableCreateStatements
   };
 };

@@ -1,18 +1,17 @@
-import fs from 'fs-extra';
-import { join, resolve } from 'node:path';
-import type { FriedaCliArgs, FriedaOptions } from './types.js';
+import type {
+  FriedaCliArgs,
+  FriedaOptions,
+} from './types.js';
 import ora from 'ora';
 import { parse } from 'dotenv';
 import prompts from 'prompts';
-import {
-  DEFAULT_PRETTIER_OPTIONS,
-  ENV_DB_URL_KEYS,
-  FRIEDA_RC_FILE_NAME
-} from './constants.js';
+import { ENV_DB_URL_KEYS } from './constants.js';
 import { connect, type Connection } from '@planetscale/database';
-import prettier from 'prettier';
-import { fmtPath, log, squishWords } from './utils.js';
-import { OPTION_DESCRIPTIONS } from './option-descriptions.js';
+import { fmtPath, fmtVarName, log, squishWords } from './utils.js';
+import fsExtra from 'fs-extra';
+import { resolve } from 'node:path';
+import { FilesIO } from './files-io.js';
+
 type DatabaseOptions = {
   envFile: string;
   url: string;
@@ -23,7 +22,8 @@ export class Options {
   #databaseOptions: DatabaseOptions | undefined;
   #options: FriedaOptions | undefined;
   #connection: Connection | undefined;
-  #prettierOptions: prettier.Options | undefined;
+  #files: FilesIO;
+
   static async create(
     cwd: string,
     cliArgs: Partial<FriedaCliArgs>
@@ -33,14 +33,27 @@ export class Options {
     return optiona;
   }
 
+  static friedaRcPath = '.friedarc.json';
+
+  static optionDescriptions = {
+    envFile: `The path to an environment variables file containing the database url as either ${ENV_DB_URL_KEYS.map(
+      (s) => fmtVarName(s)
+    ).join(' or ')}.`,
+    outputDirectory: `Output directory path for generated code. It should be convenient to, but separate from, your own code. Example: ${fmtPath(
+      'src/db/__generated'
+    )} `,
+    init: `(Re)initialize options in ${fmtPath(Options.friedaRcPath)}.`,
+    help: 'Show this help'
+  };
+
   private constructor(
     public readonly cwd: string,
     public readonly cliArgs: Partial<FriedaCliArgs>
-  ) {}
-
-  get friedaRcAbsolutePath(): string {
-    return join(this.cwd, FRIEDA_RC_FILE_NAME);
+  ) {
+    FilesIO.init(cwd);
+    this.#files = FilesIO.get();
   }
+
   get databaseOptions(): DatabaseOptions {
     if (!this.#databaseOptions) {
       throw new Error('not initialized');
@@ -62,38 +75,15 @@ export class Options {
     }
     return this.#connection;
   }
+
   get outputDirectory(): string {
     return this.options.outputDirectory;
-  }
-  get outputDirectoryAbsolutePath(): string {
-    return join(this.cwd, this.outputDirectory);
-  }
-
-  get prettierOptions(): prettier.Options {
-    if (!this.#prettierOptions) {
-      throw new Error('not initialized');
-    }
-    return this.#prettierOptions;
   }
 
   async init() {
     const readSpinner = ora('Reading options...').start();
-    this.#prettierOptions =
-      (await prettier.resolveConfig(this.cwd)) || DEFAULT_PRETTIER_OPTIONS;
-    let rcExists = await fs.exists(this.friedaRcAbsolutePath);
-    let rcOptions: Partial<FriedaOptions> = {};
-    if (rcExists) {
-      const stat = await fs.stat(this.friedaRcAbsolutePath);
-      rcExists = stat.isFile();
-    }
-    if (rcExists) {
-      const contents = await fs.readFile(this.friedaRcAbsolutePath, 'utf-8');
-      try {
-        rcOptions = JSON.parse(contents);
-      } catch (error) {
-        rcOptions = {};
-      }
-    }
+    const rcOptions = await this.readFriedaRc();
+
     const envFile =
       typeof this.cliArgs.envFile === 'string' &&
       this.cliArgs.envFile.length > 0
@@ -123,7 +113,7 @@ export class Options {
     let outputDirectoryError: Error | undefined;
     if (outputDirectory.length > 0) {
       try {
-        outputDirectory = await this.validateOutputDirectory(outputDirectory);
+        outputDirectory = await this.validateDirectory(outputDirectory);
       } catch (error) {
         outputDirectoryError = error as Error;
       }
@@ -134,7 +124,7 @@ export class Options {
       if (envFileError) {
         log.error(squishWords(envFileError.message).split('\n'));
       }
-      log.info(squishWords(OPTION_DESCRIPTIONS.envFile).split('\n'));
+      log.info(squishWords(Options.optionDescriptions.envFile).split('\n'));
 
       databaseOptions = await this.promptEnvFile(envFile);
     }
@@ -142,7 +132,9 @@ export class Options {
       if (outputDirectoryError) {
         log.error(squishWords(outputDirectoryError.message).split('\n'));
       }
-      log.info(squishWords(OPTION_DESCRIPTIONS.outputDirectory).split('\n'));
+      log.info(
+        squishWords(Options.optionDescriptions.outputDirectory).split('\n')
+      );
 
       outputDirectory = await this.promptOutputDirectory(outputDirectory);
     }
@@ -155,23 +147,19 @@ export class Options {
         name: 'saveChanges',
         type: 'confirm',
         initial: true,
-        message: `Save changes to ${fmtPath(FRIEDA_RC_FILE_NAME)}?`
+        message: `Save changes to ${fmtPath(Options.friedaRcPath)}?`
       });
       if (answers.saveChanges) {
-        const writeSpinner = ora(`Saving ${fmtPath(FRIEDA_RC_FILE_NAME)}...`);
-        rcOptions = {
-          ...rcOptions,
-          outputDirectory,
-          envFile: databaseOptions.envFile
-        };
-        await fs.writeFile(
-          this.friedaRcAbsolutePath,
-          prettier.format(JSON.stringify(rcOptions), {
-            ...this.prettierOptions,
-            filepath: this.friedaRcAbsolutePath
+        const writeSpinner = ora(`Saving ${fmtPath(Options.friedaRcPath)}...`);
+        await this.#files.write(
+          Options.friedaRcPath,
+          JSON.stringify({
+            ...rcOptions,
+            outputDirectory,
+            envFile: databaseOptions.envFile
           })
         );
-        writeSpinner.succeed(`${fmtPath(FRIEDA_RC_FILE_NAME)} saved.`);
+        writeSpinner.succeed(`${fmtPath(Options.friedaRcPath)} saved.`);
       }
     }
     this.#options = {
@@ -179,6 +167,7 @@ export class Options {
       envFile: databaseOptions.envFile
     };
     this.#databaseOptions = databaseOptions;
+    this.#files.outputDirectoryPath = this.#options.outputDirectory;
   }
 
   async promptEnvFile(currentValue: string): Promise<DatabaseOptions> {
@@ -208,16 +197,10 @@ export class Options {
   }
 
   async validateEnvFile(relPath: string): Promise<DatabaseOptions> {
-    const path = join(this.cwd, relPath);
-    const exists = await fs.exists(path);
+    const { exists, contents } = await this.#files.read(relPath);
     if (!exists) {
       throw new Error(`File ${relPath} does not exist.`);
     }
-    const stat = await fs.stat(path);
-    if (!stat.isFile) {
-      throw new Error(`Not a file: ${relPath}.`);
-    }
-    const contents = await fs.readFile(path, 'utf-8');
     const env = parse(contents);
     const envKeys = Object.keys(env);
     const foundKeys = ENV_DB_URL_KEYS.filter(
@@ -281,8 +264,7 @@ export class Options {
     });
     const spinner = ora('Validating output directory...').start();
     try {
-      const result = await this.validateOutputDirectory(answers.relPath);
-
+      const result = await this.validateDirectory(answers.relPath);
       spinner.succeed('Output directory valid.');
       return result;
     } catch (error) {
@@ -292,22 +274,37 @@ export class Options {
     }
   }
 
-  async validateOutputDirectory(relPath: string): Promise<string> {
+  async validateDirectory(relPath: string): Promise<string> {
     const absolutePath = resolve(this.cwd, relPath).replace(/\/$/, '');
     if (!absolutePath.startsWith(this.cwd) || absolutePath === this.cwd) {
       throw new Error(
-        `The output directory must a subdirectory of the current working directory.`
+        `The directory must a subdirectory of the current working directory.`
       );
     }
 
-    const exists = await fs.exists(absolutePath);
+    const exists = await fsExtra.exists(absolutePath);
     if (exists) {
-      const stat = await fs.stat(absolutePath);
+      const stat = await fsExtra.stat(absolutePath);
       if (!stat.isDirectory()) {
         throw new Error(`${fmtPath(relPath)} exists, but is not a directory.`);
       }
     }
-
     return relPath;
   }
+
+  async readFriedaRc(): Promise<Partial<FriedaOptions>> {
+    const { exists, contents } = await this.#files.read(Options.friedaRcPath);
+    if (!exists) {
+      return {};
+    }
+    try {
+      return JSON.parse(contents);
+    } catch (error) {
+      return {};
+    }
+  }
+
+  
+
+  
 }
