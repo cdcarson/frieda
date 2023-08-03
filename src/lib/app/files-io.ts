@@ -54,6 +54,10 @@ export class FilesIO {
     return join(this.generatedDirectoryPath, 'models.d.ts');
   }
 
+  get generatedApiDirectoryPath(): string {
+    return join(this.generatedDirectoryPath, 'api');
+  }
+
   get infoDirectoryPath(): string {
     return join(this.outputDirectoryPath, '.info');
   }
@@ -191,10 +195,9 @@ export class FilesIO {
 
   async copyApiFiles() {
     const absSourcePath = new URL(import.meta.url).pathname;
-    const apiSourcePath = resolve(absSourcePath, '../api');
-    console.log();
-    console.log(absSourcePath)
-    console.log(apiSourcePath)
-    console.log();
+    const apiSourcePath = resolve(absSourcePath, '../../api');
+    console.log('\n', apiSourcePath)
+    await fsExtra.emptyDir(this.generatedApiDirectoryPath);
+    await fsExtra.copy(apiSourcePath, this.generatedApiDirectoryPath);
   }
 }
