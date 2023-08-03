@@ -73,9 +73,9 @@
     "ora": "^6.3.1",
     "prettier": "^2.8.8",
     "prompts": "^2.4.2",
+    "sql-formatter": "^12.2.4",
     "sql-template-tag": "^5.0.3",
     "strip-ansi": "^7.1.0",
-    "ts-morph": "^19.0.0",
     "yargs": "^17.7.2"
   }
 }

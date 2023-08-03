@@ -9,6 +9,7 @@ import type {
 import prettier from 'prettier';
 import { DEFAULT_PRETTIER_OPTIONS } from './constants.js';
 import { fmtPath } from './utils.js';
+import { format as fmtSql } from 'sql-formatter'
 
 export class FilesIO {
   static #inst: FilesIO;
@@ -71,6 +72,10 @@ export class FilesIO {
     return join(this.infoDirectoryPath, 'history');
   }
 
+  get gitIgnorePath(): string {
+    return join(this.outputDirectoryPath, '.gitignore');
+  }
+
   async write(relPath: string, contents: string): Promise<void> {
     await this.isValidFilePathOrThrow(relPath);
 
@@ -123,14 +128,22 @@ export class FilesIO {
       fetchedSchema: fetchedSchema,
       parsedSchema: parsedSchema
     };
+    const sql = createTables
+    .map(s => s.trim())
+    .map(s => s.replace(/^CREATE.*VIEW/, 'CREATE VIEW'))
+    .map(s => `${s};`).join('\n\n')
     await Promise.all([
       this.write(this.schemaDefinitionPath, schemaDefinitionDTsCode),
       this.write(this.generatedDatabaseFilePath, databaseJsCode),
       this.write(this.generatedModelsFilePath, modelsDTsCode),
       this.write(this.infoSchemaJSONPath, JSON.stringify(schemaJson)),
-      this.write(this.infoSchemaSqlPath, createTables.join('\n\n'))
+      this.write(this.infoSchemaSqlPath, fmtSql(sql))
     ]);
     await this.copyApiFiles();
+    const gitIgnoreExists = await this.exists(this.gitIgnorePath);
+    if (!gitIgnoreExists) {
+      await this.write(this.gitIgnorePath, `# ignoring the .info directory is recommended\n.info\n`)
+    }
 
     return prevFiles;
   }
@@ -196,8 +209,9 @@ export class FilesIO {
   async copyApiFiles() {
     const absSourcePath = new URL(import.meta.url).pathname;
     const apiSourcePath = resolve(absSourcePath, '../../api');
-    console.log('\n', apiSourcePath)
     await fsExtra.emptyDir(this.generatedApiDirectoryPath);
-    await fsExtra.copy(apiSourcePath, this.generatedApiDirectoryPath);
+    await fsExtra.copy(apiSourcePath, this.generatedApiDirectoryPath, {
+      filter: (p) => !p.match('.test')
+    });
   }
 }

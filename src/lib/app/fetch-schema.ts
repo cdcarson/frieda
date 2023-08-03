@@ -83,10 +83,12 @@ export const showCreateTable = async (
   table: string,
   connection: Connection
 ): Promise<string> => {
+  
   const query = sql`SHOW CREATE TABLE ${bt(table)}`;
   const result = await connection.execute(query.sql, query.values);
-  const row = result.rows.shift() as { 'Create Table': string };
-  return row['Create Table'];
+  const col = result.fields.find(f => f.name.startsWith('Create'))?.name
+  const row = result.rows[0]
+  return row[col as keyof typeof row];
 };
 
 export const fetchSchema = async (

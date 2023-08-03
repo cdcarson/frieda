@@ -64,9 +64,10 @@ export class BaseDb {
   ) => void {
     return (
       this.loggingOptions.performanceLogger ||
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      ((_e: ExecutedQuery, _t: number) => {
-        /** noop */
+      ((e: ExecutedQuery, t: number) => {
+        if (e && t) {
+          // noop
+        }
       })
     );
   }
@@ -74,9 +75,10 @@ export class BaseDb {
   get errorLogger(): (error: ExecuteError) => void {
     return (
       this.loggingOptions.errorLogger ||
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      ((_e: ExecuteError) => {
-        /** noop */
+      ((e: ExecuteError) => {
+        if(e) {
+          // noop
+        }
       })
     );
   }
