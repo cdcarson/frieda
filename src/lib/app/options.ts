@@ -1,10 +1,14 @@
 import type { FriedaCliArgs, FriedaOptions } from './types.js';
 import ora from 'ora';
 import { parse } from 'dotenv';
-import prompts from 'prompts';
-import { ENV_DB_URL_KEYS } from './constants.js';
+import {
+  ENV_DB_URL_KEYS,
+  FRIEDA_RC_FILENAME,
+  GENERATED_CODE_FOLDERNAME,
+  SCHEMA_DEFINITION_FILENAME
+} from './constants.js';
 import { connect, type Connection } from '@planetscale/database';
-import { fmtPath, fmtVarName, log, squishWords } from './utils.js';
+import { fmtPath, fmtVarName, log, squishWords, prompt } from './utils.js';
 import fsExtra from 'fs-extra';
 import { resolve } from 'node:path';
 import { FilesIO } from './files-io.js';
@@ -30,16 +34,24 @@ export class Options {
     return optiona;
   }
 
-  static friedaRcPath = '.friedarc.json';
-
   static optionDescriptions = {
     envFile: `The path to an environment variables file containing the database url as either ${ENV_DB_URL_KEYS.map(
       (s) => fmtVarName(s)
     ).join(' or ')}.`,
-    outputDirectory: `Output directory path for generated code. It should be convenient to, but separate from, your own code. Example: ${fmtPath(
-      'src/db/__generated'
-    )} `,
-    init: `(Re)initialize options in ${fmtPath(Options.friedaRcPath)}.`,
+    outputDirectory: `Database code directory. It contains (1) a ${fmtPath(
+      SCHEMA_DEFINITION_FILENAME
+    )} file, 
+      which you can edit to fine-tune the schema's javascript types, and (2) a ${fmtPath(
+        GENERATED_CODE_FOLDERNAME
+      )}
+      directory, where Frieda writes generated code files. You can have other files and folders in this directory
+      as long as they do not conflict with the paths mentioned above (however, you should not put your own code 
+      in the ${fmtPath(
+        GENERATED_CODE_FOLDERNAME
+      )} folder, since Frieda nukes its contents before regenerating files.)
+      The contents of this directory should be added to git and your build process.
+     Example: ${fmtPath('src/db')} `,
+    init: `(Re)initialize options in ${fmtPath(FRIEDA_RC_FILENAME)}.`,
     help: 'Show this help'
   };
 
@@ -75,11 +87,11 @@ export class Options {
   }
 
   get schemaDefinitionPath(): string {
-    return join(this.outputDirectoryPath, 'schema-definition.d.ts');
+    return join(this.outputDirectoryPath, SCHEMA_DEFINITION_FILENAME);
   }
 
   get generatedDirectoryPath(): string {
-    return join(this.outputDirectoryPath, 'generated');
+    return join(this.outputDirectoryPath, GENERATED_CODE_FOLDERNAME);
   }
 
   async init() {
@@ -122,7 +134,7 @@ export class Options {
         outputDirectoryError = error as Error;
       }
     }
-    readSpinner.info('Options read.');
+    readSpinner.succeed('Options read.');
 
     if (this.cliArgs.init || !databaseOptions) {
       if (envFileError) {
@@ -147,23 +159,23 @@ export class Options {
       databaseOptions.envFile !== rcOptions.envFile ||
       outputDirectory !== rcOptions.outputDirectory;
     if (changed) {
-      const answers = await prompts({
+      const saveChanges = await prompt({
         name: 'saveChanges',
         type: 'confirm',
         initial: true,
-        message: `Save changes to ${fmtPath(Options.friedaRcPath)}?`
+        message: `Save changes to ${fmtPath(FRIEDA_RC_FILENAME)}?`
       });
-      if (answers.saveChanges) {
-        const writeSpinner = ora(`Saving ${fmtPath(Options.friedaRcPath)}...`);
+      if (saveChanges) {
+        const writeSpinner = ora(`Saving ${fmtPath(FRIEDA_RC_FILENAME)}...`);
         await filesIo.write(
-          Options.friedaRcPath,
+          FRIEDA_RC_FILENAME,
           JSON.stringify({
             ...rcOptions,
             outputDirectory,
             envFile: databaseOptions.envFile
           })
         );
-        writeSpinner.succeed(`${fmtPath(Options.friedaRcPath)} saved.`);
+        writeSpinner.succeed(`${fmtPath(FRIEDA_RC_FILENAME)} saved.`);
       }
     }
     this.#options = {
@@ -174,7 +186,7 @@ export class Options {
   }
 
   async promptEnvFile(currentValue: string): Promise<DatabaseOptions> {
-    const answers = await prompts({
+    const relPath = await prompt<string>({
       name: 'relPath',
       type: 'text',
       message: 'Environment variables file',
@@ -189,7 +201,7 @@ export class Options {
     });
     const spinner = ora('Validating database URL...').start();
     try {
-      const result = await this.validateEnvFile(answers.relPath);
+      const result = await this.validateEnvFile(relPath);
       spinner.succeed('Database URL found.');
       return result;
     } catch (error) {
@@ -252,7 +264,7 @@ export class Options {
     currentValue: string,
     rcValue?: string
   ): Promise<string> {
-    const answers = await prompts({
+    const relPath = await prompt<string>({
       name: 'relPath',
       type: 'text',
       message: 'Output directory',
@@ -267,7 +279,7 @@ export class Options {
     });
     const spinner = ora('Validating output directory...').start();
     try {
-      const result = await this.validateDirectory(answers.relPath);
+      const result = await this.validateDirectory(relPath);
       spinner.succeed('Output directory valid.');
       return result;
     } catch (error) {
@@ -296,7 +308,7 @@ export class Options {
   }
 
   async readFriedaRc(): Promise<Partial<FriedaOptions>> {
-    const { exists, contents } = await FilesIO.get().read(Options.friedaRcPath);
+    const { exists, contents } = await FilesIO.get().read(FRIEDA_RC_FILENAME);
     if (!exists) {
       return {};
     }

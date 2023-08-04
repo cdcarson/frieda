@@ -9,7 +9,7 @@ import { fetchSchema } from './fetch-schema.js';
 import { parseSchema } from './parse-schema.js';
 import { generateCode } from './generate-code.js';
 export const main = async (cwd: string, args: string[]) => {
-  const start = Date.now();
+ 
   const app = yargs(args)
     .scriptName('frieda')
     .usage('frieda [options]')
@@ -56,6 +56,7 @@ export const main = async (cwd: string, args: string[]) => {
     return;
   }
   const options = await Options.create(cwd, cliArgs);
+  const start = Date.now();
   const schemaModels = await readSchemaDefinitionFile(options);
   const { fetchedSchema, tableCreateStatements } = await fetchSchema(
     options.connection

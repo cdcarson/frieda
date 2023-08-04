@@ -36,7 +36,7 @@ Frieda is not meant to be an ORM or a query builder. It doesn't understand or ma
 
 ```bash
 # install...
-npm i @nowzoo/frieda
+npm i frieda
 # run...
 ./node_modules/.bin/frieda --init
 ```

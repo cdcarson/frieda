@@ -188,8 +188,6 @@ export const generateCode = async (
     })
   );
 
-  writeSpinner.succeed(`Code generated.`);
-
   const examplePath = join(options.outputDirectoryPath, 'get-db.js');
   const exampleCode = `
   // ${examplePath}
@@ -224,6 +222,8 @@ export const generateCode = async (
   const lineLength =
     Math.max(...examplePrettified.split(`\n`).map((s) => s.trim().length)) + 5;
 
+  writeSpinner.succeed(`Code generated.`);
+  console.log();
   log.info([
     'Current schema information files:',
     ...schemaFiles.map((o) => `- ${fmtPath(o.path)}`),
@@ -235,11 +235,13 @@ export const generateCode = async (
         ]
       : [])
   ]);
+  console.log();
 
   log.info([
     'Schema definition file updated:',
     `- ${fmtPath(schemaDefinitionFile.path)}`
   ]);
+  console.log();
   log.info([
     'Generated code files:',
     ...generatedFiles
@@ -252,7 +254,6 @@ export const generateCode = async (
   console.log(kleur.dim('-'.repeat(lineLength)));
   log.message(exampleCodeColorized.split('\n'), 0);
   console.log(kleur.dim('-'.repeat(lineLength)));
-  console.log();
 };
 
 export const getSchemaDefinitionDTsCode = (
@@ -340,7 +341,7 @@ export const getGeneratedModelsDTsCode = (
     .join('\n');
   const code = `
   ${bannerComment}
-  import type {ModelDb, ViewDb} from '@nowzoo/frieda';
+  import type {ModelDb, ViewDb} from 'frieda';
 
   ${decls}
 
@@ -677,7 +678,7 @@ export const getGeneratedSchemaJsCode = (
 
     import cast from './${GENERATED_CODE_FILENAMES.schemaCastMap}'
 
-    /** @type {import('@nowzoo/frieda').SchemaDefinition} */
+    /** @type {import('frieda').SchemaDefinition} */
     const schemaDefinition = {
       cast,
       models: ${JSON.stringify(models)}
@@ -702,7 +703,7 @@ export const getModelsDbCode = (
     ${bannerComment}
     import {
       BaseDb, ModelDb
-    } from '@nowzoo/frieda';
+    } from 'frieda';
    
     export class ${GENERATED_CLASS_NAMES.modelsDb} extends BaseDb {
       /** @type {Partial<import('./models.js').DatabaseModels>} */
@@ -710,8 +711,8 @@ export const getModelsDbCode = (
 
       /**
        * @param {import('@planetscale/database').Connection|import('@planetscale/database').Transaction} conn 
-       * @param {import('@nowzoo/frieda').SchemaDefinition} schema 
-       * @param {import('@nowzoo/frieda').DbLoggingOptions} loggingOptions 
+       * @param {import('frieda').SchemaDefinition} schema 
+       * @param {import('frieda').DbLoggingOptions} loggingOptions 
        */
       constructor(
         conn,
@@ -759,8 +760,8 @@ export const getTransactionsDbCode = (
     export class ${GENERATED_CLASS_NAMES.transactionDb} extends ${GENERATED_CLASS_NAMES.modelsDb} {
       /**
        * @param {import('@planetscale/database').Transaction} transaction 
-       * @param {import('@nowzoo/frieda').SchemaDefinition} schema 
-       * @param {import('@nowzoo/frieda').DbLoggingOptions} loggingOptions 
+       * @param {import('frieda').SchemaDefinition} schema 
+       * @param {import('frieda').DbLoggingOptions} loggingOptions 
        */
       constructor(transaction, schema, loggingOptions = {}) {
         super(transaction, schema, loggingOptions);
@@ -796,7 +797,7 @@ export const getAppDbCode = (
     
       /**
        * @param {import('@planetscale/database').Connection} connection 
-       * @param {import('@nowzoo/frieda').DbLoggingOptions} loggingOptions 
+       * @param {import('frieda').DbLoggingOptions} loggingOptions 
        */
       constructor(connection, loggingOptions = {}) {
         super(connection, applicationSchema, loggingOptions);
@@ -846,7 +847,7 @@ export const getSearchIndexesCode = (
        * Full text search index defined on table \`${i.tableName}\`.
        * Indexed fields: ${i.indexedFields.map((s) => `\`${s}\``).join(', ')}.
        * 
-       * @type {import('@nowzoo/frieda').FullTextSearchIndex}
+       * @type {import('frieda').FullTextSearchIndex}
        */
       export const ${i.key} = ${JSON.stringify(i)};
     `;
@@ -877,7 +878,7 @@ export const getGeneratedSchemaCastMapJsSourceCode = (
   return `
     ${bannerComment}
 
-    /** @type {import('@nowzoo/frieda').SchemaCastMap} */
+    /** @type {import('frieda').SchemaCastMap} */
     const schemaCastMap = ${JSON.stringify(cast)};
 
     export default schemaCastMap;
