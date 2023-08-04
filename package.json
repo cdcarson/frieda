@@ -1,5 +1,5 @@
 {
-  "name": "@nowzoo/frieda",
+  "name": "frieda",
   "version": "0.6.0",
   "scripts": {
     "dev": "vite dev",
