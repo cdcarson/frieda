@@ -6,7 +6,7 @@ Javascript code generator for the PlanetScale serverless driver.
 
 ## Caveats / Welcome
 
-This library is a work in progress. So far it's been developed against a single project and a single database schema. It seems to work fine, but use with caution. Bugs may occur. There are [limitations](#known-limitations).
+This library is a work in progress. So far it's been developed against a single project and a single database schema. It seems to work fine, but use with caution. Bugs may occur.
 
 Bug reports, suggestions and PRs are entirely welcome.
 
@@ -345,14 +345,7 @@ const results = await db.executeSelect<CatPersonStats>(
 
 ### type `CustomModelCast`
 
-## Known Limitations
 
-### Models are not created for views
 
-MySQL does not allow comments on view columns. So adding _accurately_ typed views would necessitate introducing a schema file, that is, a separate source of truth from the database schema. The separate source of truth thing is a can of worms which Frieda does not want open.
 
-This does not mean you can't have views in your schema. It just means that you have to write the type yourself, and provide appropriate casting when you query the view.
 
-### Only typescript code is generated
-
-For now, [Frieda isn't smart enough to compile generated typescript code to javascript](https://github.com/nowzoo/frieda/issues/1). In some cases tooling will overcome this automatically, i.e. allow typescript source code to be consumed in a javascript project. For example, Frieda works fine in a SvelteKit/Vite project using javascript. In other cases there needs to be an intermediate build step.
