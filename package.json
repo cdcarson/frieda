@@ -1,6 +1,17 @@
 {
   "name": "frieda",
   "version": "0.6.3",
+  "description": "Javascript code generator for the PlanetScale serverless driver.",
+  "keywords": [
+    "serverless",
+    "database",
+    "mysql",
+    "sql",
+    "palnetscale",
+    "javascript",
+    "typescript",
+    "edge database"
+  ],
   "scripts": {
     "dev": "vite dev",
     "build": "vite build && npm run package",
