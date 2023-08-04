@@ -11,6 +11,7 @@ import { fmtPath, fmtVarName, log, squishWords } from './utils.js';
 import fsExtra from 'fs-extra';
 import { resolve } from 'node:path';
 import { FilesIO } from './files-io.js';
+import { join} from 'node:path'
 
 type DatabaseOptions = {
   envFile: string;
@@ -22,7 +23,6 @@ export class Options {
   #databaseOptions: DatabaseOptions | undefined;
   #options: FriedaOptions | undefined;
   #connection: Connection | undefined;
-  #files: FilesIO;
 
   static async create(
     cwd: string,
@@ -50,8 +50,7 @@ export class Options {
     public readonly cwd: string,
     public readonly cliArgs: Partial<FriedaCliArgs>
   ) {
-    FilesIO.init(cwd);
-    this.#files = FilesIO.get();
+    
   }
 
   get databaseOptions(): DatabaseOptions {
@@ -76,12 +75,23 @@ export class Options {
     return this.#connection;
   }
 
-  get outputDirectory(): string {
+  get outputDirectoryPath(): string {
+   
     return this.options.outputDirectory;
+  }
+
+  get schemaDefinitionPath(): string {
+    return join(this.outputDirectoryPath, 'schema-definition.d.ts');
+  }
+
+  get generatedDirectoryPath(): string {
+    return join(this.outputDirectoryPath, 'generated');
   }
 
   async init() {
     const readSpinner = ora('Reading options...').start();
+    await FilesIO.init(this.cwd);
+    const filesIo = FilesIO.get()
     const rcOptions = await this.readFriedaRc();
 
     const envFile =
@@ -151,7 +161,7 @@ export class Options {
       });
       if (answers.saveChanges) {
         const writeSpinner = ora(`Saving ${fmtPath(Options.friedaRcPath)}...`);
-        await this.#files.write(
+        await filesIo.write(
           Options.friedaRcPath,
           JSON.stringify({
             ...rcOptions,
@@ -167,7 +177,6 @@ export class Options {
       envFile: databaseOptions.envFile
     };
     this.#databaseOptions = databaseOptions;
-    this.#files.outputDirectoryPath = this.#options.outputDirectory;
   }
 
   async promptEnvFile(currentValue: string): Promise<DatabaseOptions> {
@@ -197,7 +206,7 @@ export class Options {
   }
 
   async validateEnvFile(relPath: string): Promise<DatabaseOptions> {
-    const { exists, contents } = await this.#files.read(relPath);
+    const { exists, contents } = await FilesIO.get().read(relPath);
     if (!exists) {
       throw new Error(`File ${relPath} does not exist.`);
     }
@@ -293,7 +302,7 @@ export class Options {
   }
 
   async readFriedaRc(): Promise<Partial<FriedaOptions>> {
-    const { exists, contents } = await this.#files.read(Options.friedaRcPath);
+    const { exists, contents } = await FilesIO.get().read(Options.friedaRcPath);
     if (!exists) {
       return {};
     }

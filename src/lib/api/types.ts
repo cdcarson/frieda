@@ -80,7 +80,6 @@ export type ModelDefinition = {
 };
 
 export type SchemaDefinition = {
-  databaseName: string;
   models: ModelDefinition[];
   cast: SchemaCastMap;
 };

@@ -147,6 +147,7 @@ export type DebugSchema = {
 }
 
 export type ReadFileResult = {
+  abspath: string;
   contents: string;
   exists: boolean;
 }

@@ -6,12 +6,13 @@ import prettier from 'prettier';
 import highlight from 'cli-highlight';
 import ora from 'ora';
 import { FilesIO } from './files-io.js';
+import type { Options } from './options.js';
 
-export const readSchemaDefinitionFile = async (): Promise<SchemaModel[]> => {
+export const readSchemaDefinitionFile = async (options: Options): Promise<SchemaModel[]> => {
   const files = FilesIO.get();
-  const relPath = files.schemaDefinitionPath;
+  const relPath = options.schemaDefinitionPath;
   const readSpinner = ora(`Reading ${fmtPath(relPath)}`).start();
-  const {exists, contents} = await files.read(files.schemaDefinitionPath)
+  const {exists, contents} = await files.read(options.schemaDefinitionPath)
   readSpinner.succeed()
   const models: SchemaModel[] = [];
 
