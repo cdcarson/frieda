@@ -9,13 +9,12 @@ export const DEFAULT_PRETTIER_OPTIONS: prettier.Options = {
   semi: true
 };
 
-
 export const FRIEDA_SCHEMA_NAMES = {
   baseDirectory: '.frieda-schema',
   jsonFile: 'schema.json',
   sqlFile: 'schema.sql',
   historyDirectory: 'history'
-}
+};
 
 export const GENERATED_CODE_FILENAMES = {
   schemaCastMap: 'schema-cast-map.js',
@@ -25,13 +24,10 @@ export const GENERATED_CODE_FILENAMES = {
   modelsDb: 'models-db.js',
   appDb: 'app-db.js',
   transactionDb: 'transaction-db.js'
-} 
+};
 
 export const GENERATED_CLASS_NAMES = {
-  
   modelsDb: 'ModelsDb',
   transactionDb: 'TransactionDb',
-  appDb: 'AppDb',
-}
-
-
+  appDb: 'AppDb'
+};

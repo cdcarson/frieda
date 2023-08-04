@@ -66,7 +66,6 @@ export class FilesIO {
     await fsExtra.emptyDir(this.abspath(relPath));
   }
 
-
   abspath(relPath: string): string {
     return resolve(this.cwd, relPath);
   }
@@ -89,6 +88,4 @@ export class FilesIO {
     }
     return { exists };
   }
-
-  
 }

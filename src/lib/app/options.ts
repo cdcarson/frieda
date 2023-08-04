@@ -1,7 +1,4 @@
-import type {
-  FriedaCliArgs,
-  FriedaOptions,
-} from './types.js';
+import type { FriedaCliArgs, FriedaOptions } from './types.js';
 import ora from 'ora';
 import { parse } from 'dotenv';
 import prompts from 'prompts';
@@ -11,7 +8,7 @@ import { fmtPath, fmtVarName, log, squishWords } from './utils.js';
 import fsExtra from 'fs-extra';
 import { resolve } from 'node:path';
 import { FilesIO } from './files-io.js';
-import { join} from 'node:path'
+import { join } from 'node:path';
 
 type DatabaseOptions = {
   envFile: string;
@@ -49,9 +46,7 @@ export class Options {
   private constructor(
     public readonly cwd: string,
     public readonly cliArgs: Partial<FriedaCliArgs>
-  ) {
-    
-  }
+  ) {}
 
   get databaseOptions(): DatabaseOptions {
     if (!this.#databaseOptions) {
@@ -76,7 +71,6 @@ export class Options {
   }
 
   get outputDirectoryPath(): string {
-   
     return this.options.outputDirectory;
   }
 
@@ -91,7 +85,7 @@ export class Options {
   async init() {
     const readSpinner = ora('Reading options...').start();
     await FilesIO.init(this.cwd);
-    const filesIo = FilesIO.get()
+    const filesIo = FilesIO.get();
     const rcOptions = await this.readFriedaRc();
 
     const envFile =
@@ -312,8 +306,4 @@ export class Options {
       return {};
     }
   }
-
-  
-
-  
 }

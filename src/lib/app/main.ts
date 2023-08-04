@@ -34,12 +34,18 @@ export const main = async (cwd: string, args: string[]) => {
     })
     .option('init', {
       alias: 'i',
-      description: squishWords(Options.optionDescriptions.init, getStdOutCols() - 30),
+      description: squishWords(
+        Options.optionDescriptions.init,
+        getStdOutCols() - 30
+      ),
       type: 'boolean'
     })
     .option('help', {
       alias: 'h',
-      description: squishWords(Options.optionDescriptions.help, getStdOutCols() - 30),
+      description: squishWords(
+        Options.optionDescriptions.help,
+        getStdOutCols() - 30
+      ),
       type: 'boolean'
     });
   console.log(kleur.bold('frieda'), kleur.dim(`v${FRIEDA_VERSION}`), '🦮');
@@ -51,10 +57,16 @@ export const main = async (cwd: string, args: string[]) => {
   }
   const options = await Options.create(cwd, cliArgs);
   const schemaModels = await readSchemaDefinitionFile(options);
-  const {fetchedSchema, tableCreateStatements} = await fetchSchema(options.connection);
+  const { fetchedSchema, tableCreateStatements } = await fetchSchema(
+    options.connection
+  );
   const parsedSchema = parseSchema(schemaModels, fetchedSchema);
-  await generateCode(options, parsedSchema, fetchedSchema, tableCreateStatements);
-  console.log(`Done in ${Date.now() - start}ms.`, '🦮')
+  await generateCode(
+    options,
+    parsedSchema,
+    fetchedSchema,
+    tableCreateStatements
+  );
+  console.log(`Done in ${Date.now() - start}ms.`, '🦮');
   console.log();
-    
 };

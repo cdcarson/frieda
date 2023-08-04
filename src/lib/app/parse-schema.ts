@@ -11,7 +11,11 @@ import type {
   ParsedIndex,
   TableType
 } from './types.js';
-import { extractQuotedStrings, getParenthesizedArgs, getValidJavascriptIdentifier } from './utils.js';
+import {
+  extractQuotedStrings,
+  getParenthesizedArgs,
+  getValidJavascriptIdentifier
+} from './utils.js';
 import { DEFAULT_JSON_FIELD_TYPE } from './constants.js';
 
 export const parseSchema = (
@@ -37,11 +41,16 @@ export const parseModel = <Type extends TableType = TableType>(
     modelName,
     tableName: table.name,
     type: table.type as Type,
-    selectAllTypeName: table.type === 'BASE TABLE' ? `${modelName}SelectAll`: undefined,
-    primaryKeyTypeName: table.type === 'BASE TABLE' ? `${modelName}PrimaryKey` : undefined,
-    createTypeName: table.type === 'BASE TABLE' ? `${modelName}Create` : undefined,
-    updateTypeName: table.type === 'BASE TABLE' ? `${modelName}Update` : undefined,
-    findUniqueTypeName: table.type === 'BASE TABLE' ? `${modelName}FindUnique` : undefined,
+    selectAllTypeName:
+      table.type === 'BASE TABLE' ? `${modelName}SelectAll` : undefined,
+    primaryKeyTypeName:
+      table.type === 'BASE TABLE' ? `${modelName}PrimaryKey` : undefined,
+    createTypeName:
+      table.type === 'BASE TABLE' ? `${modelName}Create` : undefined,
+    updateTypeName:
+      table.type === 'BASE TABLE' ? `${modelName}Update` : undefined,
+    findUniqueTypeName:
+      table.type === 'BASE TABLE' ? `${modelName}FindUnique` : undefined,
     dbTypeName: `${modelName}Db`,
     appDbKey: getValidJavascriptIdentifier(
       camelcase(table.name, { pascalCase: false })
@@ -136,7 +145,7 @@ export const getFieldSetOrEnumJavascriptStringType = (
   if (mysqlBaseType === 'set' || mysqlBaseType === 'enum') {
     const arg = getParenthesizedArgs(column.Type, mysqlBaseType);
     const strs = extractQuotedStrings(arg);
-    return strs.join('|')
+    return strs.join('|');
   }
 };
 

@@ -76,7 +76,7 @@ export class BaseDb {
     return (
       this.loggingOptions.errorLogger ||
       ((e: ExecuteError) => {
-        if(e) {
+        if (e) {
           // noop
         }
       })
@@ -206,9 +206,10 @@ export class ViewDb<
         ${where} 
         ${orderBy} 
         ${limit}`;
-    const { rows } = await this.selectMany<
-      SelectedModel<M, S, ModelSelectAll>
-    >(query, input.cast);
+    const { rows } = await this.selectMany<SelectedModel<M, S, ModelSelectAll>>(
+      query,
+      input.cast
+    );
     return rows;
   }
 

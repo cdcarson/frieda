@@ -8,15 +8,16 @@ import ora from 'ora';
 import { FilesIO } from './files-io.js';
 import type { Options } from './options.js';
 
-export const readSchemaDefinitionFile = async (options: Options): Promise<SchemaModel[]> => {
+export const readSchemaDefinitionFile = async (
+  options: Options
+): Promise<SchemaModel[]> => {
   const files = FilesIO.get();
   const relPath = options.schemaDefinitionPath;
   const readSpinner = ora(`Reading ${fmtPath(relPath)}`).start();
-  const {exists, contents} = await files.read(options.schemaDefinitionPath)
-  readSpinner.succeed()
+  const { exists, contents } = await files.read(options.schemaDefinitionPath);
+  readSpinner.succeed();
   const models: SchemaModel[] = [];
 
-  
   if (!exists || contents.trim().length === 0) {
     return models;
   }

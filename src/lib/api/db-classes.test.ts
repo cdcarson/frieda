@@ -519,9 +519,9 @@ describe('BaseDb.execute', () => {
     executeSpy.mockResolvedValue({
       rows: []
     });
-    await expect(() =>
-      db.selectFirstOrThrow(sql`query`)
-    ).rejects.toThrowError('executeSelectFirstOrThrow');
+    await expect(() => db.selectFirstOrThrow(sql`query`)).rejects.toThrowError(
+      'executeSelectFirstOrThrow'
+    );
   });
   it('executeSelectFirstOrThrow succeeds', async () => {
     const db = new BaseDb(connection, schema);

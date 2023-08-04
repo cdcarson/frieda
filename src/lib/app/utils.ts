@@ -3,7 +3,6 @@ import stripAnsi from 'strip-ansi';
 import prompts from 'prompts';
 import ora from 'ora';
 
-
 export const isPlainObject = (obj: unknown) => {
   return Object.prototype.toString.call(obj) === '[object Object]';
 };
@@ -172,19 +171,15 @@ export const getParenthesizedArgs = (
   return match ? match[2] : '';
 };
 
-export const extractQuotedStrings = (
-  input: string
-): string[] => {
+export const extractQuotedStrings = (input: string): string[] => {
   const rx = /(['"])([^'\\]|\\.)*\1/gsu;
   const matches = input.match(rx);
   return matches || [];
-}
+};
 
 export const blockComment = (lines: string[]): string => {
   return ['/**', ...lines.map((l) => ` * ${l}`), ' */'].join('\n');
 };
-
-
 
 export const getFileLink = (relPath: string, line: number, col = 1): string => {
   return `${relPath}:${line}:${col}`;

@@ -1,4 +1,4 @@
-import type { CastType, MysqlBaseType } from "$lib/index.js";
+import type { CastType, MysqlBaseType } from '$lib/index.js';
 
 export type FriedaOptions = {
   envFile: string;
@@ -14,16 +14,15 @@ export type FriedaCliArgs = FriedaOptions & {
  */
 export type SchemaField = {
   fieldName: string;
-  javascriptType: string
-}
+  javascriptType: string;
+};
 /**
  * A model from schema.d.ts
  */
 export type SchemaModel = {
   modelName: string;
   fields: SchemaField[];
-}
-
+};
 
 /**  queried database schema types */
 
@@ -74,20 +73,21 @@ export type ShowFullTableResult<Type extends TableType = TableType> = {
   type: Type;
 };
 
-export type FetchedTable<Type extends TableType = TableType> = Type extends 'VIEW'
-  ? {
-      name: string;
-      type: Type;
-      columns: ColumnRow[];
-    }
-  : Type extends 'BASE TABLE'
-  ? {
-      name: string;
-      type: Type;
-      columns: ColumnRow[];
-      indexes: IndexRow[];
-    }
-  : never;
+export type FetchedTable<Type extends TableType = TableType> =
+  Type extends 'VIEW'
+    ? {
+        name: string;
+        type: Type;
+        columns: ColumnRow[];
+      }
+    : Type extends 'BASE TABLE'
+    ? {
+        name: string;
+        type: Type;
+        columns: ColumnRow[];
+        indexes: IndexRow[];
+      }
+    : never;
 
 export type FetchedSchema = {
   databaseName: string;
@@ -95,23 +95,22 @@ export type FetchedSchema = {
   tables: FetchedTable[];
 };
 
-
 /*** parsed schema types */
 
 export type ParsedField = {
-   fieldName: string;
-   columnName: string;
-   isInvisible: boolean;
-   mysqlBaseType: MysqlBaseType | null;
-   isPrimaryKey: boolean;
-   isAutoIncrement: boolean;
-   isUnique: boolean;
-   isNullable: boolean;
-   hasDefault: boolean;
-   defaultValue: string | null | undefined;
-   isGeneratedAlways: boolean;
-   castType: CastType;
-   javascriptType: string;
+  fieldName: string;
+  columnName: string;
+  isInvisible: boolean;
+  mysqlBaseType: MysqlBaseType | null;
+  isPrimaryKey: boolean;
+  isAutoIncrement: boolean;
+  isUnique: boolean;
+  isNullable: boolean;
+  hasDefault: boolean;
+  defaultValue: string | null | undefined;
+  isGeneratedAlways: boolean;
+  castType: CastType;
+  javascriptType: string;
 };
 
 export type ParsedIndex = {
@@ -123,35 +122,31 @@ export type ParsedIndex = {
 };
 
 export type ParsedModel<Type extends TableType = TableType> = {
-   type: Type;
-   modelName: string;
-   tableName: string;
-   selectAllTypeName: Type extends 'BASE TABLE' ?  string : undefined;
-   primaryKeyTypeName: Type extends 'BASE TABLE' ?  string : undefined;
-   createTypeName: Type extends 'BASE TABLE' ?  string : undefined;
-   updateTypeName: Type extends 'BASE TABLE' ?  string : undefined;
-   findUniqueTypeName: Type extends 'BASE TABLE' ?  string : undefined;
-   dbTypeName: string;
-   appDbKey: string;
-   fields: ParsedField[];
-   indexes: Type extends 'BASE TABLE' ?  ParsedIndex[] : undefined;
+  type: Type;
+  modelName: string;
+  tableName: string;
+  selectAllTypeName: Type extends 'BASE TABLE' ? string : undefined;
+  primaryKeyTypeName: Type extends 'BASE TABLE' ? string : undefined;
+  createTypeName: Type extends 'BASE TABLE' ? string : undefined;
+  updateTypeName: Type extends 'BASE TABLE' ? string : undefined;
+  findUniqueTypeName: Type extends 'BASE TABLE' ? string : undefined;
+  dbTypeName: string;
+  appDbKey: string;
+  fields: ParsedField[];
+  indexes: Type extends 'BASE TABLE' ? ParsedIndex[] : undefined;
 };
 
 export type ParsedSchema = {
-   models: ParsedModel[];
+  models: ParsedModel[];
 };
 
 export type DebugSchema = {
   parsedSchema: ParsedSchema;
-  fetchedSchema: FetchedSchema
-}
+  fetchedSchema: FetchedSchema;
+};
 
 export type ReadFileResult = {
   abspath: string;
   contents: string;
   exists: boolean;
-}
-
-
-
-
+};

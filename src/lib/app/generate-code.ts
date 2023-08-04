@@ -249,11 +249,7 @@ export const generateCode = async (
   ]);
   console.log();
   log.info(['Quick start example:']);
-  console.log(
-    kleur.dim(
-       '-'.repeat(lineLength)
-    )
-  );
+  console.log(kleur.dim('-'.repeat(lineLength)));
   log.message(exampleCodeColorized.split('\n'), 0);
   console.log(kleur.dim('-'.repeat(lineLength)));
   console.log();

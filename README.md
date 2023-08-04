@@ -47,7 +47,7 @@ Frieda will ask you the following questions:
 - The folder where you want the database code to be generated. This should be a dedicated folder, since Frieda deletes the old contents before generating new code files, but should be convenient to your own code. Something like `src/lib/db/__generated` works great, with your own database code (e.g. where you import the generated code) in `src/lib/db`.
 - Whether to save these answers to `.friedarc.json`.
 
-Frieda then retrieves the database schema from the url and generates the following files, (assuming `src/lib/db/__generated`  is the output pathh):
+Frieda then retrieves the database schema from the url and generates the following files, (assuming `src/lib/db/__generated` is the output pathh):
 
 ```bash
 src
