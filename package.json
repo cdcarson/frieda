@@ -1,6 +1,6 @@
 {
   "name": "frieda",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "scripts": {
     "dev": "vite dev",
     "build": "vite build && npm run package",
@@ -41,7 +41,6 @@
     "name": "Chris Carson",
     "email": "chris@nowzoo.com",
     "url": "https://github.com/cdcarson"
-
   },
   "devDependencies": {
     "@sveltejs/adapter-node": "^1.3.1",
