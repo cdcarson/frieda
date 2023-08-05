@@ -19,7 +19,7 @@ import { join, basename, dirname } from 'node:path';
 import {
   GENERATED_CODE_FILENAMES,
   GENERATED_CLASS_NAMES,
-  FRIEDA_SCHEMA_NAMES,
+  FRIEDA_METADATA_NAMES,
   DEFAULT_PRETTIER_OPTIONS
 } from './constants.js';
 import { format as fmtSql } from 'sql-formatter';
@@ -52,8 +52,8 @@ export const generateCode = async (
   };
 
   const prevFilePaths = [
-    join(FRIEDA_SCHEMA_NAMES.baseDirectory, FRIEDA_SCHEMA_NAMES.jsonFile),
-    join(FRIEDA_SCHEMA_NAMES.baseDirectory, FRIEDA_SCHEMA_NAMES.sqlFile),
+    join(FRIEDA_METADATA_NAMES.baseDirectory, FRIEDA_METADATA_NAMES.jsonFile),
+    join(FRIEDA_METADATA_NAMES.baseDirectory, FRIEDA_METADATA_NAMES.sqlFile),
     options.schemaDefinitionPath
   ];
 
@@ -64,8 +64,8 @@ export const generateCode = async (
       const s: DebugSchema = JSON.parse(prevFiles[0].contents);
       if (s && s.fetchedSchema.fetched) {
         const historyPath = join(
-          FRIEDA_SCHEMA_NAMES.baseDirectory,
-          FRIEDA_SCHEMA_NAMES.historyDirectory,
+          FRIEDA_METADATA_NAMES.baseDirectory,
+          FRIEDA_METADATA_NAMES.historyDirectory,
           new Date(s.fetchedSchema.fetched).toISOString()
         );
         prevFiles.forEach((p) => {
@@ -96,15 +96,15 @@ export const generateCode = async (
   const schemaFiles: { path: string; contents: string }[] = [
     {
       path: join(
-        FRIEDA_SCHEMA_NAMES.baseDirectory,
-        FRIEDA_SCHEMA_NAMES.jsonFile
+        FRIEDA_METADATA_NAMES.baseDirectory,
+        FRIEDA_METADATA_NAMES.jsonFile
       ),
       contents: JSON.stringify(debugSchema)
     },
     {
       path: join(
-        FRIEDA_SCHEMA_NAMES.baseDirectory,
-        FRIEDA_SCHEMA_NAMES.sqlFile
+        FRIEDA_METADATA_NAMES.baseDirectory,
+        FRIEDA_METADATA_NAMES.sqlFile
       ),
       contents: fmtSql(schemaSql)
     }
@@ -290,8 +290,8 @@ export const getSchemaDefinitionDTsCode = (
    * - This file is regenerated every time you run \`frieda\` based 
    *   on (1) your edits here and (2) the current database schema.
    *   Previous versions of this file are saved in the
-   *   ${FRIEDA_SCHEMA_NAMES.baseDirectory}/${
-    FRIEDA_SCHEMA_NAMES.historyDirectory
+   *   ${FRIEDA_METADATA_NAMES.baseDirectory}/${
+    FRIEDA_METADATA_NAMES.historyDirectory
   } directory at the root of
    *   the project.
    */

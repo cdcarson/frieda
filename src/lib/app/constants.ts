@@ -15,8 +15,8 @@ export const FRIEDA_RC_FILENAME = '.friedarc.json';
 export const SCHEMA_DEFINITION_FILENAME = 'schema-definition.d.ts'
 export const GENERATED_CODE_FOLDERNAME = 'generated';
 
-export const FRIEDA_SCHEMA_NAMES = {
-  baseDirectory: '.frieda-schema',
+export const FRIEDA_METADATA_NAMES = {
+  baseDirectory: '.frieda-metadata',
   jsonFile: 'schema.json',
   sqlFile: 'schema.sql',
   historyDirectory: 'history'
