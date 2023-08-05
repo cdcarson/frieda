@@ -45,6 +45,7 @@ npm i frieda
 # run...
 ./node_modules/.bin/frieda 
 ```
+You will be prompted to enter a couple of [options](#options). Frieda will then fetch the schema and generate code.
 
 ## Options
 
