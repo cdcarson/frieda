@@ -2,35 +2,40 @@
 
 Javascript code generator for the PlanetScale serverless driver.
 
+> This library is a work in progress. Bug reports, suggestions and PRs are entirely welcome.
+
+- [Goals](#goals)
 - [Quick Start](#quick-start)
+- [Options](#options)
+- [Project Structure](#project-structure)
 
-## Caveats / Welcome
 
-This library is a work in progress. So far it's been developed against a single project and a single database schema. It seems to work fine, but use with caution. Bugs may occur.
+## Goals
 
-Bug reports, suggestions and PRs are entirely welcome.
+Frieda aims to provide a dead-simple developer experience for typescript/javascript projects using the [PlanetScale serverless driver](https://github.com/planetscale/database-js). 
 
-## Motivation
+### Features
 
-Frieda aims to provide a dead-simple developer experience for typescript (and javascript [WIP](#only-typescript-code-is-generated)) projects using the PlanetScale serverless driver.
+- Solid database code for javascript applications.
+- Models based on database tables and views.
+- Well-typed `CrUD` and `SELECT` methods for the boring things.
+- Type-safety for more interesting things written in vanilla SQL.
+- Minimal data definition API. Javascript types are primarily derived from the database schema itself using a set of reasonable assumptions. Type customization, where necessary, is done by editing model types in a typescript `schema-definition.d.ts` file.
 
-### Goals
 
-- Create solid, documented typescript code based on a database schema.
-- Provide well-typed `CrUD` and `SELECT` methods for the boring things.
-- Allow writing more interesting things in vanilla MySQL, with type-safety.
-- Eliminate `xyz.schema` files, and minimize data definition. The single source of truth is the database schema itself. Javascript types are mostly inferred from the schema using a set of reasonable conventions. There are a small number of ["type annotations"](#field-types) to deal with cases where a convention might need to be overridden or a javascript type narrowed. These annotations are stored in database column comments.
+### Non-goal
 
-### Non-goals
+Frieda is not meant to be an ORM or a query builder. 
 
-Frieda is not meant to be an ORM or a query builder. It doesn't understand or manage relations between tables. Beyond certain basic `CrUD` and `SELECT` queries, it does not attempt to write SQL for you. Frieda does not manage the schema or track migrations. If you need these things, try Prisma (to manage the schema) and Kysely (to help write queries.)
+- It doesn't understand relations between tables. 
+- Beyond some basic `CrUD` and `SELECT` queries and a couple of helper functions, it does not attempt to abstract away SQL. 
+- It does not create or manage migrations. 
+- Etc.
 
-### Frieda may be for you if...
+_Not having these features is in itself a feature_. Frieda does a limited set of things for one particular stack. It assumes (from experience) that it's better to write non-trivial queries in plain SQL rather relying on abstraction.
 
-- You're cool with writing at least some SQL by hand.
-- You're using PlanetScale and the serverless driver.
-- Your project is in typescript (or javascript [WIP](#only-typescript-code-is-generated))
-- You don't need schema / migration management beyond that provided by PlanetScale.
+That said, Frieda may not be for everyone. If you need an ORM and/or query-building that works with the serverless driver and edge functions, try [Prisma](https://github.com/prisma/prisma) (to manage the schema) and [Kysely with the PlanetScale dialect](https://github.com/depot/kysely-planetscale) (to help write queries.)
+
 
 ## Quick Start
 
@@ -38,29 +43,78 @@ Frieda is not meant to be an ORM or a query builder. It doesn't understand or ma
 # install...
 npm i frieda
 # run...
-./node_modules/.bin/frieda --init
+./node_modules/.bin/frieda 
 ```
 
-Frieda will ask you the following questions:
+## Options
 
-- The path to an environment variables file containing the database url.
-- The folder where you want the database code to be generated. This should be a dedicated folder, since Frieda deletes the old contents before generating new code files, but should be convenient to your own code. Something like `src/lib/db/__generated` works great, with your own database code (e.g. where you import the generated code) in `src/lib/db`.
-- Whether to save these answers to `.friedarc.json`.
+Frieda's two main options are stored in a `.friedarc.json` file at the root of the project. This file should be added to git. If it doesn't exist or is somehow invalid, Frieda will prompt you for:
 
-Frieda then retrieves the database schema from the url and generates the following files, (assuming `src/lib/db/__generated` is the output pathh):
+### `envFilePath`
+The path to an environment variables file, (e.g. `.env`) containing the database URL. The variable name can be either `DATABASE_URL` or `FRIEDA_DATABASE_URL`. If you use host, username and password to connect to the database, you can easily construct the URL and add it to `.env`:
 
 ```bash
-src
-├── lib
-│   └── db
-│       ├── __generated
-│       │   ├── database.ts
-│       │   ├── models.d.ts
-│       │   ├── schema.ts
-│       │   └── search-indexes.ts
-│       └── your database code
-└── etc
+FRIEDA_DATABASE_URL=mysql://<YOUR USERNAME>:<YOUR PASSWORD>@aws.connect.psdb.cloud
 ```
+Notes: 
+
+- The URL specified here is only used by Frieda to query the schema and generate code. The generated code itself uses a PlanetScale connection passed in from application code. 
+- Remember to add the environment file to `.gitignore`.
+- You can override the value in `.friedarc.json` by passing `--env-file <some-other-env-file>` to `frieda`.
+
+### `outputDirectory`
+The folder where the generated database code should go, e.g. `src/db`. After you run `frieda` this folder will contain:
+
+- `schema-definition.d.ts` A file you can edit to modify the javascript types.
+- `generated` A folder containing the generated code.
+
+Notes: 
+- You can keep other files and folders in the `outputDirectory` as long as they do not conflict with the paths mentioned above. But do not put your own code in the `generated` folder, since Frieda nukes its contents befor regenerating code.
+- `schema-definition.d.ts`  and the generated code should be considered part of your source code, that is, added to git and included in your javascript/typescript build step. (Unlike with, say, Prisma, there is no separate build step on deploy.)
+- You can override the value in `.friedarc.json` by doing `frieda --output-directory <some-other-path>`.
+
+### CLI-only Options
+
+- `--init` Make changes to the two options above. (You can also edit `.friedarc.json` directly.)
+- `--help` Show help.
+
+
+## Project Structure
+
+Assuming you've run `frieda` with `outputDirectory` set to `src/lib/db` your project will have these files and directories added:
+
+
+```
+.
+├── .frieda-schema
+│   ├── history
+│   ├── schema.json
+│   └── schema.sql
+├── .friedarc.json
+└── src
+    └── db
+        ├── generated
+        │   ├── app-db.js
+        │   ├── full-text-search-indexes.js
+        │   ├── models-db.js
+        │   ├── models.d.ts
+        │   ├── schema-cast-map.js
+        │   ├── schema-definition.js
+        │   └── transaction-db.js
+        └── schema-definition.d.ts
+
+```
+
+The `.frieda-schema` directory contains convenient information about the schema. Frieda only updates it; it does not rely on the contents. You can safely add it to `.gitignore`, and probably should, since a version folder gets added to `.frieda-schema/history` every time `frieda` runs. Contents:
+
+- `schema.json`: The schema as (1) fetched and (2) parsed. Useful for debugging and filing issues.
+- `schema.sql`: The current `CREATE TABLE` / `CREATE VIEW` statements
+- `history`: A directory containing past versions of the above. Each version has a folder containing:
+  - The previous versions of `schema.json` and `schema.sql`
+  - The previous version of `<outputDirectory>/schema-definition.d.ts`
+
+
+
 
 ## Javascript Types
 
