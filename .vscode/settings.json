@@ -1,3 +1,23 @@
 {
-  "javascript.preferences.importModuleSpecifier": "non-relative"
+  "javascript.preferences.importModuleSpecifier": "non-relative",
+  "cSpell.words": [
+    "friedarc",
+    "geospatial",
+    "Kysely",
+    "Leaderboard",
+    "longblob",
+    "longtext",
+    "mediumblob",
+    "mediumint",
+    "mediumtext",
+    "planetscale",
+    "prefs",
+    "psdb",
+    "smallint",
+    "tinyblob",
+    "tinyint",
+    "tinytext",
+    "varbinary",
+    "varchar"
+  ]
 }
