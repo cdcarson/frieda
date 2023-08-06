@@ -39,7 +39,9 @@ Frieda will ask for a couple of [options](#options):
 - Where to find your database URL.
 - Where you want the generated code to go.
 
-These options are saved to `.friedarc.json`. You don't have to go through the prompts every time. Frieda then fetches the schema and generates code.
+These options are saved to `.friedarc.json`, so you don't have to go through the prompts every time. 
+
+Frieda then fetches the schema and generates code.
 
 ### Basic Usage
 
