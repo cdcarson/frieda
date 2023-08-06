@@ -12,8 +12,8 @@ export const DEFAULT_PRETTIER_OPTIONS: prettier.Options = {
 
 export const FRIEDA_RC_FILENAME = '.friedarc.json';
 
-export const SCHEMA_DEFINITION_FILENAME = 'schema-definition.d.ts'
-export const GENERATED_CODE_FOLDERNAME = 'generated';
+
+export const MODEL_DEFINITION_FILENAME = 'model-types.d.ts'
 
 export const FRIEDA_METADATA_NAMES = {
   baseDirectory: '.frieda-metadata',
@@ -22,18 +22,32 @@ export const FRIEDA_METADATA_NAMES = {
   historyDirectory: 'history'
 };
 
-export const GENERATED_CODE_FILENAMES = {
-  schemaCastMap: 'schema-cast-map.js',
-  schemaDefinition: 'schema-definition.js',
+export const GENERATED_SEARCH_FILENAMES = {
+  dirName: 'search',
   fullTextSearchIndexes: 'full-text-search-indexes.js',
-  modelsD: 'models.d.ts',
-  modelsDb: 'models-db.js',
-  appDb: 'app-db.js',
-  transactionDb: 'transaction-db.js'
 };
+export const GENERATED_FILENAMES = {
+  dirName: 'generated',
+  index: 'index.js',
+  modelsD: 'models.d.ts',
+}
 
-export const GENERATED_CLASS_NAMES = {
-  modelsDb: 'ModelsDb',
-  transactionDb: 'TransactionDb',
-  appDb: 'AppDb'
+export const GENERATED_SCHEMA_FILENAMES = {
+  dirName: 'schema',
+  schemaDef: `schema-definition.js`,
+  schemaCastMap: 'schema-cast-map.js'
+}
+
+
+export const GENERATED_DB_FILENAMES = {
+  dirName: 'database-classes',
+  appDb: 'application-database.js',
+  transactionDb: 'transaction-database.js',
+  modelsDb: 'models-database.js',
+}
+
+export const GENERATED_DB_CLASS_NAMES = {
+  modelsDb: 'ModelsDatabase',
+  transactionDb: 'TransactionDatabase',
+  appDb: 'ApplicationDatabase'
 };
