@@ -12,7 +12,7 @@ export const DEFAULT_PRETTIER_OPTIONS: prettier.Options = {
 
 export const FRIEDA_RC_FILENAME = '.friedarc.json';
 
-export const SCHEMA_DEFINITION_FILENAME = 'schema-definition.d.ts'
+export const SCHEMA_DEFINITION_FILENAME = 'schema-definition.d.ts';
 export const GENERATED_CODE_FOLDERNAME = 'generated';
 
 export const FRIEDA_METADATA_NAMES = {
