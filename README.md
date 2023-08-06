@@ -113,21 +113,31 @@ export const load = async (event) => {
 
 ## Generated Code
 
+Frieda generates several files in the [`outputDirectory`](#outputdirectory).  Assuming this is `src/lib/db`:
+
 ```
 └── src
-     └──db  (assuming src/db is the path you specified)
-        ├── generated
-        │   ├── app-db.js
-        │   ├── full-text-search-indexes.js
-        │   ├── models-db.js
-        │   ├── models.d.ts
-        │   ├── schema-cast-map.js
-        │   ├── schema-definition.js
-        │   └── transaction-db.js
-        └── schema-definition.d.ts
+    └── lib 
+        └── db (this is the outputDirectory)
+            ├── generated
+            │   ├── app-db.js
+            │   ├── full-text-search-indexes.js
+            │   ├── models-db.js
+            │   ├── models.d.ts
+            │   ├── schema-cast-map.js
+            │   ├── schema-definition.js
+            │   └── transaction-db.js
+            └── schema.d.ts
 ```
 
-#### `schema-definition.d.ts`
+Notes:
+- You can keep other files and folders in the `outputDirectory`, but don't put your own code in the `generated` folder. This folder is nuked before regenerating code. Also, obviously, your files/folders should not be named
+- `schema-definition.d.ts` and the generated code should be considered part of your source code, that is, added to git and included in your javascript/typescript build step. (Unlike with, say, Prisma, there is no separate build step on deploy.)
+- You can override the value in `.friedarc.json` by doing `frieda --output-directory <some-other-path>`.
+
+
+
+### `schema-definition.d.ts`
 This file contains a model type for each table and view. 
 - The field types are **initially** based on default conventions mapping MySQL column types to javascript types. But it's expected that you will edit the field types to suit your application. The field types in this file are the source of truth; the default conventions are only used when you add a table or column
 - A `generated` folder with the code you will use in your application.
