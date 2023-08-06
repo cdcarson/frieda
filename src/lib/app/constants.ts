@@ -15,6 +15,7 @@ export const FRIEDA_RC_FILENAME = '.friedarc.json';
 export const GENERATED_CODE_FOLDERNAME = 'generated'
 export const MODEL_DEFINITION_FILENAME = 'model-types.d.ts';
 
+
 export const FRIEDA_METADATA_NAMES = {
   baseDirectory: '.frieda-metadata',
   jsonFile: 'schema.json',
