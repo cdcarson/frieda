@@ -12,8 +12,7 @@ export const DEFAULT_PRETTIER_OPTIONS: prettier.Options = {
 
 export const FRIEDA_RC_FILENAME = '.friedarc.json';
 
-
-export const MODEL_DEFINITION_FILENAME = 'model-types.d.ts'
+export const MODEL_DEFINITION_FILENAME = 'model-types.d.ts';
 
 export const FRIEDA_METADATA_NAMES = {
   baseDirectory: '.frieda-metadata',
@@ -24,27 +23,26 @@ export const FRIEDA_METADATA_NAMES = {
 
 export const GENERATED_SEARCH_FILENAMES = {
   dirName: 'search',
-  fullTextSearchIndexes: 'full-text-search-indexes.js',
+  fullTextSearchIndexes: 'full-text-search-indexes.js'
 };
 export const GENERATED_FILENAMES = {
   dirName: 'generated',
   index: 'index.js',
-  modelsD: 'models.d.ts',
-}
+  modelsD: 'models.d.ts'
+};
 
 export const GENERATED_SCHEMA_FILENAMES = {
   dirName: 'schema',
   schemaDef: `schema-definition.js`,
   schemaCastMap: 'schema-cast-map.js'
-}
-
+};
 
 export const GENERATED_DB_FILENAMES = {
   dirName: 'database-classes',
   appDb: 'application-database.js',
   transactionDb: 'transaction-database.js',
-  modelsDb: 'models-database.js',
-}
+  modelsDb: 'models-database.js'
+};
 
 export const GENERATED_DB_CLASS_NAMES = {
   modelsDb: 'ModelsDatabase',

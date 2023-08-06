@@ -22,7 +22,7 @@ Other key features:
 
 - No bespoke data definition language. There's just a plain typescript file containing model types. Initially this file is populated using a set of reasonable conventions mapping MySQL column types to javascript field types. Need to change how a field is typed and cast? Just edit its javascript type.
 - No other unnecessary features. Frieda is not an ORM or a query builder. Models have no notion of their relations. Beyond simple `SELECT` and CrUD, Frieda does not write SQL for you. It does not create migrations. It does not let you switch to MongoDb. Frieda assumes...
-  - You're cool with writing a certain amount of SQL by hand. 
+  - You're cool with writing a certain amount of SQL by hand.
   - You're happy with PlanetScale's built-in schema workflow.
 
 > Frieda not what you want? Try [Prisma](https://github.com/prisma/prisma) (to manage the schema) and [Kysely with the PlanetScale dialect](https://github.com/depot/kysely-planetscale) (to help write queries.)
@@ -36,17 +36,19 @@ npm i frieda
 ./node_modules/.bin/frieda
 ```
 
-Frieda will ask for a couple of [options](#options): 
+Frieda will ask for a couple of [options](#options):
+
 - Where to find your database URL.
 - Where you want the generated code to go.
 
-These options are saved to `.friedarc.json`, so you don't have to go through the prompts every time. 
+These options are saved to `.friedarc.json`, so you don't have to go through the prompts every time.
 
 Frieda then fetches the schema and generates code.
 
 ### Basic Usage
 
 Create a `get-db.js` (or `.ts`) file next to the `generated` folder in the path you specified. (It doesn't have to be here, just keeping things simple.)
+
 ```
 └── src
     └──lib (aliased as $lib in the example below)
@@ -57,6 +59,7 @@ Create a `get-db.js` (or `.ts`) file next to the `generated` folder in the path 
 ```
 
 Paste this in:
+
 ```js
 // get-db.js
 // Example quick start code. Exports a function that returns a singleton AppDb instance.
@@ -94,30 +97,27 @@ Use `AppDb`:
 // a SvelteKit example +page.server.js file
 // src/routes/cats/[catId]/+page.server.js
 import { error } from '@svelte/kit';
-import { getDb } from '$lib/db/get-db.js'
+import { getDb } from '$lib/db/get-db.js';
 
 export const load = async (event) => {
   const db = getDb();
-  const id = event.params.catId
-  const cat = await db.cat.find({where: {id}});
-  if (! cat) {
-    throw error(404, `Cat ID ${id} not found!`)
+  const id = event.params.catId;
+  const cat = await db.cat.find({ where: { id } });
+  if (!cat) {
+    throw error(404, `Cat ID ${id} not found!`);
   }
   // note `cat` is typed as `CatSelectAll` from '$lib/db/generated/models.js'
-  return { cat }
-}
+  return { cat };
+};
 ```
-
-
-
 
 ## Generated Code
 
-Frieda generates several files in the [`outputDirectory`](#outputdirectory).  Assuming this is `src/lib/db`:
+Frieda generates several files in the [`outputDirectory`](#outputdirectory). Assuming this is `src/lib/db`:
 
 ```
 └── src
-    └── lib 
+    └── lib
         └── db (this is the outputDirectory)
             ├── generated
             │   ├── app-db.js
@@ -131,23 +131,22 @@ Frieda generates several files in the [`outputDirectory`](#outputdirectory).  As
 ```
 
 Notes:
+
 - You can keep other files and folders in the `outputDirectory`, but don't put your own code in the `generated` folder. This folder is nuked before regenerating code. Also, obviously, your files/folders should not be named
 - `schema-definition.d.ts` and the generated code should be considered part of your source code, that is, added to git and included in your javascript/typescript build step. (Unlike with, say, Prisma, there is no separate build step on deploy.)
 - You can override the value in `.friedarc.json` by doing `frieda --output-directory <some-other-path>`.
 
-
-
 ### `schema-definition.d.ts`
-This file contains a model type for each table and view. 
+
+This file contains a model type for each table and view.
+
 - The field types are **initially** based on default conventions mapping MySQL column types to javascript types. But it's expected that you will edit the field types to suit your application. The field types in this file are the source of truth; the default conventions are only used when you add a table or column
 - A `generated` folder with the code you will use in your application.
 
-
 `frieda` should be re-run each time:
+
 - The database schema is modified.
 - `schema-definition.d.ts` is modified.
-
-
 
 ## Options
 
@@ -185,9 +184,8 @@ Notes:
 - `--init` Make changes to the two options above. (You can also edit `.friedarc.json` directly.)
 - `--help` Show help.
 
-
-
 # OLD STUFF
+
 ## How?
 
 The primary problem Frieda solves is how to map MySQL column types to javascript types. Most MySQL column types can be mapped unambiguously to javascript types. The exceptions to this rule (according to Frieda) are:
@@ -205,15 +203,6 @@ Frieda (initially, partially) solves this ambiguity with the following conventio
 1. `json` columns are typed as `unknown`
 1. `set('a','b')` is typed as `Set<'a'|'b'>`
 1. un
-
-
-
-
- 
-
-
-
-
 
 ## Project Structure
 

@@ -9,7 +9,6 @@ import { fetchSchema } from './fetch-schema.js';
 import { parseSchema } from './parse-schema.js';
 import { generateCode } from './generate-code.js';
 export const main = async (cwd: string, args: string[]) => {
- 
   const app = yargs(args)
     .scriptName('frieda')
     .usage('frieda [options]')
