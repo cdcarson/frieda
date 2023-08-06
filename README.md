@@ -130,7 +130,7 @@ CREATE TABLE
     `name` varchar(100) NOT NULL,
     `fleaCount` bigint NOT NULL DEFAULT '0',
     PRIMARY KEY (`id`)
-  ) 
+  )
 ```
 
 ...the `fleaCount` field will be typed by default as `string`...
@@ -154,11 +154,12 @@ type Cat = {
   ownerId: string;
   name: string;
 -  fleaCount: string;
-+  fleaCount: bigint; 
++  fleaCount: bigint;
 };
 ```
 
 Re-run `frieda`...
+
 ```bash
 ./node_modules/.bin/frieda
 ```
@@ -166,7 +167,7 @@ Re-run `frieda`...
 You won't see any changes to `model-types.d.ts` (your changes to this file are always preserved as long as the model and field are not dropped in the database,) but the **generated** `Cat` model types in `generated/models.d.ts` will reflect the change:
 
 ```diff
-// generated/models.d.ts 
+// generated/models.d.ts
 export type Cat = {
   id: string;
   ownerId: string;
@@ -176,7 +177,6 @@ export type Cat = {
 };
 // ditto for the other generated Cat model types, `CatCreate`, `CatUpdate`, etc.
 ```
-
 
 ## Generated Code
 
