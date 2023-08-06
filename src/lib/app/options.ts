@@ -5,7 +5,7 @@ import {
   ENV_DB_URL_KEYS,
   FRIEDA_RC_FILENAME,
   GENERATED_CODE_FOLDERNAME,
-  SCHEMA_DEFINITION_FILENAME
+  MODEL_DEFINITION_FILENAME
 } from './constants.js';
 import { connect, type Connection } from '@planetscale/database';
 import { fmtPath, fmtVarName, log, squishWords, prompt } from './utils.js';
@@ -39,7 +39,7 @@ export class Options {
       (s) => fmtVarName(s)
     ).join(' or ')}.`,
     outputDirectory: `Database code directory. It contains (1) a ${fmtPath(
-      SCHEMA_DEFINITION_FILENAME
+      MODEL_DEFINITION_FILENAME
     )} file, 
       which you can edit to fine-tune the schema's javascript types, and (2) a ${fmtPath(
         GENERATED_CODE_FOLDERNAME
@@ -87,7 +87,7 @@ export class Options {
   }
 
   get schemaDefinitionPath(): string {
-    return join(this.outputDirectoryPath, SCHEMA_DEFINITION_FILENAME);
+    return join(this.outputDirectoryPath, MODEL_DEFINITION_FILENAME);
   }
 
   get generatedDirectoryPath(): string {
