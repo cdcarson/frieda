@@ -6,8 +6,9 @@ Javascript code generator for the PlanetScale serverless driver.
 
 - [Why?](#why)
 - [Quick Start](#quick-start)
+  - [Basic Usage](#basic-usage)
+- [Generated Code](#generated-code)
 - [Options](#options)
-- [Project Structure](#project-structure)
 
 ## Why?
 
@@ -110,7 +111,7 @@ export const load = async (event) => {
 
 
 
-### Generated Code
+## Generated Code
 
 ```
 └── src
@@ -135,35 +136,6 @@ This file contains a model type for each table and view.
 `frieda` should be re-run each time:
 - The database schema is modified.
 - `schema-definition.d.ts` is modified.
-
-
-
-
-
-
-
-## How?
-
-The primary problem Frieda solves is how to map MySQL column types to javascript types. Most MySQL column types can be mapped unambiguously to javascript types. The exceptions to this rule (according to Frieda) are:
-
-1. How to type `bigint` columns in javascript.
-1. How to represent javascript `boolean`s in the database.
-1. Specifying the javascript type of `json` columns.
-1. Whether to type `set` columns as javascript `Set`
-1. Column types where there's no equivalent in plain javascript, like the [geospatial types](https://dev.mysql.com/doc/refman/8.0/en/spatial-type-overview.html).
-
-Frieda (initially, partially) solves this ambiguity with the following conventions:
-
-1. `bigint` columns are typed as javascript `string`
-1. `tinyint(1)` columns are typed as `boolean`; all other `tinyint` columns are typed as `number`
-1. `json` columns are typed as `unknown`
-1. `set('a','b')` is typed as `Set<'a'|'b'>`
-1. un
-
-
-
-
- 
 
 
 
@@ -202,6 +174,36 @@ Notes:
 
 - `--init` Make changes to the two options above. (You can also edit `.friedarc.json` directly.)
 - `--help` Show help.
+
+
+
+# OLD STUFF
+## How?
+
+The primary problem Frieda solves is how to map MySQL column types to javascript types. Most MySQL column types can be mapped unambiguously to javascript types. The exceptions to this rule (according to Frieda) are:
+
+1. How to type `bigint` columns in javascript.
+1. How to represent javascript `boolean`s in the database.
+1. Specifying the javascript type of `json` columns.
+1. Whether to type `set` columns as javascript `Set`
+1. Column types where there's no equivalent in plain javascript, like the [geospatial types](https://dev.mysql.com/doc/refman/8.0/en/spatial-type-overview.html).
+
+Frieda (initially, partially) solves this ambiguity with the following conventions:
+
+1. `bigint` columns are typed as javascript `string`
+1. `tinyint(1)` columns are typed as `boolean`; all other `tinyint` columns are typed as `number`
+1. `json` columns are typed as `unknown`
+1. `set('a','b')` is typed as `Set<'a'|'b'>`
+1. un
+
+
+
+
+ 
+
+
+
+
 
 ## Project Structure
 
