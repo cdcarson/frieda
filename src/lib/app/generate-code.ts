@@ -150,19 +150,11 @@ export const generateCode = async (
     },
 
     {
-      path: join(
-        options.generatedDirectoryPath,
-        GENERATED_FILENAMES.index
-      ),
-      contents: getGeneratedIndexJsCode(
-        generatedFileBannerComment
-      )
+      path: join(options.generatedDirectoryPath, GENERATED_FILENAMES.index),
+      contents: getGeneratedIndexJsCode(generatedFileBannerComment)
     },
     {
-      path: join(
-        options.generatedDirectoryPath,
-        GENERATED_FILENAMES.modelsD
-      ),
+      path: join(options.generatedDirectoryPath, GENERATED_FILENAMES.modelsD),
       contents: getGeneratedModelsDTsCode(
         parsedSchema,
         generatedFileBannerComment
@@ -904,8 +896,10 @@ export const getGeneratedSchemaCastMapJsSourceCode = (
     `;
 };
 
-export const getGeneratedIndexJsCode = (getGeneratedFileBannerComment: (explanation: string) => string): string => {
-  const banner = getGeneratedFileBannerComment('Exports generated code.')
+export const getGeneratedIndexJsCode = (
+  getGeneratedFileBannerComment: (explanation: string) => string
+): string => {
+  const banner = getGeneratedFileBannerComment('Exports generated code.');
   return `
     ${banner}
 
@@ -917,6 +911,5 @@ export const getGeneratedIndexJsCode = (getGeneratedFileBannerComment: (explanat
     export * from './${GENERATED_SCHEMA_FILENAMES.dirName}/${GENERATED_SCHEMA_FILENAMES.schemaCastMap}';
     export * from './${GENERATED_SEARCH_FILENAMES.dirName}/${GENERATED_SEARCH_FILENAMES.fullTextSearchIndexes}';
   
-  `
-
-}
+  `;
+};

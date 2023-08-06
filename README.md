@@ -138,7 +138,6 @@ Notes:
 - `model-types.d.ts` and the generated code should be considered part of your source code, that is, added to git and included in your javascript/typescript build step. (Unlike with, say, Prisma, there is no separate build step on deploy.)
 - You can override the value in `.friedarc.json` by doing `frieda --output-directory <some-other-path>`.
 
-
 ### `model-types.d.ts`
 
 This file contains a model type for each table and view.
@@ -150,7 +149,6 @@ This file contains a model type for each table and view.
 
 - The database schema is modified.
 - `model-types.d.ts` is modified.
-
 
 ## Options
 
@@ -207,8 +205,6 @@ Frieda (initially, partially) solves this ambiguity with the following conventio
 1. `json` columns are typed as `unknown`
 1. `set('a','b')` is typed as `Set<'a'|'b'>`
 1. un
-
-
 
 ### `.frieda-metadata`
 
