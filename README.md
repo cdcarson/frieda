@@ -20,7 +20,7 @@ Frieda aims to create solid database code for typescript/javascript projects usi
 Other key features:
 
 - No bespoke data definition language. There's just a plain typescript file containing model types. Initially this file is populated using a set of reasonable conventions mapping MySQL column types to javascript field types. Need to change how a field is typed and cast? Just edit its javascript type.
-- No other unnecessary features. Frieda is not an ORM or a query builder. Models have no notion of their relations. Beyond simple `SELECT` and CrUD, Frieda does not write SQL for you. It does not create migrations. It does not let you switch to MongoDb. Net, Frieda assumes...
+- No other unnecessary features. Frieda is not an ORM or a query builder. Models have no notion of their relations. Beyond simple `SELECT` and CrUD, Frieda does not write SQL for you. It does not create migrations. It does not let you switch to MongoDb. Frieda assumes...
   - You're cool with writing a certain amount of SQL by hand. 
   - You're happy with PlanetScale's built-in schema workflow.
 
