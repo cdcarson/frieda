@@ -201,26 +201,29 @@ export const generateCode = async (
 
   const examplePath = join(options.outputDirectoryPath, 'get-db.js');
   const exampleCode = `
-  // ${examplePath}
-  // Example quick start code. The \`getDb\`
-  // function returns a singleton \`AppDb\` instance.
+      // ${examplePath}
+      // Example quick start code. Exports a function that 
+      // returns a singleton ApplicationDatabase instance.
 
-  import { connect } from '@planetscale/database';
-  // get the database URL...
-  import { DATABASE_URL } from '$env/static/private';
-  // import the generated AppDb class...
-  import { AppDb } from './generated/app-db';
+      import { connect } from '@planetscale/database';
 
-  /** @type {AppDb|undefined} */
-  let _appDb = undefined;
+      // Get the database URL variable (or the host, username, password variables.)
+      // This is how you'd do it in SvelteKit...
+      import { DATABASE_URL } from '$env/static/private';
 
-  /** @returns {AppDb} */
-  export const getDb = () => {
-    if (!_appDb) {
-      _appDb = new AppDb(connect({ url: DATABASE_URL }));
-    }
-    return _appDb;
-  };
+      // Import the generated ApplicationDatabase class...
+      import { ApplicationDatabase } from './generated';
+
+      /** @type {ApplicationDatabase|undefined} */
+      let _appDb = undefined;
+
+      /** @returns {ApplicationDatabase} */
+      export const getDb = () => {
+        if (!_appDb) {
+          _appDb = new ApplicationDatabase(connect({ url: DATABASE_URL }));
+        }
+        return _appDb;
+      };
   `;
   const examplePrettified = prettier.format(exampleCode, {
     ...DEFAULT_PRETTIER_OPTIONS,
