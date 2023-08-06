@@ -12,6 +12,7 @@ export const DEFAULT_PRETTIER_OPTIONS: prettier.Options = {
 
 export const FRIEDA_RC_FILENAME = '.friedarc.json';
 
+export const GENERATED_CODE_FOLDERNAME = 'generated'
 export const MODEL_DEFINITION_FILENAME = 'model-types.d.ts';
 
 export const FRIEDA_METADATA_NAMES = {
@@ -26,7 +27,6 @@ export const GENERATED_SEARCH_FILENAMES = {
   fullTextSearchIndexes: 'full-text-search-indexes.js'
 };
 export const GENERATED_FILENAMES = {
-  dirName: 'generated',
   index: 'index.js',
   modelsD: 'models.d.ts'
 };

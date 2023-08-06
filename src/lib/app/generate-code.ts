@@ -17,8 +17,11 @@ import { FilesIO } from './files-io.js';
 import { FRIEDA_VERSION } from '$lib/version.js';
 import { join, basename, dirname } from 'node:path';
 import {
-  GENERATED_CODE_FILENAMES,
-  GENERATED_CLASS_NAMES,
+  GENERATED_DB_CLASS_NAMES,
+  GENERATED_DB_FILENAMES,
+  GENERATED_FILENAMES,
+  GENERATED_SCHEMA_FILENAMES,
+  GENERATED_SEARCH_FILENAMES,
   FRIEDA_METADATA_NAMES,
   DEFAULT_PRETTIER_OPTIONS
 } from './constants.js';
@@ -118,7 +121,8 @@ export const generateCode = async (
     {
       path: join(
         options.generatedDirectoryPath,
-        GENERATED_CODE_FILENAMES.schemaCastMap
+        GENERATED_SCHEMA_FILENAMES.dirName,
+        GENERATED_SCHEMA_FILENAMES.schemaCastMap
       ),
       contents: getGeneratedSchemaCastMapJsSourceCode(
         parsedSchema,
@@ -128,7 +132,8 @@ export const generateCode = async (
     {
       path: join(
         options.generatedDirectoryPath,
-        GENERATED_CODE_FILENAMES.schemaDefinition
+        GENERATED_SCHEMA_FILENAMES.dirName,
+        GENERATED_SCHEMA_FILENAMES.schemaDef
       ),
       contents: getGeneratedSchemaJsCode(
         parsedSchema,
@@ -138,14 +143,25 @@ export const generateCode = async (
     {
       path: join(
         options.generatedDirectoryPath,
-        GENERATED_CODE_FILENAMES.fullTextSearchIndexes
+        GENERATED_SEARCH_FILENAMES.dirName,
+        GENERATED_SEARCH_FILENAMES.fullTextSearchIndexes
       ),
       contents: getSearchIndexesCode(parsedSchema, generatedFileBannerComment)
+    },
+
+    {
+      path: join(
+        options.generatedDirectoryPath,
+        GENERATED_FILENAMES.index
+      ),
+      contents: getGeneratedIndexJsCode(
+        generatedFileBannerComment
+      )
     },
     {
       path: join(
         options.generatedDirectoryPath,
-        GENERATED_CODE_FILENAMES.modelsD
+        GENERATED_FILENAMES.modelsD
       ),
       contents: getGeneratedModelsDTsCode(
         parsedSchema,
@@ -155,21 +171,24 @@ export const generateCode = async (
     {
       path: join(
         options.generatedDirectoryPath,
-        GENERATED_CODE_FILENAMES.appDb
+        GENERATED_DB_FILENAMES.dirName,
+        GENERATED_DB_FILENAMES.appDb
       ),
       contents: getAppDbCode(generatedFileBannerComment)
     },
     {
       path: join(
         options.generatedDirectoryPath,
-        GENERATED_CODE_FILENAMES.transactionDb
+        GENERATED_DB_FILENAMES.dirName,
+        GENERATED_DB_FILENAMES.transactionDb
       ),
       contents: getTransactionsDbCode(generatedFileBannerComment)
     },
     {
       path: join(
         options.generatedDirectoryPath,
-        GENERATED_CODE_FILENAMES.modelsDb
+        GENERATED_DB_FILENAMES.dirName,
+        GENERATED_DB_FILENAMES.modelsDb
       ),
       contents: getModelsDbCode(parsedSchema, generatedFileBannerComment)
     }
@@ -272,7 +291,7 @@ export const getSchemaDefinitionDTsCode = (
    * 
    * - Don't export the model types here. They are only used
    *   to calculate the actual types in ${options.generatedDirectoryPath}/${
-    GENERATED_CODE_FILENAMES.modelsD
+    GENERATED_FILENAMES.modelsD
   }.
    *   Application code should import them from there, not here.
    * 
@@ -676,7 +695,7 @@ export const getGeneratedSchemaJsCode = (
   return `
     ${bannerComment}
 
-    import cast from './${GENERATED_CODE_FILENAMES.schemaCastMap}'
+    import cast from './${GENERATED_SCHEMA_FILENAMES.schemaCastMap}'
 
     /** @type {import('frieda').SchemaDefinition} */
     const schemaDefinition = {
@@ -693,10 +712,10 @@ export const getModelsDbCode = (
   getGeneratedFileBannerComment: (explanation: string) => string
 ): string => {
   const bannerComment = getGeneratedFileBannerComment(`
-    This file exports the \`${GENERATED_CLASS_NAMES.modelsDb}\` class, which provides a \`ModelDb\` for each model in the database schema.
+    This file exports the \`${GENERATED_DB_CLASS_NAMES.modelsDb}\` class, which provides a \`ModelDb\` for each model in the database schema.
     It's not meant to be used on it's own. Instead it's extended by the generated database classes
-    \`${GENERATED_CLASS_NAMES.appDb}\` (in \`./${GENERATED_CODE_FILENAMES.appDb}\`) and
-    \`${GENERATED_CLASS_NAMES.transactionDb}\` (in \`./${GENERATED_CODE_FILENAMES.transactionDb}\`.)
+    \`${GENERATED_DB_CLASS_NAMES.appDb}\` (in \`./${GENERATED_DB_FILENAMES.appDb}\`) and
+    \`${GENERATED_DB_CLASS_NAMES.transactionDb}\` (in \`./${GENERATED_DB_FILENAMES.transactionDb}\`.)
   `);
 
   return `
@@ -705,8 +724,8 @@ export const getModelsDbCode = (
       BaseDb, ModelDb
     } from 'frieda';
    
-    export class ${GENERATED_CLASS_NAMES.modelsDb} extends BaseDb {
-      /** @type {Partial<import('./models.js').DatabaseModels>} */
+    export class ${GENERATED_DB_CLASS_NAMES.modelsDb} extends BaseDb {
+      /** @type {Partial<import('../models.js').DatabaseModels>} */
       #models = {};
 
       /**
@@ -725,7 +744,7 @@ export const getModelsDbCode = (
       ${parsedSchema.models
         .map((m) => {
           return `
-          /** @returns {import('./models.js').${m.dbTypeName}} */
+          /** @returns {import('../models.js').${m.dbTypeName}} */
           get ${m.appDbKey}() {
             if (! this.#models.${m.appDbKey}) {
               this.#models.${m.appDbKey} = new ModelDb('${m.modelName}', this.connOrTx, this.schema, this.loggingOptions);
@@ -746,8 +765,8 @@ export const getTransactionsDbCode = (
   getGeneratedFileBannerComment: (explanation: string) => string
 ): string => {
   const bannerComment = getGeneratedFileBannerComment(`
-    This file exports the \`${GENERATED_CLASS_NAMES.transactionDb}\` class.
-    \`${GENERATED_CLASS_NAMES.appDb}\` creates an instance of this class to pass the function parameter in 
+    This file exports the \`${GENERATED_DB_CLASS_NAMES.transactionDb}\` class.
+    \`${GENERATED_DB_CLASS_NAMES.appDb}\` creates an instance of this class to pass the function parameter in 
     its \`transaction(fn)\` method.
     
   `);
@@ -755,9 +774,9 @@ export const getTransactionsDbCode = (
   return `
     ${bannerComment}
     import {
-      ${GENERATED_CLASS_NAMES.modelsDb}
-    } from './${GENERATED_CODE_FILENAMES.modelsDb}';
-    export class ${GENERATED_CLASS_NAMES.transactionDb} extends ${GENERATED_CLASS_NAMES.modelsDb} {
+      ${GENERATED_DB_CLASS_NAMES.modelsDb}
+    } from './${GENERATED_DB_FILENAMES.modelsDb}';
+    export class ${GENERATED_DB_CLASS_NAMES.transactionDb} extends ${GENERATED_DB_CLASS_NAMES.modelsDb} {
       /**
        * @param {import('@planetscale/database').Transaction} transaction 
        * @param {import('frieda').SchemaDefinition} schema 
@@ -775,7 +794,7 @@ export const getAppDbCode = (
   getGeneratedFileBannerComment: (explanation: string) => string
 ): string => {
   const bannerComment = getGeneratedFileBannerComment(`
-    The main \`${GENERATED_CLASS_NAMES.appDb}\` class. This is the class
+    The main \`${GENERATED_DB_CLASS_NAMES.appDb}\` class. This is the class
     that should be instantiated by application code. 
   
     
@@ -784,14 +803,14 @@ export const getAppDbCode = (
   return `
     ${bannerComment}
     import {
-      ${GENERATED_CLASS_NAMES.modelsDb}
-    } from './${GENERATED_CODE_FILENAMES.modelsDb}';
+      ${GENERATED_DB_CLASS_NAMES.modelsDb}
+    } from './${GENERATED_DB_FILENAMES.modelsDb}';
     import {
-      ${GENERATED_CLASS_NAMES.transactionDb}
-    } from './${GENERATED_CODE_FILENAMES.transactionDb}';
-    import applicationSchema from './${GENERATED_CODE_FILENAMES.schemaDefinition}';
+      ${GENERATED_DB_CLASS_NAMES.transactionDb}
+    } from './${GENERATED_DB_FILENAMES.transactionDb}';
+    import applicationSchema from '../${GENERATED_SCHEMA_FILENAMES.dirName}/${GENERATED_SCHEMA_FILENAMES.schemaDef}';
 
-    export class ${GENERATED_CLASS_NAMES.appDb} extends ${GENERATED_CLASS_NAMES.modelsDb} {
+    export class ${GENERATED_DB_CLASS_NAMES.appDb} extends ${GENERATED_DB_CLASS_NAMES.modelsDb} {
       /** @type {import('@planetscale/database').Connection} */
       #conn;
     
@@ -804,12 +823,12 @@ export const getAppDbCode = (
         this.#conn = connection;
       }
       /**
-       * @param {<T>(txDb: ${GENERATED_CLASS_NAMES.transactionDb}) => Promise<T>} txFn 
+       * @param {<T>(txDb: ${GENERATED_DB_CLASS_NAMES.transactionDb}) => Promise<T>} txFn 
        * @returns 
        */
       async transaction(txFn) {
         const result = await this.#conn.transaction(async (tx) => {
-          const txDb = new ${GENERATED_CLASS_NAMES.transactionDb}(tx, this.schema, this.loggingOptions);
+          const txDb = new ${GENERATED_DB_CLASS_NAMES.transactionDb}(tx, this.schema, this.loggingOptions);
           return await txFn(txDb);
         });
         return result;
@@ -884,3 +903,20 @@ export const getGeneratedSchemaCastMapJsSourceCode = (
     export default schemaCastMap;
     `;
 };
+
+export const getGeneratedIndexJsCode = (getGeneratedFileBannerComment: (explanation: string) => string): string => {
+  const banner = getGeneratedFileBannerComment('Exports generated code.')
+  return `
+    ${banner}
+
+    export * from './models.js';
+    export * from './${GENERATED_DB_FILENAMES.dirName}/${GENERATED_DB_FILENAMES.modelsDb}';
+    export * from './${GENERATED_DB_FILENAMES.dirName}/${GENERATED_DB_FILENAMES.transactionDb}';
+    export * from './${GENERATED_DB_FILENAMES.dirName}/${GENERATED_DB_FILENAMES.appDb}';
+    export * from './${GENERATED_SCHEMA_FILENAMES.dirName}/${GENERATED_SCHEMA_FILENAMES.schemaDef}';
+    export * from './${GENERATED_SCHEMA_FILENAMES.dirName}/${GENERATED_SCHEMA_FILENAMES.schemaCastMap}';
+    export * from './${GENERATED_SEARCH_FILENAMES.dirName}/${GENERATED_SEARCH_FILENAMES.fullTextSearchIndexes}';
+  
+  `
+
+}
