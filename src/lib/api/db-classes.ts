@@ -32,7 +32,7 @@ export class ExecuteError extends Error implements DbExecuteError {
   }
 }
 
-export class BaseDb {
+export class BaseDatabase {
   #connOrTx: Connection | Transaction;
   #schema: SchemaDefinition;
   #loggingOptions: DbLoggingOptions;
@@ -129,10 +129,10 @@ export class BaseDb {
   }
 }
 
-export class ViewDb<
+export class ViewDatabase<
   M extends Record<string, unknown>,
   ModelSelectAll extends { [K in keyof M]?: M[K] } = M
-> extends BaseDb {
+> extends BaseDatabase {
   #model: ModelDefinition;
 
   constructor(
@@ -262,14 +262,14 @@ export class ViewDb<
   }
 }
 
-export class ModelDb<
+export class TableDatabase<
   M extends Record<string, unknown>,
   ModelSelectAll extends { [K in keyof M]?: M[K] },
   PrimaryKey extends { [K in keyof M]?: M[K] },
   CreateData extends { [K in keyof M]?: M[K] },
   UpdateData extends { [K in keyof M]?: M[K] },
   FindUniqueParams extends { [K in keyof M]?: M[K] }
-> extends ViewDb<M, ModelSelectAll> {
+> extends ViewDatabase<M, ModelSelectAll> {
   get primaryKeys(): (keyof M & string)[] {
     return this.fields.filter((f) => f.isPrimaryKey).map((f) => f.fieldName);
   }
