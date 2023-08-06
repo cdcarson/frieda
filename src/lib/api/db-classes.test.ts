@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, type SpyInstance } from 'vitest';
-import { BaseDb, ModelDb } from './db-classes.js';
+import { BaseDatabase, TableDatabase } from './db-classes.js';
 import type { SchemaDefinition } from './types.js';
 import type { Connection } from '@planetscale/database';
 import sql from 'sql-template-tag';
@@ -49,7 +49,7 @@ describe('ModelDb', () => {
       }
     ];
 
-    const db = new ModelDb('User', connection, schema);
+    const db = new TableDatabase('User', connection, schema);
     executeSpy.mockResolvedValue({
       rows: [{}, {}]
     });
@@ -90,7 +90,7 @@ describe('ModelDb', () => {
       }
     ];
 
-    const db = new ModelDb('User', connection, schema);
+    const db = new TableDatabase('User', connection, schema);
     executeSpy.mockResolvedValue({
       rows: [{}, {}]
     });
@@ -131,7 +131,7 @@ describe('ModelDb', () => {
       }
     ];
 
-    const db = new ModelDb('User', connection, schema);
+    const db = new TableDatabase('User', connection, schema);
     executeSpy.mockResolvedValue({
       rows: [{}]
     });
@@ -167,7 +167,7 @@ describe('ModelDb', () => {
       }
     ];
 
-    const db = new ModelDb('User', connection, schema);
+    const db = new TableDatabase('User', connection, schema);
     executeSpy.mockResolvedValue({
       rows: []
     });
@@ -204,7 +204,7 @@ describe('ModelDb', () => {
       }
     ];
 
-    const db = new ModelDb('User', connection, schema);
+    const db = new TableDatabase('User', connection, schema);
     executeSpy.mockResolvedValue({
       rows: []
     });
@@ -241,7 +241,7 @@ describe('ModelDb', () => {
       }
     ];
 
-    const db = new ModelDb('User', connection, schema);
+    const db = new TableDatabase('User', connection, schema);
     executeSpy.mockResolvedValue({
       rows: []
     });
@@ -277,7 +277,7 @@ describe('ModelDb', () => {
       }
     ];
 
-    const db = new ModelDb('User', connection, schema);
+    const db = new TableDatabase('User', connection, schema);
     executeSpy.mockResolvedValue({
       insertId: '333'
     });
@@ -318,7 +318,7 @@ describe('ModelDb', () => {
       }
     ];
 
-    const db = new ModelDb('User', connection, schema);
+    const db = new TableDatabase('User', connection, schema);
     executeSpy.mockResolvedValue({
       insertId: '333'
     });
@@ -358,7 +358,7 @@ describe('ModelDb', () => {
       }
     ];
 
-    const db = new ModelDb('User', connection, schema);
+    const db = new TableDatabase('User', connection, schema);
     executeSpy.mockResolvedValue({
       insertId: '333'
     });
@@ -398,7 +398,7 @@ describe('ModelDb', () => {
       }
     ];
 
-    const db = new ModelDb('User', connection, schema);
+    const db = new TableDatabase('User', connection, schema);
     executeSpy.mockResolvedValue({
       insertId: '333'
     });
@@ -437,7 +437,7 @@ describe('ModelDb', () => {
       }
     ];
 
-    const db = new ModelDb('User', connection, schema);
+    const db = new TableDatabase('User', connection, schema);
     executeSpy.mockResolvedValue({
       insertId: '333'
     });
@@ -477,7 +477,7 @@ describe('ModelDb', () => {
       }
     ];
 
-    const db = new ModelDb('User', connection, schema);
+    const db = new TableDatabase('User', connection, schema);
     executeSpy.mockResolvedValue({
       insertId: '333'
     });
@@ -508,14 +508,14 @@ describe('BaseDb.execute', () => {
     } as unknown as SchemaDefinition;
   });
   it('throws if the query throws', async () => {
-    const db = new BaseDb(connection, schema);
+    const db = new BaseDatabase(connection, schema);
     executeSpy.mockRejectedValue(new Error('bad'));
     await expect(() => db.execute(sql`Some bad`)).rejects.toThrowError(
       'Internal server error.'
     );
   });
   it('executeSelectFirstOrThrow throws', async () => {
-    const db = new BaseDb(connection, schema);
+    const db = new BaseDatabase(connection, schema);
     executeSpy.mockResolvedValue({
       rows: []
     });
@@ -524,7 +524,7 @@ describe('BaseDb.execute', () => {
     );
   });
   it('executeSelectFirstOrThrow succeeds', async () => {
-    const db = new BaseDb(connection, schema);
+    const db = new BaseDatabase(connection, schema);
     executeSpy.mockResolvedValue({
       rows: [{}]
     });
