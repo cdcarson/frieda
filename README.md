@@ -380,9 +380,9 @@ type CatPersonLeaderboardStats {
 
 ## Model Types
 
-Given a database table or view and its corresponding "virtual" model type in `model-types.d.ts`, Frieda generates the 
+Given a database table or view and its corresponding "virtual" model type in `model-types.d.ts`, Frieda generates the
 
-- [base model type](#base-model-type) 
+- [base model type](#base-model-type)
 
 _For tables only_, several other types are generated:
 
@@ -392,9 +392,7 @@ _For tables only_, several other types are generated:
 - [update type](#update-type)
 - [find unique type](#find-unique-type)
 
-> Generated model types are intentionally repetitive / verbose. They could be cleverer, but "clever" typescript in this case leads to a less straightforward developer experience. 
-
-
+> Generated model types are intentionally repetitive / verbose. They could be cleverer, but "clever" typescript in this case leads to a less straightforward developer experience.
 
 ```sql
 CREATE TABLE `Triangle` (
