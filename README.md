@@ -180,32 +180,20 @@ export type Cat = {
 
 ## Generated Code
 
-Frieda generates several files in the [`outputDirectory`](#outputdirectory). Assuming this is `src/lib/db`:
+Frieda creates one file, `model-types.d.ts`, and one folder, `generated`, in the [`outputDirectory`](#outputdirectory). Assuming `outputDirectory` is `src/lib/db`:
 
 ```
 
 src/lib/db <-- outputDirectory
-├── generated
-│   ├── database-classes
-│   │   ├── application-database.js
-│   │   ├── models-database.js
-│   │   └── transaction-database.js
-│   ├── index.js
-│   ├── models.d.ts
-│   ├── schema
-│   │   ├── schema-cast-map.js
-│   │   └── schema-definition.js
-│   └── search
-│       └── full-text-search-indexes.js
+├── generated 
 └── model-types.d.ts
 
 ```
 
-Notes:
+General Notes:
 
-- You can keep other files and folders in the `outputDirectory`, but don't put your own code in the `generated` folder. This folder is nuked before regenerating code. Also, obviously, your files/folders should not be named
-- `model-types.d.ts` and the generated code should be considered part of your source code, that is, added to git and included in your javascript/typescript build step. (Unlike with, say, Prisma, there is no separate build step on deploy.)
-- You can override the value in `.friedarc.json` by doing `frieda --output-directory <some-other-path>`.
+- You can co-locate other files and folders in the `outputDirectory` as long as they don't conflict with those paths. But don't put your own code in the `generated` folder since its contents are nuked each time `frieda` runs.
+- The `model-types.d.ts` file and the contents of `generated`  should be considered part of your source code. That is add them to git and include them in your javascript/typescript build step. 
 
 ### `model-types.d.ts`
 
