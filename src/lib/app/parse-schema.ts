@@ -240,7 +240,7 @@ export const getFieldCastType = (
   column: ColumnRow,
   javascriptType: string
 ): CastType => {
-  // take care of the guys where we can just infer the cast from the js type firet...
+  // take care of the guys where we can just infer the cast from the js type first...
   if (javascriptType === 'string') {
     return 'string';
   }

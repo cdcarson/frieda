@@ -16,8 +16,8 @@ Javascript code generator for the PlanetScale serverless driver.
   - [Modify field types in `model-types.d.ts`](#modify-field-types-in-model-typesdts)
     - [Recipe: Typing `json` fields](#recipe-typing-json-fields)
     - [Recipe: Typing `bigint` aggregate fields](#recipe-typing-bigint-aggregate-fields)
-  - [Field Casting](#field-casting)
 - [Model Types](#model-types)
+- [Field Casting](#casting)
 - [Options](#options)
 
 ## Why?
@@ -259,9 +259,14 @@ Files:
 
 ## Field Types
 
-When you first run `frieda` (and thereafter when a new table or column is added) field types are based on some reasonable [default conventions](#field-type-conventions) mapping MySQL column types to javascript field types. Mostly this will give you the javascript field type you want.
+When you first run `frieda` (and thereafter when a new table or column is added) field types are based on some [default conventions](#field-type-conventions) mapping MySQL column types to javascript field types. Mostly this will give you the javascript field type you want.
 
-In some cases, however, you will want to override the convention or narrow the type. You can do this by [editing the field in `model-types.d.ts`](#modify-field-types-in-model-typesdts), using typescript.
+In some cases, however, you will want to override the convention or narrow the type. You can do this by [editing the field in `model-types.d.ts`](#modify-field-types-in-model-typesdts), using typescript. Frieda does not limit or validate the javascript type based on the column type. You can type any field as anything you like, as long as it's valid typescript, **but...**
+
+**...a word about casting:** In some circumstances Frieda uses the javascript type you define to determine how to [cast](#casting) values. It's therefore up to you to choose a javascript type that won't produce unexpected results. For example...
+
+- Typing numeric columns as `boolean` will work fine.
+- Typing a string columns as `boolean` will not work.
 
 ### Field Type Conventions
 
@@ -372,10 +377,6 @@ type CatPersonLeaderboardStats {
   aggregateFleaCount: bigint;
 }
 ```
-
-### Field Casting
-
-TKTK
 
 ## Model Types
 
@@ -496,6 +497,23 @@ export type TriangleDb = ModelDb<
 ```
 
 A convenience type for a specific `ModelDb`. TKTK LINK You probably won't need to use it.
+
+## Casting
+
+The serverless driver returns all database column values as javascript `string|null`. _Casting_ means turning that raw `string|null` value into a field value whose javascript type matches what you expect.
+
+A column value is `null` is always returned as `null`. Excluding that case, there are eight cast types:
+
+| Cast Type   | Casting Algorithm                  |
+| ----------- | ---------------------------------- |
+| `'bigint'`  | `(val) => BigInt(val)`             |
+| `'int'`     | `(val) => parseInt(val)`           |
+| `'float'`   | `(val) => parseFloat(val)`         |
+| `'boolean'` | `(val) => parseInt(val) !== 0`     |
+| `'json'`    | `(val) => JSON.parse(val)`         |
+| `'date'`    | `(val) => new Date(val)`           |
+| `'set'`     | `(val) => new Set(val.split(','))` |
+| `'string'`  | n/a                                |
 
 ## Options
 
@@ -685,25 +703,6 @@ const results = await db.executeSelect<CatPersonStats>(
   customCast
 );
 ```
-
-### Casting and Serialization
-
-The PlanetScale serverless driver returns all database column values as javascript `string|null`. _Casting_ means turning that raw `string|null` value into a field value whose javascript type matches what you expect.
-
-_Serialization_ means turning a javascript value into a something that can be passed into a MySQL query. Most javascript types work out of the box, but there are two exceptions.
-
-`null` field values coming from the database are always returned as javascript `null`. Likewise, `null` values passed into queries are always turned into MySQL `NULL`. Excluding that special universal case, there are eight other cases:
-
-| Cast Type   | Casting Algorithm                  | Serialization Algorithm                       |
-| ----------- | ---------------------------------- | --------------------------------------------- |
-| `'bigint'`  | `(val) => BigInt(val)`             | n/a                                           |
-| `'int'`     | `(val) => parseInt(val)`           | n/a                                           |
-| `'float'`   | `(val) => parseFloat(val)`         | n/a                                           |
-| `'boolean'` | `(val) => parseInt(val) !== 0`     | n/a                                           |
-| `'json'`    | `(val) => JSON.parse(val)`         | `(val) => JSON.stringify(val)`                |
-| `'date'`    | `(val) => new Date(val)`           | n/a                                           |
-| `'set'`     | `(val) => new Set(val.split(','))` | `(val) => Array.from(val.values()).join(',')` |
-| `'string'`  | n/a                                | n/a                                           |
 
 ## API
 
