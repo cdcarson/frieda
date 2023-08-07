@@ -292,17 +292,17 @@ In some cases, however, you will want to override the convention or narrow the t
 
 - A common (the most common?) case for `bigint` columns is auto-incrementing primary keys, where it does not make (much) sense to manipulate the values in javascript or compare them other than on equality. If doing those things to keys are necessary, it's easy to convert the values with`BigInt(id)`.
 - A stronger argument is that many folks use `JSON` to put data on the wire. Typing columns as `bigint` by default would force them to convert the values to string first.
-- That said, there are definitely cases where you want a `bigint` column to be numeric in javascript, either as `bigint` or `number`. In that case provide `bigint` or `number` as the type of the field in `model-types.d.ts`. ([recipe](#typing-bigint-fields))
+- That said, there are definitely cases where you want a `bigint` column to be numeric in javascript, either as `bigint` or `number`. In that case provide `bigint` or `number` as the type of the field in `model-types.d.ts`. ([recipe](#recipe-typing-bigint-aggregate-fields))
 
 #### Why are `set` columns typed as `Set`?
 
-- It seems like the right thing to do. On the javascript side a `Set` seems more readily manipulable than a string with comma-separated values. But TBH this is pie in the sky. Feedback from folks who actually use `set` columns rather than just theorize about them is welcome.
-- For now, you can turn this off for an individual field by typing it as `string` in `model-types.d.ts`.
+- `Set` seems more readily manipulable than a string with comma-separated values. (TBH, that's just a theory. Feedback welcome from folks who actually use `set` columns)
+- You can turn this off for an individual field by typing it as `string` in `model-types.d.ts`.
 
 #### Why are `json` columns typed as `unknown`?
 
 - There's no other valid typescript type for this case. For example things like `{}` or `any|any[]` would throw typescript linting errors in addition to (probably) being factually incorrect.
-- It's easy to [specify a useful type](#typing-json-fields) in `model-types.d.ts`.
+- It's easy to [specify a useful type](#recipe-typing-json-fields) in `model-types.d.ts`.
 
 ### Modify field types in `model-types.d.ts`
 
@@ -380,7 +380,21 @@ type CatPersonLeaderboardStats {
 
 ## Model Types
 
-For each table (excluding views) in the database, Frieda generates a set of types for selecting, creating and updating the model. Given the following table...
+Given a database table or view and its corresponding "virtual" model type in `model-types.d.ts`, Frieda generates the 
+
+- [base model type](#base-model-type) 
+
+_For tables only_, several other types are generated:
+
+- [select all type](#select-all-type)
+- [primary key type](#primary-key-type)
+- [create type](#create-type)
+- [update type](#update-type)
+- [find unique type](#find-unique-type)
+
+> Generated model types are intentionally repetitive / verbose. They could be cleverer, but "clever" typescript in this case leads to a less straightforward developer experience. 
+
+
 
 ```sql
 CREATE TABLE `Triangle` (
@@ -398,7 +412,7 @@ CREATE TABLE `Triangle` (
 
 ...the following model types are generated:
 
-#### Base Model Type
+### Base Model Type
 
 ```ts
 export type Triangle = {
