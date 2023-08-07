@@ -567,10 +567,9 @@ Documentation TKTK
 
 Documentation TKTK
 
-
 ### utility function: `getSearchSql`
-Documentation TKTK
 
+Documentation TKTK
 
 # OLD STUFF
 
