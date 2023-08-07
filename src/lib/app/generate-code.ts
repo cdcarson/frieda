@@ -747,7 +747,8 @@ export const getModelsDbCode = (
       }
       ${parsedSchema.models
         .map((m) => {
-          const dbConstructor = m.type === 'BASE TABLE' ? 'TableDatabase' : 'ViewDatabase'
+          const dbConstructor =
+            m.type === 'BASE TABLE' ? 'TableDatabase' : 'ViewDatabase';
           return `
           /** @returns {import('../models.js').${m.dbTypeName}} */
           get ${m.appDbKey}() {
