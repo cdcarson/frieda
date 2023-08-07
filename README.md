@@ -185,19 +185,39 @@ Frieda creates one file, `model-types.d.ts`, and one folder, `generated`, in the
 ```
 
 src/lib/db <-- outputDirectory
-├── generated 
+src/lib/db
+├── generated
+│   ├── database-classes
+│   │   ├── application-database.js
+│   │   ├── models-database.js
+│   │   └── transaction-database.js
+│   ├── index.js
+│   ├── models.d.ts
+│   ├── schema
+│   │   ├── schema-cast-map.js
+│   │   └── schema-definition.js
+│   └── search
+│       └── full-text-search-indexes.js
 └── model-types.d.ts
 
 ```
 
 General Notes:
 
-- You can co-locate other files and folders in the `outputDirectory` as long as they don't conflict with those paths. But don't put your own code in the `generated` folder since its contents are nuked each time `frieda` runs.
-- The `model-types.d.ts` file and the contents of `generated`  should be considered part of your source code. That is add them to git and include them in your javascript/typescript build step. 
+- You can co-locate other files and folders in the `outputDirectory` as long as they don't conflict with the `model-types.d.ts` or `generated` paths. - Don't put your own code in the `generated` folder. Its contents are deleted each time `frieda` runs.
+- The contents of `outputDirectory` should be considered part of your source code. That is add it to git and include it in your javascript/typescript build step. 
 
 ### `model-types.d.ts`
 
-This file contains a model type for each table and view.
+- This file contains a "virtual" model type for each table and view in the database.  It's the primary source of truth for Frieda to generate the "real" model types found in `generated/models.d.ts`.
+- Edit this file to change the javascript type of model fields. Although it is regenerated each time you run `freida`, a change you make here is preserved &mdash; so long as the column or its table has not been dropped from the schema.
+- The model types in `model-types.d.ts` are not (and cannot be) exported. This prevents your code from importing the "virtual" types by accident. The types in this file only exist to be analyzed by Frieda.
+
+
+
+
+
+
 
 - The field types are **initially** based on default conventions mapping MySQL column types to javascript types. But it's expected that you will edit the field types to suit your application. The field types in this file are the source of truth; the default conventions are only used when you add a table or column
 - A `generated` folder with the code you will use in your application.
