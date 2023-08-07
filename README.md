@@ -6,9 +6,18 @@ Javascript code generator for the PlanetScale serverless driver.
 
 - [Why?](#why)
 - [Quick Start](#quick-start)
-  - [Using the generated `ApplicationDatabase` class](#using-the-generated-applicationdatabase-class)
-  - [Modifying a field type](#modifying-a-field-type)
-- [Generated Code](#generated-code)
+  - [Example: Using the generated `ApplicationDatabase` class](#example-using-the-generated-applicationdatabase-class)
+  - [Example: Modifying a field type](#example-modifying-a-field-type)
+- [Project Structure](#project-structure)
+  - [Metadata and option files](#metadata-and-option-files)
+  - [`outputDirectory` files (generated code)](#outputdirectory-files-generated-code)
+- [Field Types](#field-types)
+  - [Field Type Conventions](#field-type-conventions)
+  - [Modify field types in `model-types.d.ts`](#modify-field-types-in-model-typesdts)
+    - [Recipe: Typing `json` fields](#recipe-typing-json-fields)
+    - [Recipe: Typing `bigint` aggregate fields](#recipe-typing-bigint-aggregate-fields)
+  - [Field Casting](#field-casting)
+- [Model Types](#model-types)
 - [Options](#options)
 
 ## Why?
@@ -46,7 +55,7 @@ These options are saved to `.friedarc.json`, so you don't have to go through the
 
 Frieda then fetches the schema and generates code.
 
-### Using the generated `ApplicationDatabase` class
+### Example: Using the generated `ApplicationDatabase` class
 
 Create a `get-db.js` (or `.ts`) file next to the `generated` folder in the path you specified. (It doesn't have to be here, just keeping things simple.)
 
@@ -110,7 +119,7 @@ export const load = async (event) => {
 };
 ```
 
-### Modifying a field type
+### Example: Modifying a field type
 
 The `model-types.d.ts` file in the output directory is where you can edit javascript field types.
 
@@ -178,68 +187,101 @@ export type Cat = {
 // ditto for the other generated Cat model types, `CatCreate`, `CatUpdate`, etc.
 ```
 
-## Generated Code
+## Project Structure
 
-Frieda generates several files in the [`outputDirectory`](#outputdirectory). Assuming this is `src/lib/db`:
+A typical project using Frieda will look like this. `outputDirectory` in this example is `src/lib/db`.
 
 ```
+.
+├── .frieda-metadata
+│   ├── history
+│   │   └── 2023-08-06T22:46:08.925Z
+│   │       ├── model-types.d.ts
+│   │       ├── schema.json
+│   │       └── schema.sql
+│   ├── .gitignore
+│   ├── schema.json
+│   └── schema.sql
+├── .friedarc.json
+└── src
+    ├── lib
+    │   └── db <-- outputDirectory
+    └── ...other source code
+```
 
+### Metadata and option files
+
+- The `.frieda-metadata` directory contains information about the current schema and previous versions, for reference and debugging purposes. Frieda only writes to this folder &mdash; it does not rely on the contents. The `.frieda-metadata/history` folder is .gitignore'd by default since it a new version is created every time you run `frieda`. (Edit `.frieda-metadata/.gitignore` to change this behavior.)
+- `.friedarc.json` saves your current [options](#options).
+
+### `outputDirectory` files (generated code)
+
+Frieda creates one file, `model-types.d.ts`, and one folder, `generated`, in the [`outputDirectory`](#outputdirectory). Assuming `outputDirectory` is `src/lib/db`:
+
+```
 src/lib/db <-- outputDirectory
 ├── generated
-│   ├── database-classes
-│   │   ├── application-database.js
-│   │   ├── models-database.js
-│   │   └── transaction-database.js
-│   ├── index.js
-│   ├── models.d.ts
-│   ├── schema
-│   │   ├── schema-cast-map.js
-│   │   └── schema-definition.js
-│   └── search
-│       └── full-text-search-indexes.js
+│   ├── database-classes
+│   │   ├── application-database.js
+│   │   ├── models-database.js
+│   │   └── transaction-database.js
+│   ├── index.js
+│   ├── models.d.ts
+│   ├── schema
+│   │   ├── schema-cast-map.js
+│   │   └── schema-definition.js
+│   └── search
+│       └── full-text-search-indexes.js
 └── model-types.d.ts
-
 ```
 
-Notes:
+General notes:
 
-- You can keep other files and folders in the `outputDirectory`, but don't put your own code in the `generated` folder. This folder is nuked before regenerating code. Also, obviously, your files/folders should not be named
-- `model-types.d.ts` and the generated code should be considered part of your source code, that is, added to git and included in your javascript/typescript build step. (Unlike with, say, Prisma, there is no separate build step on deploy.)
-- You can override the value in `.friedarc.json` by doing `frieda --output-directory <some-other-path>`.
+- You can co-locate other files and folders in the `outputDirectory` as long as they don't conflict with the `model-types.d.ts` or `generated` paths.
+- But don't put your own code in the `generated` folder. Its contents are deleted each time `frieda` runs.
+- The contents of `outputDirectory` should be considered part of your source code. That is add it to git and include it in your javascript/typescript build step.
 
-### `model-types.d.ts`
+Files:
 
-This file contains a model type for each table and view.
+- `generated` contains the generated application code.
+  - `database-classes`
+    - `application-database.js` exports the generated [`ApplicationDatabase`](#class-applicationdatabase-generated) class.
+    - `models-database.js` exports the generated [`ModelsDatabase`](#class-modelsdatabase-generated) class.
+    - `transaction-database.js` exports the generated [`ModelsDatabase`](#class-transactiondatabase-generated) class.
+  - `schema`
+    - `schema-cast-map.js` exports a map constant associating each field with a [`CastType`](#type-casttype)
+    - `schema-definition.js` exports the calculated [`SchemaDefinition`](#type-schemadefinition)
+  - `search`
+    - `full-text-search-indexes.js` exports all the full text search indexes for use with the [`getSearchSql`](#utility-function-getsearchsql) utility.
+  - `index.js` exports everything in the `generated` folder
+  - `models.d.ts` The "actual" model types calculated from `model-types.d.ts`. Each "virtual" model type produces [several "actual" model types](#model-types).
+- `model-types.d.ts` This is where you edit the javascript field types of your models. [More...](#modify-field-types-in-model-typesdts)
 
-- The field types are **initially** based on default conventions mapping MySQL column types to javascript types. But it's expected that you will edit the field types to suit your application. The field types in this file are the source of truth; the default conventions are only used when you add a table or column
-- A `generated` folder with the code you will use in your application.
+## Field Types
 
-`frieda` should be re-run each time:
+When you first run `frieda` (and thereafter when a new table or column is added) field types are based on some reasonable [default conventions](#field-type-conventions) mapping MySQL column types to javascript field types. Mostly this will give you the javascript field type you want.
 
-- The database schema is modified.
-- `model-types.d.ts` is modified.
+In some cases, however, you will want to override the convention or narrow the type. You can do this by [editing the field in `model-types.d.ts`](#modify-field-types-in-model-typesdts), using typescript.
 
-## Field Type Conventions
+### Field Type Conventions
 
-| MySql Type                                                                                                       | Default Javascript Type                                                         |
-| ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `bigint`                                                                                                         | `string` ([reasoning](#why-are-bigint-columns-typed-as-string))                 |
-| `tinyint(1)`, `boolean`, `bool`                                                                                  | `boolean`                                                                       |
-| `tinyint` (except `tinyint(1)`,) `int`, `integer`, `smallint`, `mediumint`, `year`                               | `number`                                                                        |
-| `float`, `double`, `real`, `decimal`, `numeric`                                                                  | `number`                                                                        |
-| `date`, `datetime`, `timestamp`                                                                                  | `Date`                                                                          |
-| `set('a','b')`                                                                                                   | <code>Set<'a'&#124;'b'></code> ([reasoning](#why-are-set-columns-typed-as-set)) |
-| `enum('a','b')`                                                                                                  | <code>'a'&#124;'b'</code>                                                       |
-| `json`                                                                                                           | `unknown` ([reasoning](#why-are-json-columns-typed-as-unknown))                 |
-| `char`, `varchar`,                                                                                               | `string`                                                                        |
-| `binary`, `varbinary`                                                                                            | `string`                                                                        |
-| `text`, `tinytext`, `mediumtext`, `longtext`                                                                     | `string`                                                                        |
-| `blob`, `tinyblob`, `mediumblob`, `longblob`                                                                     | `string`                                                                        |
-| `bit`                                                                                                            | `string`                                                                        |
-| `time`                                                                                                           | `string`                                                                        |
-| Everything else, e.g. the [geospatial types](https://dev.mysql.com/doc/refman/8.0/en/spatial-type-overview.html) | `string`                                                                        |
-
-### Reasoning
+| MySql Type                                                                                                                                                                                          | Default Javascript Type                                                         |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `bigint`                                                                                                                                                                                            | `string` ([reasoning](#why-are-bigint-columns-typed-as-string))                 |
+| `tinyint(1)`, `boolean`, `bool`                                                                                                                                                                     | `boolean`                                                                       |
+| `tinyint` (except `tinyint(1)`,) `int`, `integer`, `smallint`, `mediumint`, `year`                                                                                                                  | `number`                                                                        |
+| `float`, `double`, `real`, `decimal`, `numeric`                                                                                                                                                     | `number`                                                                        |
+| `date`, `datetime`, `timestamp`                                                                                                                                                                     | `Date`                                                                          |
+| `set('a','b')`                                                                                                                                                                                      | <code>Set<'a'&#124;'b'></code> ([reasoning](#why-are-set-columns-typed-as-set)) |
+| `enum('a','b')`                                                                                                                                                                                     | <code>'a'&#124;'b'</code>                                                       |
+| `json`                                                                                                                                                                                              | `unknown` ([reasoning](#why-are-json-columns-typed-as-unknown))                 |
+| `char`, `varchar`,                                                                                                                                                                                  | `string`                                                                        |
+| `binary`, `varbinary`                                                                                                                                                                               | `string`                                                                        |
+| `text`, `tinytext`, `mediumtext`, `longtext`                                                                                                                                                        | `string`                                                                        |
+| `blob`, `tinyblob`, `mediumblob`, `longblob`                                                                                                                                                        | `string`                                                                        |
+| `bit`                                                                                                                                                                                               | `string`                                                                        |
+| `time`                                                                                                                                                                                              | `string`                                                                        |
+| Everything else, including column types where there is no corresponding type in vanilla javascript, e.g. the [geospatial types](https://dev.mysql.com/doc/refman/8.0/en/spatial-type-overview.html) | `string`                                                                        |
 
 #### Why are `bigint` columns typed as `string`?
 
@@ -257,111 +299,85 @@ This file contains a model type for each table and view.
 - There's no other valid typescript type for this case. For example things like `{}` or `any|any[]` would throw typescript linting errors in addition to (probably) being factually incorrect.
 - It's easy to [specify a useful type](#typing-json-fields) in `model-types.d.ts`.
 
-## Options
+### Modify field types in `model-types.d.ts`
 
-Frieda's two main options are stored in a `.friedarc.json` file at the root of the project. This file should be added to git. If it doesn't exist or is somehow invalid, Frieda will prompt you for:
+The `model-types.d.ts` file contains a "virtual" model type for each table and view in the database. It's the primary source of truth for Frieda to generate the "real" model types found in `generated/models.d.ts`.
 
-### `envFilePath`
+Edit this file to change the javascript type of model fields. Although the file is regenerated each time you run `freida`, a change you make here is preserved &mdash; so long as the column or its table has not been dropped from the schema.
 
-The path to an environment variables file, (e.g. `.env`) containing the database URL. The variable name can be either `DATABASE_URL` or `FRIEDA_DATABASE_URL`. If you use host, username and password to connect to the database, you can easily construct the URL and add it to `.env`:
+The model types in `model-types.d.ts` are not (and cannot be) exported. This prevents your code from importing the "virtual" types by accident. The types in this file only exist to be analyzed by Frieda.
 
-```bash
-FRIEDA_DATABASE_URL=mysql://<YOUR USERNAME>:<YOUR PASSWORD>@aws.connect.psdb.cloud
+Field types in this file **should not** include `|null` or optionality (`?`), just the javascript type. Frieda adds `|null` and optionality to the actual model types where appropriate.
+
+```diff
+type Foo = {
+  id: string;
+- bar?: string|null;
++ bar: string;
+}
 ```
 
-Notes:
+Top-level import declarations are not allowed. Such imports cannot be preserved. Use inline `import('foo').Bar` statements instead:
 
-- The URL specified here is only used by Frieda to query the schema and generate code. The generated code itself uses a PlanetScale connection passed in from application code.
-- Remember to add the environment file to `.gitignore`.
-- You can override the value in `.friedarc.json` by passing `--env-file <some-other-env-file>` to `frieda`.
+```diff
+- import Stripe from 'stripe';
 
-### `outputDirectory`
+type StripeCustomer = {
+  userId: string;
+-  customer: Stripe.Customer;
++  customer: import('stripe').Stripe.Customer;
+}
+```
 
-The folder where the generated database code should go, e.g. `src/db`. After you run `frieda` this folder will contain:
+#### Recipe: Typing `json` fields
 
-- `model-types.d.ts` A file you can edit to modify the javascript types.
-- `generated` A folder containing the generated code.
+Model fields based on `json` columns can be typed with a literal type...
 
-Notes:
+```ts
+type Cat {
+  // literal type...
+  lastSeenLocation: {lat: number; lng: number; upTree: boolean};
+}
+```
 
-- You can keep other files and folders in the `outputDirectory` as long as they do not conflict with the paths mentioned above. But do not put your own code in the `generated` folder, since Frieda nukes its contents before regenerating code.
-- `model-types.d.ts` and the generated code should be considered part of your source code, that is, added to git and included in your javascript/typescript build step. (Unlike with, say, Prisma, there is no separate build step on deploy.)
-- You can override the value in `.friedarc.json` by doing `frieda --output-directory <some-other-path>`.
+...or an import...
 
-### CLI-only Options
+```ts
+type Cat {
+  // imported from project code...
+  prefs: import('../api.js').CatPreferences;
+  // imported from a library...
+  savedCard: import('stripe').Stripe.Source;
+}
+```
 
-- `--init` Make changes to the two options above. (You can also edit `.friedarc.json` directly.)
-- `--help` Show help.
+> Remember that top level import declaration are not allowed in `model-types.d.ts`. Instead, use the inline `import('foo').Bar` syntax shown above.
 
-## API
+#### Recipe: Typing `bigint` aggregate fields
 
-### class `ViewDatabase`
+As mentioned [above](#why-are-bigint-columns-typed-as-string), by default `bigint` columns are typed as javascript `string`. This makes sense for primary/secondary keys, but it's a pain in the neck when you actually want a numeric value, a situation that often occurs when dealing with view columns that do aggregation. Fix:
 
-Documentation TKTK
+```ts
+// assume all the columns in this database view are `bigint`...
+type CatPersonLeaderboardStats {
+  // Keep as `string`, since it's a key.
+  catPersonId: string;
 
-### class `TableDatabase`
+  // Let's type this one as `number`, since we know there can't possibly be more than
+  // 9,007,199,254,740,991 cats in the whole world, much less belonging to one person. Right?
+  catCount: number;
 
-Documentation TKTK
+  // OK, we're not quite so certain about the realistic bounds on this one, or are just
+  // too lazy to figure it out, so let's err on the safe side.
+  aggregateFleaCount: bigint;
+}
+```
 
-### class `ApplicationDatabase` (generated)
+### Field Casting
 
-Documentation TKTK
+TKTK
 
-# OLD STUFF
-
-## How?
-
-The primary problem Frieda solves is how to map MySQL column types to javascript types. Most MySQL column types can be mapped unambiguously to javascript types. The exceptions to this rule (according to Frieda) are:
-
-1. How to type `bigint` columns in javascript.
-1. How to represent javascript `boolean`s in the database.
-1. Specifying the javascript type of `json` columns.
-1. Whether to type `set` columns as javascript `Set`
-1. Column types where there's no equivalent in plain javascript, like the [geospatial types](https://dev.mysql.com/doc/refman/8.0/en/spatial-type-overview.html).
-
-Frieda (initially, partially) solves this ambiguity with the following conventions:
-
-1. `bigint` columns are typed as javascript `string`
-1. `tinyint(1)` columns are typed as `boolean`; all other `tinyint` columns are typed as `number`
-1. `json` columns are typed as `unknown`
-1. `set('a','b')` is typed as `Set<'a'|'b'>`
-1. un
-
-### `.frieda-metadata`
-
-The `.frieda-metadata` directory contains convenient information about the schema. Frieda only updates the contents; it does not rely on them. You can safely add it to `.gitignore`, and probably should, since a version folder gets added to `.frieda-metadata/history` every time `frieda` runs. Contents:
-
-- `schema.json`: The schema as (1) fetched and (2) parsed. Useful for debugging and filing issues.
-- `schema.sql`: The current `CREATE TABLE` / `CREATE VIEW` statements
-- `history`: A directory where past versions are saved. Each version has a folder containing:
-  - The previous versions of `schema.json` and `schema.sql`
-  - The previous version of `<outputDirectory>/model-types.d.ts`
-
-### `.friedarc.json`
-
-Contains the two main [options](#options). It should be added to git.
-
-### `model-types.d.ts`
-
-The `<outputDirectory>/model-types.d.ts` file is (initially) populated from the database schema, using some reasonable assumptions mapping MySQL column types to javascript field types. Edit this file as needed to override those assumptions, or narrow the type. Examples:
-
-- Type a `bigint` column as javascript `bigint` or `number` rather than the default of `string`.
-- Assign a `json` column a type imported from your project or a library.
-- See [Field Types](#field-types) for more examples.
-
-## Javascript Types
-
-### Naming Conventions
-
-- Model types are named with the PascalCase'd table name, e.g. `UserAccount`, `UserAccountCreate`, etc. for a table named with some variation of `user_account` or `UserAccount`.
-- Field names are the camelCase'd column name, e.g. `emailVerified` for `email_verified`.
-
-You can use whatever naming convention you want for tables and columns, but there are a couple of edge cases:
-
-- Frieda does not try to fix the case where two tables or two columns within the same table resolve to the same model or field name. For example, tables named `user_account`, `user__account` and `UserAccount` would all result in `UserAccount`. Net: Be consistent when naming tables and columns.
-- If a table or column name would result in an invalid javascript identifier Frieda prepends an underscore. For example, `2023_stats` is a valid MySQL name but an invalid javascript identifier. It would be turned into `_2023Stats`. Net: Try not to do this.
-
-### Model Types
+## Model Types
 
 For each table (excluding views) in the database, Frieda generates a set of types for selecting, creating and updating the model. Given the following table...
 
@@ -481,6 +497,134 @@ export type TriangleDb = ModelDb<
 
 A convenience type for a specific `ModelDb`. TKTK LINK You probably won't need to use it.
 
+## Options
+
+Frieda's two main options are stored in a `.friedarc.json` file at the root of the project. This file should be added to git. If it doesn't exist or is somehow invalid, Frieda will prompt you for:
+
+### `envFilePath`
+
+The path to an environment variables file, (e.g. `.env`) containing the database URL. The variable name can be either `DATABASE_URL` or `FRIEDA_DATABASE_URL`. If you use host, username and password to connect to the database, you can easily construct the URL and add it to `.env`:
+
+```bash
+FRIEDA_DATABASE_URL=mysql://<YOUR USERNAME>:<YOUR PASSWORD>@aws.connect.psdb.cloud
+```
+
+Notes:
+
+- The URL specified here is only used by Frieda to query the schema and generate code. The generated code itself uses a PlanetScale connection passed in from application code.
+- Remember to add the environment file to `.gitignore`.
+- You can override the value in `.friedarc.json` by passing `--env-file <some-other-env-file>` to `frieda`.
+
+### `outputDirectory`
+
+The folder where the generated database code should go, e.g. `src/db`. After you run `frieda` this folder will contain:
+
+- `model-types.d.ts` A file you can edit to modify the javascript types.
+- `generated` A folder containing the generated code.
+
+Notes:
+
+- You can keep other files and folders in the `outputDirectory` as long as they do not conflict with the paths mentioned above. But do not put your own code in the `generated` folder, since Frieda nukes its contents before regenerating code.
+- `model-types.d.ts` and the generated code should be considered part of your source code, that is, added to git and included in your javascript/typescript build step. (Unlike with, say, Prisma, there is no separate build step on deploy.)
+- You can override the value in `.friedarc.json` by doing `frieda --output-directory <some-other-path>`.
+
+### CLI-only Options
+
+- `--init` Make changes to the two options above. (You can also edit `.friedarc.json` directly.)
+- `--help` Show help.
+
+## API
+
+### type `CastType`
+
+Documentation TKTK
+
+### type `SchemaDefinition`
+
+Documentation TKTK
+
+### class `BaseDatabase`
+
+Documentation TKTK
+
+### class `ViewDatabase`
+
+Documentation TKTK
+
+### class `TableDatabase`
+
+Documentation TKTK
+
+### class `ApplicationDatabase` (generated)
+
+Documentation TKTK
+
+### class `ModelsDatabase` (generated)
+
+Documentation TKTK
+
+### class `TransactionDatabase` (generated)
+
+Documentation TKTK
+
+### utility function: `getSearchSql`
+
+Documentation TKTK
+
+# OLD STUFF
+
+## How?
+
+The primary problem Frieda solves is how to map MySQL column types to javascript types. Most MySQL column types can be mapped unambiguously to javascript types. The exceptions to this rule (according to Frieda) are:
+
+1. How to type `bigint` columns in javascript.
+1. How to represent javascript `boolean`s in the database.
+1. Specifying the javascript type of `json` columns.
+1. Whether to type `set` columns as javascript `Set`
+1. Column types where there's no equivalent in plain javascript, like the [geospatial types](https://dev.mysql.com/doc/refman/8.0/en/spatial-type-overview.html).
+
+Frieda (initially, partially) solves this ambiguity with the following conventions:
+
+1. `bigint` columns are typed as javascript `string`
+1. `tinyint(1)` columns are typed as `boolean`; all other `tinyint` columns are typed as `number`
+1. `json` columns are typed as `unknown`
+1. `set('a','b')` is typed as `Set<'a'|'b'>`
+1. un
+
+### `.frieda-metadata`
+
+The `.frieda-metadata` directory contains convenient information about the schema. Frieda only updates the contents; it does not rely on them. You can safely add it to `.gitignore`, and probably should, since a version folder gets added to `.frieda-metadata/history` every time `frieda` runs. Contents:
+
+- `schema.json`: The schema as (1) fetched and (2) parsed. Useful for debugging and filing issues.
+- `schema.sql`: The current `CREATE TABLE` / `CREATE VIEW` statements
+- `history`: A directory where past versions are saved. Each version has a folder containing:
+  - The previous versions of `schema.json` and `schema.sql`
+  - The previous version of `<outputDirectory>/model-types.d.ts`
+
+### `.friedarc.json`
+
+Contains the two main [options](#options). It should be added to git.
+
+### `model-types.d.ts`
+
+The `<outputDirectory>/model-types.d.ts` file is (initially) populated from the database schema, using some reasonable assumptions mapping MySQL column types to javascript field types. Edit this file as needed to override those assumptions, or narrow the type. Examples:
+
+- Type a `bigint` column as javascript `bigint` or `number` rather than the default of `string`.
+- Assign a `json` column a type imported from your project or a library.
+- See [Field Types](#field-types) for more examples.
+
+## Javascript Types
+
+### Naming Conventions
+
+- Model types are named with the PascalCase'd table name, e.g. `UserAccount`, `UserAccountCreate`, etc. for a table named with some variation of `user_account` or `UserAccount`.
+- Field names are the camelCase'd column name, e.g. `emailVerified` for `email_verified`.
+
+You can use whatever naming convention you want for tables and columns, but there are a couple of edge cases:
+
+- Frieda does not try to fix the case where two tables or two columns within the same table resolve to the same model or field name. For example, tables named `user_account`, `user__account` and `UserAccount` would all result in `UserAccount`. Net: Be consistent when naming tables and columns.
+- If a table or column name would result in an invalid javascript identifier Frieda prepends an underscore. For example, `2023_stats` is a valid MySQL name but an invalid javascript identifier. It would be turned into `_2023Stats`. Net: Try not to do this.
+
 ### Field Types
 
 With some exceptions MySQL column types can be mapped unambiguously and usefully to javascript types. The exceptions (according to Frieda) are:
@@ -497,26 +641,6 @@ Frieda (initially) uses the following assumptions to map MySQL to javascript typ
 
 How to modify javascript field types in `model-types.d.ts`.
 
-##### Typing `bigint` fields
-
-As mentioned [above](#why-are-bigint-columns-typed-as-string), by default `bigint` columns are typed as javascript `string`. This makes sense for primary/secondary keys, but it's a pain in the neck when you actually want a numeric value, a situation that often occurs when dealing with view columns that do aggregation. Fix:
-
-```ts
-// assume all the columns in this database view are `bigint`...
-type CatPersonLeaderboardStats {
-  // Keep as `string`, since it's a key.
-  catPersonId: string;
-
-  // Let's type this one as `number`, since we know there can't possibly be more than
-  // 9,007,199,254,740,991 cats in the whole world, much less belonging to one person. Right?
-  catCount: number;
-
-  // OK, we're not quite so certain about the realistic bounds on this one, or are just
-  // too lazy to figure it out, so let's err on the safe side.
-  aggregateFleaCount: bigint;
-}
-```
-
 It's worth having a word here about casting from numerical database types. There are two determining factors. First, the javascript type assigned to a field in `model-types.d.ts`. Second, whether or not the underlying MySQL type is float-y (in the limited javascript sense that "float-y" values should be sent to `parseFloat` rather than `parseInt`)
 
 - If the javascript type is `boolean` the value is always cast with `parseInt(value) !== 0`.
@@ -524,34 +648,6 @@ It's worth having a word here about casting from numerical database types. There
 - If the javascript type is `number`:
   - If the MySQL column type is float-y, the value is cast with `parseFloat(value)`.
   - Otherwise the value is cast with `parseInt(value)`.
-
-##### Typing `json` fields
-
-Model fields based on `json` columns can be typed with a literal type...
-
-```ts
-type Cat {
-  // literal type...
-  lastSeenLocation: {lat: number; lng: number; upTree: boolean};
-}
-```
-
-...or an import...
-
-```ts
-type Cat {
-  // imported from project code...
-  prefs: import('../api.js').CatPreferences;
-  // imported from a library...
-  savedCard: import('stripe').Stripe.Source;
-}
-```
-
-Notes:
-
-- **Important:** Don't use top level import declaration(s) in `model-types.d.ts`. Such imports cannot be preserved. Instead, use the inline `import('foo').Bar` syntax shown above.
-- Any import paths referencing project files should be relative to `model-types.d.ts`. Frieda adjusts those imports accordingly. For example `'../api.js'` in `model-types.d.ts` becomes `'../../api.js'` in the generated code, relying on the fact that the generated code files reside one level down from `model-types.d.ts`.
-- Using type aliases defined in the project, e.g., `import('$lib/api.js').CatPreferences`, should be fine, however.
 
 ### Typing arbitrary `SELECT` queries
 
