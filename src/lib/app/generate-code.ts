@@ -364,7 +364,7 @@ export const getGeneratedModelsDTsCode = (
     .join('\n');
   const code = `
   ${bannerComment}
-  import type {ModelDb, ViewDb} from 'frieda';
+  import type {TableDatabase, ViewDatabase} from 'frieda';
 
   ${decls}
 
@@ -642,7 +642,7 @@ export const getBaseTableDbTypeDeclaration = (
     model.updateTypeName,
     model.findUniqueTypeName
   ];
-  const declaration = `export type ${model.dbTypeName}=ModelDb<${els.join(
+  const declaration = `export type ${model.dbTypeName}=TableDatabase<${els.join(
     ','
   )}>`;
   return [comment, declaration].join('\n');
@@ -664,7 +664,7 @@ export const getViewDbTypeDeclaration = (
     '\n'
   );
   const els = [model.modelName];
-  const declaration = `export type ${model.dbTypeName}=ViewDb<${els.join(
+  const declaration = `export type ${model.dbTypeName}=ViewDatabase<${els.join(
     ','
   )}>`;
   return [comment, declaration].join('\n');
@@ -716,7 +716,7 @@ export const getModelsDbCode = (
   getGeneratedFileBannerComment: (explanation: string) => string
 ): string => {
   const bannerComment = getGeneratedFileBannerComment(`
-    This file exports the \`${GENERATED_DB_CLASS_NAMES.modelsDb}\` class, which provides a \`ModelDb\` for each model in the database schema.
+    This file exports the \`${GENERATED_DB_CLASS_NAMES.modelsDb}\` class, which provides a \`TableDatabase\` or \`ViewDatabase\` for each model in the database schema.
     It's not meant to be used on it's own. Instead it's extended by the generated database classes
     \`${GENERATED_DB_CLASS_NAMES.appDb}\` (in \`./${GENERATED_DB_FILENAMES.appDb}\`) and
     \`${GENERATED_DB_CLASS_NAMES.transactionDb}\` (in \`./${GENERATED_DB_FILENAMES.transactionDb}\`.)
@@ -725,10 +725,10 @@ export const getModelsDbCode = (
   return `
     ${bannerComment}
     import {
-      BaseDb, ModelDb
+      BaseDatabase, TableDatabase, ViewDatabase
     } from 'frieda';
    
-    export class ${GENERATED_DB_CLASS_NAMES.modelsDb} extends BaseDb {
+    export class ${GENERATED_DB_CLASS_NAMES.modelsDb} extends BaseDatabase {
       /** @type {Partial<import('../models.js').DatabaseModels>} */
       #models = {};
 
@@ -747,11 +747,12 @@ export const getModelsDbCode = (
       }
       ${parsedSchema.models
         .map((m) => {
+          const dbConstructor = m.type === 'BASE TABLE' ? 'TableDatabase' : 'ViewDatabase'
           return `
           /** @returns {import('../models.js').${m.dbTypeName}} */
           get ${m.appDbKey}() {
             if (! this.#models.${m.appDbKey}) {
-              this.#models.${m.appDbKey} = new ModelDb('${m.modelName}', this.connOrTx, this.schema, this.loggingOptions);
+              this.#models.${m.appDbKey} = new ${dbConstructor}('${m.modelName}', this.connOrTx, this.schema, this.loggingOptions);
             }
             return this.#models.${m.appDbKey};
           }
