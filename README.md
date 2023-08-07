@@ -6,9 +6,11 @@ Javascript code generator for the PlanetScale serverless driver.
 
 - [Why?](#why)
 - [Quick Start](#quick-start)
-  - [Using the generated `ApplicationDatabase` class](#using-the-generated-applicationdatabase-class)
-  - [Modifying a field type](#modifying-a-field-type)
+  - [Example: Using the generated `ApplicationDatabase` class](#example-using-the-generated-applicationdatabase-class)
+  - [Example: Modifying a field type](#example-modifying-a-field-type)
+- [Project Structure](#project-structure)
 - [Generated Code](#generated-code)
+- Using `model-types.d.ts`
 - [Options](#options)
 
 ## Why?
@@ -46,7 +48,7 @@ These options are saved to `.friedarc.json`, so you don't have to go through the
 
 Frieda then fetches the schema and generates code.
 
-### Using the generated `ApplicationDatabase` class
+### Example: Using the generated `ApplicationDatabase` class
 
 Create a `get-db.js` (or `.ts`) file next to the `generated` folder in the path you specified. (It doesn't have to be here, just keeping things simple.)
 
@@ -110,7 +112,7 @@ export const load = async (event) => {
 };
 ```
 
-### Modifying a field type
+### Example: Modifying a field type
 
 The `model-types.d.ts` file in the output directory is where you can edit javascript field types.
 
@@ -178,6 +180,45 @@ export type Cat = {
 // ditto for the other generated Cat model types, `CatCreate`, `CatUpdate`, etc.
 ```
 
+## Project Structure
+
+A typical project using Frieda will look like this. Note that `outputDirectory` is `src/lib/db`.
+
+```
+.
+├── .frieda-metadata
+│   ├── history
+│   │   └── 2023-08-06T22:46:08.925Z
+│   │       ├── model-types.d.ts
+│   │       ├── schema.json
+│   │       └── schema.sql
+│   ├── schema.json
+│   └── schema.sql
+├── .friedarc.json
+└── src
+    ├── app.d.ts
+    ├── app.html
+    ├── lib
+    │   └── db <-- outputDirectory
+    │       ├── generated
+    │       │   ├── database-classes
+    │       │   │   ├── application-database.js
+    │       │   │   ├── models-database.js
+    │       │   │   └── transaction-database.js
+    │       │   ├── index.js
+    │       │   ├── models.d.ts
+    │       │   ├── schema
+    │       │   │   ├── schema-cast-map.js
+    │       │   │   └── schema-definition.js
+    │       │   └── search
+    │       │       └── full-text-search-indexes.js
+    │       └── model-types.d.ts
+    └── ...other source code
+```
+
+- The `.frieda-metadata` directory contains information about the current schema and previous versions. This is only a convenience for reference and debugging. Frieda only writes to this folder &mdash; it does not rely on the contents. The `history` folder is .gitignore'd by default since it a new version is created every time you run `frieda`. 
+
+
 ## Generated Code
 
 Frieda creates one file, `model-types.d.ts`, and one folder, `generated`, in the [`outputDirectory`](#outputdirectory). Assuming `outputDirectory` is `src/lib/db`:
@@ -204,14 +245,41 @@ src/lib/db
 
 General Notes:
 
-- You can co-locate other files and folders in the `outputDirectory` as long as they don't conflict with the `model-types.d.ts` or `generated` paths. - Don't put your own code in the `generated` folder. Its contents are deleted each time `frieda` runs.
+- You can co-locate other files and folders in the `outputDirectory` as long as they don't conflict with the `model-types.d.ts` or `generated` paths.
+- Don't put your own code in the `generated` folder. Its contents are deleted each time `frieda` runs.
 - The contents of `outputDirectory` should be considered part of your source code. That is add it to git and include it in your javascript/typescript build step. 
 
 ### `model-types.d.ts`
 
-- This file contains a "virtual" model type for each table and view in the database.  It's the primary source of truth for Frieda to generate the "real" model types found in `generated/models.d.ts`.
-- Edit this file to change the javascript type of model fields. Although it is regenerated each time you run `freida`, a change you make here is preserved &mdash; so long as the column or its table has not been dropped from the schema.
-- The model types in `model-types.d.ts` are not (and cannot be) exported. This prevents your code from importing the "virtual" types by accident. The types in this file only exist to be analyzed by Frieda.
+This file contains a "virtual" model type for each table and view in the database.  It's the primary source of truth for Frieda to generate the "real" model types found in `generated/models.d.ts`.
+
+Edit this file to change the javascript type of model fields. Although it is regenerated each time you run `freida`, a change you make here is preserved &mdash; so long as the column or its table has not been dropped from the schema.
+
+The model types in `model-types.d.ts` are not (and cannot be) exported. This prevents your code from importing the "virtual" types by accident. The types in this file only exist to be analyzed by Frieda.
+
+Field types in this file **should not** include `|null` or optionality (`?`), just the javascript type. Frieda adds  `|null` and optionality to the actual model types where appropriate.
+
+```diff
+type Foo = {
+  id: string;
+- bar?: string|null;
++ bar: string;
+}
+```
+
+
+
+Top-level import declarations are not allowed. Use inline `import('foo').Bar` statements instead:
+
+```diff
+- import Stripe from 'stripe';
+
+type StripeCustomer = {
+  userId: string;
+-  customer: Stripe.Customer;
++  customer: import('stripe').Stripe.Customer;
+}
+```
 
 
 

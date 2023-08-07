@@ -62,6 +62,10 @@ export const generateCode = async (
 
   const schemaHistoryFiles: { path: string; contents: string }[] = [];
   const prevFiles = await Promise.all(prevFilePaths.map((p) => files.read(p)));
+  const gitIgnore = await files.read(join(FRIEDA_METADATA_NAMES.baseDirectory, '.gitignore'));
+  if (!gitIgnore.exists) {
+    await files.write(join(FRIEDA_METADATA_NAMES.baseDirectory, '.gitignore'), 'history')
+  }
   if (prevFiles[0].exists) {
     try {
       const s: DebugSchema = JSON.parse(prevFiles[0].contents);

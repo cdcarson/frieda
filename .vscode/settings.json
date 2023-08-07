@@ -1,6 +1,7 @@
 {
   "javascript.preferences.importModuleSpecifier": "non-relative",
   "cSpell.words": [
+    "abspath",
     "friedarc",
     "geospatial",
     "Kysely",
