@@ -17,12 +17,6 @@ import { FilesIO } from './files-io.js';
 import { FRIEDA_VERSION } from '$lib/version.js';
 import { join, basename, dirname } from 'node:path';
 import {
-  GENERATED_DB_CLASS_NAMES,
-  GENERATED_DB_FILENAMES,
-  GENERATED_FILENAMES,
-  GENERATED_SCHEMA_FILENAMES,
-  GENERATED_SEARCH_FILENAMES,
-  FRIEDA_METADATA_NAMES,
   DEFAULT_PRETTIER_OPTIONS
 } from './constants.js';
 import { format as fmtSql } from 'sql-formatter';
@@ -55,19 +49,19 @@ export const generateCode = async (
   };
 
   const prevFilePaths = [
-    join(FRIEDA_METADATA_NAMES.baseDirectory, FRIEDA_METADATA_NAMES.jsonFile),
-    join(FRIEDA_METADATA_NAMES.baseDirectory, FRIEDA_METADATA_NAMES.sqlFile),
+    join('.frieda-metadata', 'schema.json'),
+    join('.frieda-metadata', 'schema.sql'),
     options.schemaDefinitionPath
   ];
 
   const schemaHistoryFiles: { path: string; contents: string }[] = [];
   const prevFiles = await Promise.all(prevFilePaths.map((p) => files.read(p)));
   const gitIgnore = await files.read(
-    join(FRIEDA_METADATA_NAMES.baseDirectory, '.gitignore')
+    join('.frieda-metadata', '.gitignore')
   );
   if (!gitIgnore.exists) {
     await files.write(
-      join(FRIEDA_METADATA_NAMES.baseDirectory, '.gitignore'),
+      join('.frieda-metadata', '.gitignore'),
       'history'
     );
   }
@@ -76,8 +70,8 @@ export const generateCode = async (
       const s: DebugSchema = JSON.parse(prevFiles[0].contents);
       if (s && s.fetchedSchema.fetched) {
         const historyPath = join(
-          FRIEDA_METADATA_NAMES.baseDirectory,
-          FRIEDA_METADATA_NAMES.historyDirectory,
+          '.frieda-metadata',
+          'history',
           new Date(s.fetchedSchema.fetched).toISOString()
         );
         prevFiles.forEach((p) => {
@@ -108,15 +102,15 @@ export const generateCode = async (
   const schemaFiles: { path: string; contents: string }[] = [
     {
       path: join(
-        FRIEDA_METADATA_NAMES.baseDirectory,
-        FRIEDA_METADATA_NAMES.jsonFile
+        '.frieda-metadata',
+        'schema.json'
       ),
       contents: JSON.stringify(debugSchema)
     },
     {
       path: join(
-        FRIEDA_METADATA_NAMES.baseDirectory,
-        FRIEDA_METADATA_NAMES.sqlFile
+        '.frieda-metadata',
+        'schema.sql'
       ),
       contents: fmtSql(schemaSql)
     }
@@ -130,8 +124,8 @@ export const generateCode = async (
     {
       path: join(
         options.generatedDirectoryPath,
-        GENERATED_SCHEMA_FILENAMES.dirName,
-        GENERATED_SCHEMA_FILENAMES.schemaCastMap
+        'schema',
+        'schema-cast-map.ts'
       ),
       contents: getGeneratedSchemaCastMapJsSourceCode(
         parsedSchema,
@@ -141,10 +135,10 @@ export const generateCode = async (
     {
       path: join(
         options.generatedDirectoryPath,
-        GENERATED_SCHEMA_FILENAMES.dirName,
-        GENERATED_SCHEMA_FILENAMES.schemaDef
+        'schema',
+        'schema-definition.ts'
       ),
-      contents: getGeneratedSchemaJsCode(
+      contents: getGeneratedSchemaTsCode(
         parsedSchema,
         generatedFileBannerComment
       )
@@ -152,18 +146,18 @@ export const generateCode = async (
     {
       path: join(
         options.generatedDirectoryPath,
-        GENERATED_SEARCH_FILENAMES.dirName,
-        GENERATED_SEARCH_FILENAMES.fullTextSearchIndexes
+        'search',
+        'full-text-search-indexes.ts'
       ),
       contents: getSearchIndexesCode(parsedSchema, generatedFileBannerComment)
     },
 
     {
-      path: join(options.generatedDirectoryPath, GENERATED_FILENAMES.index),
-      contents: getGeneratedIndexJsCode(generatedFileBannerComment)
+      path: join(options.generatedDirectoryPath, 'index.ts'),
+      contents: getGeneratedIndexTsCode(generatedFileBannerComment)
     },
     {
-      path: join(options.generatedDirectoryPath, GENERATED_FILENAMES.modelsD),
+      path: join(options.generatedDirectoryPath, 'models.d.ts'),
       contents: getGeneratedModelsDTsCode(
         parsedSchema,
         generatedFileBannerComment
@@ -172,24 +166,24 @@ export const generateCode = async (
     {
       path: join(
         options.generatedDirectoryPath,
-        GENERATED_DB_FILENAMES.dirName,
-        GENERATED_DB_FILENAMES.appDb
+        'database-classes',
+        'application-database.ts'
       ),
       contents: getAppDbCode(generatedFileBannerComment)
     },
     {
       path: join(
         options.generatedDirectoryPath,
-        GENERATED_DB_FILENAMES.dirName,
-        GENERATED_DB_FILENAMES.transactionDb
+        'database-classes',
+        'transaction-database.ts'
       ),
       contents: getTransactionsDbCode(generatedFileBannerComment)
     },
     {
       path: join(
         options.generatedDirectoryPath,
-        GENERATED_DB_FILENAMES.dirName,
-        GENERATED_DB_FILENAMES.modelsDb
+        'database-classes',
+        'models-database.ts'
       ),
       contents: getModelsDbCode(parsedSchema, generatedFileBannerComment)
     }
@@ -294,9 +288,7 @@ export const getSchemaDefinitionDTsCode = (
    * Notes:
    * 
    * - Don't export the model types here. They are only used
-   *   to calculate the actual types in ${options.generatedDirectoryPath}/${
-    GENERATED_FILENAMES.modelsD
-  }.
+   *   to calculate the actual types in generated/models.d.ts.
    *   Application code should import them from there, not here.
    * 
    * - Don't use top level import declaration(s) to import 
@@ -305,18 +297,14 @@ export const getSchemaDefinitionDTsCode = (
    * 
    *      type Bar = {
    *        // import from a project path...
-   *        foo: import('../api.js').Foo;
+   *        foo: import('../api.ts').Foo;
    *        // import from a library
    *        stripeCustomer: import('stripe').Stripe.Customer
    *      }
    *  
    * - This file is regenerated every time you run \`frieda\` based 
    *   on (1) your edits here and (2) the current database schema.
-   *   Previous versions of this file are saved in the
-   *   ${FRIEDA_METADATA_NAMES.baseDirectory}/${
-    FRIEDA_METADATA_NAMES.historyDirectory
-  } directory at the root of
-   *   the project.
+   *   Previous versions of this file are saved in .frieda-metadata/history
    */
 
   ${parsedSchema.models
@@ -670,7 +658,7 @@ export const getViewDbTypeDeclaration = (
   return [comment, declaration].join('\n');
 };
 
-export const getGeneratedSchemaJsCode = (
+export const getGeneratedSchemaTsCode = (
   parsedSchema: ParsedSchema,
   getGeneratedFileBannerComment: (explanation: string) => string
 ) => {
@@ -698,11 +686,10 @@ export const getGeneratedSchemaJsCode = (
   });
   return `
     ${bannerComment}
+    import type {SchemaDefinition} from 'frieda';
+    import cast from './schema-cast-map.js'
 
-    import cast from './${GENERATED_SCHEMA_FILENAMES.schemaCastMap}'
-
-    /** @type {import('frieda').SchemaDefinition} */
-    const schemaDefinition = {
+    const schemaDefinition: SchemaDefinition = {
       cast,
       models: ${JSON.stringify(models)}
     }
@@ -716,41 +703,45 @@ export const getModelsDbCode = (
   getGeneratedFileBannerComment: (explanation: string) => string
 ): string => {
   const bannerComment = getGeneratedFileBannerComment(`
-    This file exports the \`${GENERATED_DB_CLASS_NAMES.modelsDb}\` class, which provides a \`TableDatabase\` or \`ViewDatabase\` for each model in the database schema.
+    This file exports the \`ModelsDatabase\` class, 
+    which provides a \`TableDatabase\` or \`ViewDatabase\` for each model in the database schema.
     It's not meant to be used on it's own. Instead it's extended by the generated database classes
-    \`${GENERATED_DB_CLASS_NAMES.appDb}\` (in \`./${GENERATED_DB_FILENAMES.appDb}\`) and
-    \`${GENERATED_DB_CLASS_NAMES.transactionDb}\` (in \`./${GENERATED_DB_FILENAMES.transactionDb}\`.)
+    \`ApplicationDatabase\` (in \`./application-database.ts\`) and
+    \`TransactionDatabase\` (in \`./transaction-database.ts\`.)
   `);
 
   return `
     ${bannerComment}
+    import type {Connection, Transaction} from '@planetscale/database'
     import {
-      BaseDatabase, TableDatabase, ViewDatabase
+      BaseDatabase, TableDatabase, ViewDatabase, type SchemaDefinition, type DbLoggingOptions
     } from 'frieda';
-   
-    export class ${GENERATED_DB_CLASS_NAMES.modelsDb} extends BaseDatabase {
-      /** @type {Partial<import('../models.js').DatabaseModels>} */
-      #models = {};
 
-      /**
-       * @param {import('@planetscale/database').Connection|import('@planetscale/database').Transaction} conn 
-       * @param {import('frieda').SchemaDefinition} schema 
-       * @param {import('frieda').DbLoggingOptions} loggingOptions 
-       */
+    import type {
+      DatabaseModels,
+      ${
+        parsedSchema.models.map(m => m.dbTypeName).join(',')
+      
+    }} from '../models.js';
+     
+    export class ModelsDatabase extends BaseDatabase {
+      #models: Partial<DatabaseModels> = {};
+
+     
       constructor(
-        conn,
-        schema,
-        loggingOptions = {}
+        conn: Connection|Transaction,
+        schema: SchemaDefinition,
+        loggingOptions: DbLoggingOptions = {}
       ) {
         super(conn, schema, loggingOptions);
         
       }
       ${parsedSchema.models
         .map((m) => {
-          const dbConstructor = m.type === 'BASE TABLE' ? 'TableDatabase' : 'ViewDatabase'
+          const dbConstructor =
+            m.type === 'BASE TABLE' ? 'TableDatabase' : 'ViewDatabase';
           return `
-          /** @returns {import('../models.js').${m.dbTypeName}} */
-          get ${m.appDbKey}() {
+          get ${m.appDbKey}(): ${m.dbTypeName} {
             if (! this.#models.${m.appDbKey}) {
               this.#models.${m.appDbKey} = new ${dbConstructor}('${m.modelName}', this.connOrTx, this.schema, this.loggingOptions);
             }
@@ -770,28 +761,23 @@ export const getTransactionsDbCode = (
   getGeneratedFileBannerComment: (explanation: string) => string
 ): string => {
   const bannerComment = getGeneratedFileBannerComment(`
-    This file exports the \`${GENERATED_DB_CLASS_NAMES.transactionDb}\` class.
-    \`${GENERATED_DB_CLASS_NAMES.appDb}\` creates an instance of this class to pass the function parameter in 
+    This file exports the \`TransactionDatabase\` class.
+    \`ApplicationDatabase\` creates an instance of this class to pass the function parameter in 
     its \`transaction(fn)\` method.
     
   `);
 
   return `
     ${bannerComment}
-    import {
-      ${GENERATED_DB_CLASS_NAMES.modelsDb}
-    } from './${GENERATED_DB_FILENAMES.modelsDb}';
-    export class ${GENERATED_DB_CLASS_NAMES.transactionDb} extends ${GENERATED_DB_CLASS_NAMES.modelsDb} {
-      /**
-       * @param {import('@planetscale/database').Transaction} transaction 
-       * @param {import('frieda').SchemaDefinition} schema 
-       * @param {import('frieda').DbLoggingOptions} loggingOptions 
-       */
-      constructor(transaction, schema, loggingOptions = {}) {
+    import type { Transaction} from '@planetscale/database'
+    import type {SchemaDefinition, DbLoggingOptions} from 'frieda';
+    import { ModelsDatabase} from './models-database.js';
+
+    export class TransactionDatabase extends ModelsDatabase {
+      constructor(transaction: Transaction, schema: SchemaDefinition, loggingOptions: DbLoggingOptions = {}) {
         super(transaction, schema, loggingOptions);
       }
     }
-   
     `;
 };
 
@@ -799,7 +785,7 @@ export const getAppDbCode = (
   getGeneratedFileBannerComment: (explanation: string) => string
 ): string => {
   const bannerComment = getGeneratedFileBannerComment(`
-    The main \`${GENERATED_DB_CLASS_NAMES.appDb}\` class. This is the class
+    The main \`ApllicationDatabase\` class. This is the class
     that should be instantiated by application code. 
   
     
@@ -807,33 +793,24 @@ export const getAppDbCode = (
 
   return `
     ${bannerComment}
-    import {
-      ${GENERATED_DB_CLASS_NAMES.modelsDb}
-    } from './${GENERATED_DB_FILENAMES.modelsDb}';
-    import {
-      ${GENERATED_DB_CLASS_NAMES.transactionDb}
-    } from './${GENERATED_DB_FILENAMES.transactionDb}';
-    import applicationSchema from '../${GENERATED_SCHEMA_FILENAMES.dirName}/${GENERATED_SCHEMA_FILENAMES.schemaDef}';
+    import type { Connection} from '@planetscale/database'
+    import type { DbLoggingOptions} from 'frieda';
+    import {ModelsDatabase} from './models-database.js';
+    import { TransactionDatabase } from './transaction-database.js';
+    import applicationSchema from '../schema/schema-definition.js';
 
-    export class ${GENERATED_DB_CLASS_NAMES.appDb} extends ${GENERATED_DB_CLASS_NAMES.modelsDb} {
-      /** @type {import('@planetscale/database').Connection} */
-      #conn;
+    export class ApplicationDatabase extends ModelsDatabase {
+      #conn: Connection;
     
-      /**
-       * @param {import('@planetscale/database').Connection} connection 
-       * @param {import('frieda').DbLoggingOptions} loggingOptions 
-       */
-      constructor(connection, loggingOptions = {}) {
+      
+      constructor(connection: Connection, loggingOptions: DbLoggingOptions = {}) {
         super(connection, applicationSchema, loggingOptions);
         this.#conn = connection;
       }
-      /**
-       * @param {<T>(txDb: ${GENERATED_DB_CLASS_NAMES.transactionDb}) => Promise<T>} txFn 
-       * @returns 
-       */
-      async transaction(txFn) {
+   
+      async transaction<T>(txFn: (txDb: TransactionDatabase) => Promise<T>): Promise<T> {
         const result = await this.#conn.transaction(async (tx) => {
-          const txDb = new ${GENERATED_DB_CLASS_NAMES.transactionDb}(tx, this.schema, this.loggingOptions);
+          const txDb = new TransactionDatabase(tx, this.schema, this.loggingOptions);
           return await txFn(txDb);
         });
         return result;
@@ -870,15 +847,15 @@ export const getSearchIndexesCode = (
       /**
        * Full text search index defined on table \`${i.tableName}\`.
        * Indexed fields: ${i.indexedFields.map((s) => `\`${s}\``).join(', ')}.
-       * 
-       * @type {import('frieda').FullTextSearchIndex}
        */
-      export const ${i.key} = ${JSON.stringify(i)};
+      export const ${i.key}: FullTextSearchIndex = ${JSON.stringify(i)};
     `;
     })
     .join('\n\n');
   return `
     ${bannerComment}
+    import type { FullTextSearchIndex} from 'frieda';
+
 
     ${searchIndexConstants}`;
 };
@@ -901,15 +878,15 @@ export const getGeneratedSchemaCastMapJsSourceCode = (
 
   return `
     ${bannerComment}
+    import type { SchemaCastMap} from 'frieda';
 
-    /** @type {import('frieda').SchemaCastMap} */
-    const schemaCastMap = ${JSON.stringify(cast)};
+    const schemaCastMap: SchemaCastMap = ${JSON.stringify(cast)};
 
     export default schemaCastMap;
     `;
 };
 
-export const getGeneratedIndexJsCode = (
+export const getGeneratedIndexTsCode = (
   getGeneratedFileBannerComment: (explanation: string) => string
 ): string => {
   const banner = getGeneratedFileBannerComment('Exports generated code.');
@@ -917,12 +894,12 @@ export const getGeneratedIndexJsCode = (
     ${banner}
 
     export * from './models.js';
-    export * from './${GENERATED_DB_FILENAMES.dirName}/${GENERATED_DB_FILENAMES.modelsDb}';
-    export * from './${GENERATED_DB_FILENAMES.dirName}/${GENERATED_DB_FILENAMES.transactionDb}';
-    export * from './${GENERATED_DB_FILENAMES.dirName}/${GENERATED_DB_FILENAMES.appDb}';
-    export * from './${GENERATED_SCHEMA_FILENAMES.dirName}/${GENERATED_SCHEMA_FILENAMES.schemaDef}';
-    export * from './${GENERATED_SCHEMA_FILENAMES.dirName}/${GENERATED_SCHEMA_FILENAMES.schemaCastMap}';
-    export * from './${GENERATED_SEARCH_FILENAMES.dirName}/${GENERATED_SEARCH_FILENAMES.fullTextSearchIndexes}';
+    export * from './database-classes/application-database.js';
+    export * from './database-classes/models-database.js';
+    export * from './database-classes/transaction-database.js';
+    export * from './schema/schema-definition.js';
+    export * from './schema/schema-cast-map.js';
+    export * from './search/full-text-search-indexes.js';
   
   `;
 };
