@@ -49,7 +49,7 @@ npm i frieda
 Frieda will ask for a couple of [options](#options):
 
 - Where to find your database URL.
-- Where you want the generated code to go.
+- Where you want the generated database code to go.
 
 These options are saved to `.friedarc.json`, so you don't have to go through the prompts every time.
 
@@ -288,7 +288,7 @@ In some cases, however, you will want to override the convention or narrow the t
 
 ### Modify field types in `frieda-models.ts`
 
-The `frieda-models.ts` file contains a "virtual" model type for each table and view in the database. It's the primary source of truth for Frieda to generate the "real" model types found in `frieda.ts`.
+The `frieda-models.ts` file contains a "virtual" model type for each table and view in the database. It's the primary source of truth for Frieda to generate the "real" application model types found in `frieda.ts`.
 
 Edit this file to change the javascript type of model fields. Although the file is regenerated each time you run `freida`, a change you make here is preserved &mdash; so long as the column or its table has not been dropped from the schema.
 
@@ -362,11 +362,7 @@ type CatPersonLeaderboardStats {
 
 ## Model Types
 
-Given a database table or view and its corresponding "virtual" model type in `frieda-models.ts`, Frieda generates the
-
-- [base model type](#base-model-type)
-
-_For tables only_, several other types are generated:
+For each "virtual" model type in `frieda-models.ts` Frieda generates a set of types in `frieda.ts`. Models based on database views only have a [base model type](#base-model-type). Models based on tables have several more types:
 
 - [select all type](#select-all-type)
 - [primary key type](#primary-key-type)
@@ -376,121 +372,202 @@ _For tables only_, several other types are generated:
 
 > Generated model types are intentionally repetitive / verbose. They could be cleverer, but "clever" typescript in this case leads to a less straightforward developer experience.
 
-```sql
-CREATE TABLE `Triangle` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `name` varchar(100) NOT NULL,
-  `url` varchar(300) NOT NULL,
-  `description` text INVISIBLE,
-  `a` double NOT NULL,
-  `b` double NOT NULL,
-  `c` double GENERATED ALWAYS AS (sqrt(((`a` * `b`) + (`a` * `b`)))) STORED NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `triangle_url` (`url`)
-)
-```
+#### Base Model Type
 
-...the following model types are generated:
+_Table and view models_ | Example Type Name: `Cat`
 
-### Base Model Type
-
-```ts
-export type Triangle = {
-  id: string;
-  name: string;
-  url: string;
-  description?: string | null;
-  a: number;
-  b: number;
-  c: number;
-};
-```
-
-This type contains all the fields in the model. If a field has been marked as `INVISIBLE` (see `description` above) it will be optional in the base model type, since `INVISIBLE` columns are omitted when the table is queried with `SELECT *`.
+This type contains all the fields in the model. If a field has been marked as `INVISIBLE` it will be optional in the base model type, since `INVISIBLE` columns are omitted when the table is queried with `SELECT *`. [Example](#cat-base-model-type)
 
 #### Select All Type
 
-```ts
-export type TriangleSelectAll = {
-  id: string;
-  name: string;
-  url: string;
-  a: number;
-  b: number;
-  c: number;
-};
-```
+_Table models only_ | Example Type Name: `CatSelectAll`
 
-This type represents the model when queried with `SELECT *`. It omits `INVISIBLE` columns. You probably won't have to use it directly. Frieda uses it to infer the result type of model repo `find*` methods. TKTK LINK
+This type represents the model when queried with `SELECT *`. It omits `INVISIBLE` columns. You probably won't have to use it directly. Frieda uses it to infer the result type of model repo `find*` methods. TKTK LINK TO SPECIAL `select: 'all'` option. [Example](#catselectall-select-all-type)
 
 #### Primary Key Type
 
+_Table models only_ | Example Type Name: `CatPrimaryKey`
+
+This type is returned by the model repo's `create` method, and is used to select models by primary key. It's an object to account for tables with multiple primary keys. [Example](#catprimarykey-primary-key-type)
+
+#### Create Type
+
+_Table models only_ | Example Type Name: `CatCreate`
+
+Represents the data needed to create a model. Fields where the underlying column is `GENERATED` are omitted. Fields where the underlying column is `auto_increment` or has a default value are optional. [Example](#catcreate-create-type)
+
+#### Update Type
+
+_Table models only_ | Example Type Name: `CatUpdate`
+
+Represents the data needed to update a model. Primary keys and `GENERATED` columns are omitted. All other fields are optional. [Example](#catupdate-update-type)
+
+#### Find Unique Type
+
+_Table models only_ | Example Type Name: `CatFindUnique`
+
+Type representing the ways one can uniquely select a model. This always includes the primary key type plus types derived from the table's other unique indexes. [Example](#catfindunique-findunique-type)
+
+### Example: Model types generated for a table
+
+Table:
+
+```sql
+CREATE TABLE `Cat` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `ownerId` bigint unsigned NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `email` varchar(350) NOT NULL,
+  `lastSeen` json,
+  `shortDescription` varchar(320),
+  `longDescription` text INVISIBLE,
+  `fleaCount` bigint NOT NULL DEFAULT(0),
+  `height` double NOT NULL,
+  `length` double NOT NULL,
+  `breadth` double NOT NULL,
+  `volume` double GENERATED ALWAYS AS (`height` * `length` * `breadth`) STORED NOT NULL
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `CatEmail` (`email`)
+)
+```
+
+Field type changes in `frieda-models.ts`:
+
+```diff
+// frieda-models.ts
+type Cat = {
+  id: string;
+  ownerId: string;
+  name: string;
+  email: string;
+-  lastSeen: unknown;
++  lastSeen: {lat: number; lng: number; upTree: boolean}
+  shortDescription: string;
+  longDescription: string;
+-  fleaCount: string;
++  fleaCount: number;
+  height: number;
+  length: number;
+  breadth: number;
+  volume: number;
+};
+```
+
+#### `Cat`: Base Model Type
+
 ```ts
-export type TrianglePrimaryKey = {
+// frieda.ts
+export type Cat = {
+  id: string;
+  ownerId: string;
+  name: string;
+  email: string;
+  lastSeen: { lat: number; lng: number; upTree: boolean } | null;
+  shortDescription: string | null;
+  longDescription?: string | null;
+  fleaCount: number;
+  height: number;
+  length: number;
+  breadth: number;
+  volume: number;
+};
+```
+
+Notes:
+
+- `longDescription` is **optional**, since the column is marked `INVISIBLE`. It won't be present when the model is selected with `SELECT *`.
+
+#### `CatSelectAll`: Select All Type
+
+```ts
+// frieda.ts
+export type CatSelectAll = {
+  id: string;
+  ownerId: string;
+  name: string;
+  email: string;
+  lastSeen: { lat: number; lng: number; upTree: boolean } | null;
+  shortDescription: string | null;
+  fleaCount: number;
+  height: number;
+  length: number;
+  breadth: number;
+  volume: number;
+};
+```
+
+Notes:
+
+- `longDescription` is **omitted**, since the column is marked `INVISIBLE`. It won't be present when the model is selected with `SELECT *`.
+
+#### `CatPrimaryKey`: Primary Key Type
+
+```ts
+// frieda.ts
+export type CatPrimaryKey = {
   id: string;
 };
 ```
 
-This type is returned by the model repo's `create` method, and is used to select models by primary key. It is an object to account for tables with multiple primary keys, e.g.:
+#### `CatCreate`: Create Type
 
 ```ts
-export type CompanyDashboardUserPrimaryKey = {
-  companyId: string;
-  userId: string;
-};
-```
-
-#### Create Type
-
-```ts
-export type TriangleCreate = {
+// frieda.ts
+export type CatCreate = {
   id?: string;
+  ownerId: string;
   name: string;
-  url: string;
-  description?: string | null;
-  a: number;
-  b: number;
+  email: string;
+  lastSeen?: { lat: number; lng: number; upTree: boolean } | null;
+  shortDescription?: string | null;
+  longDescription?: string | null;
+  fleaCount?: number;
+  height: number;
+  length: number;
+  breadth: number;
 };
 ```
 
-Represents the data needed to create a model. Fields where the underlying column is `GENERATED` are omitted, (e.g. the `c` column is generated). Fields where the underlying column is `auto_increment` or has a default value are optional.
+Notes:
 
-#### Update Type
+- `fleaCount` is **optional**, since the column has a default value.
+- The nullable fields are optional.
+- `volume` is **omitted**, since it's column is `GENERATED ALWAYS`
+
+#### `CatUpdate`: Update Type
 
 ```ts
-export type TriangleUpdate = {
+// frieda.ts
+export type CatUpdate = {
+  ownerId?: string;
   name?: string;
-  url?: string;
-  description?: string | null;
-  a?: number;
-  b?: number;
+  email?: string;
+  lastSeen?: { lat: number; lng: number; upTree: boolean } | null;
+  shortDescription?: string | null;
+  longDescription?: string | null;
+  fleaCount?: number;
+  height?: number;
+  length?: number;
+  breadth?: number;
 };
 ```
 
-Represents the data needed to update a model. Primary keys and `GENERATED` columns are omitted. All other fields are optional.
+Notes:
 
-#### Find Unique Type
+- `id` is **omitted**, since it's the primary key.
+- `volume` is **omitted**, since it's column is `GENERATED ALWAYS`
+- All other fields are optional.
 
-```ts
-export type TriangleFindUnique = TrianglePrimaryKey | { url: string };
-```
-
-Type representing the ways one can uniquely select a model. This always includes the primary key type plus types derived from the table's other unique indexes (e.g., `url` in `Triangle` has a unique index).
-
-#### Model Db Type
+#### `CatFindUnique`: FindUnique Type
 
 ```ts
-export type TriangleDb = ModelDb<
-  Triangle,
-  TriangleSelectAll,
-  TrianglePrimaryKey,
-  TriangleCreate,
-  TriangleUpdate,
-  TriangleFindUnique
->;
+// frieda.ts
+export type CatFindUnique = CatPrimaryKey | { email: string };
 ```
 
-A convenience type for a specific `ModelDb`. TKTK LINK You probably won't need to use it.
+Notes:
+
+- `email` has a unique index.
 
 ## Casting
 
