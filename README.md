@@ -162,7 +162,7 @@ export type Cat = {
   name: string;
   fleaCount: string;
 };
-// ...other Cat* types
+// ditto for the other Cat* types, `CatCreate`, `CatUpdate`, etc.
 ```
 
 This is probably not what you want. Edit the `Cat` type.
@@ -195,7 +195,7 @@ export type Cat = {
 -  fleaCount: string;
 +  fleaCount: bigint;
 };
-// ditto for the other generated Cat* types, `CatCreate`, `CatUpdate`, etc.
+// ditto for the other Cat* types, `CatCreate`, `CatUpdate`, etc.
 ```
 
 ## Project Structure
@@ -217,6 +217,8 @@ A typical project using Frieda will look like this. `outputDirectory` in this ex
 └── src
     ├── lib
     │   └── db <-- outputDirectory
+    |       ├── frieda-models.ts
+    │       └── frieda.ts
     └── ...other source code
 ```
 
@@ -225,48 +227,17 @@ A typical project using Frieda will look like this. `outputDirectory` in this ex
 - The `.frieda-metadata` directory contains information about the current schema and previous versions, for reference and debugging purposes. Frieda only writes to this folder &mdash; it does not rely on the contents. The `.frieda-metadata/history` folder is .gitignore'd by default since it a new version is created every time you run `frieda`. (Edit `.frieda-metadata/.gitignore` to change this behavior.)
 - `.friedarc.json` saves your current [options](#options).
 
-### `outputDirectory` files (generated code)
+### Generated code files
 
-Frieda creates one file, `frieda-models.ts`, and one folder, `generated`, in the [`outputDirectory`](#outputdirectory). Assuming `outputDirectory` is `src/lib/db`:
+Freida generates the following two files in the [`outputDirectory`](#outputdirectory):
 
-```
-src/lib/db <-- outputDirectory
-├── generated
-│   ├── database-classes
-│   │   ├── application-database.js
-│   │   ├── models-database.js
-│   │   └── transaction-database.js
-│   ├── index.js
-│   ├── models.d.ts
-│   ├── schema
-│   │   ├── schema-cast-map.js
-│   │   └── schema-definition.js
-│   └── search
-│       └── full-text-search-indexes.js
-└── frieda-models.ts
-```
+- `frieda-models.ts` This file contains model type definitions for each table and view. It's meant to be edited. See [Modify field types in `frieda-models.ts`](#modify-field-types-in-frieda-modelsts). Note that the types here are only analyzed by Frieda &mdash; they are not used in the generated database code.
+- `frieda.ts` This file exports application-ready database code, including [model types](#model-types) and the [`ApplicationDatabase` class](#class-applicationdatabase-generated);
 
-General notes:
+Notes:
 
-- You can co-locate other files and folders in the `outputDirectory` as long as they don't conflict with the `frieda-models.ts` or `generated` paths.
-- But don't put your own code in the `generated` folder. Its contents are deleted each time `frieda` runs.
+- You can co-locate other files and folders in `outputDirectory`. Frieda only writes to the two file paths mentioned above.
 - The contents of `outputDirectory` should be considered part of your source code. That is add it to git and include it in your javascript/typescript build step.
-
-Files:
-
-- `generated` contains the generated application code.
-  - `database-classes`
-    - `application-database.js` exports the generated [`ApplicationDatabase`](#class-applicationdatabase-generated) class.
-    - `models-database.js` exports the generated [`ModelsDatabase`](#class-modelsdatabase-generated) class.
-    - `transaction-database.js` exports the generated [`ModelsDatabase`](#class-transactiondatabase-generated) class.
-  - `schema`
-    - `schema-cast-map.js` exports a map constant associating each field with a [`CastType`](#type-casttype)
-    - `schema-definition.js` exports the calculated [`SchemaDefinition`](#type-schemadefinition)
-  - `search`
-    - `full-text-search-indexes.js` exports all the full text search indexes for use with the [`getSearchSql`](#utility-function-getsearchsql) utility.
-  - `index.js` exports everything in the `generated` folder
-  - `models.d.ts` The "actual" model types calculated from `frieda-models.ts`. Each "virtual" model type produces [several "actual" model types](#model-types).
-- `frieda-models.ts` This is where you edit the javascript field types of your models. [More...](#modify-field-types-in-model-typesdts)
 
 ## Field Types
 
