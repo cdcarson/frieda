@@ -9,10 +9,12 @@ import type {
   DbLoggingOptions,
   FieldDefinition,
   ModelDefinition,
-  ModelOrderByInput,
+  ModelFindManyInput,
+  ModelFindOneInput,
+  ModelInputWithWhere,
+  ModelInputWithWhereRequired,
   ModelSelectColumnsInput,
-  ModelWhereInput,
-  OneBasedPagingInput,
+  ModelUpdateInput,
   SchemaDefinition,
   SelectedModel
 } from './types.js';
@@ -165,14 +167,10 @@ export class ViewDatabase<
     return this.fields.map((f) => f.fieldName);
   }
 
-  async findMany<S extends ModelSelectColumnsInput<M> = undefined>(input: {
-    where?: ModelWhereInput<M>;
-    paging?: OneBasedPagingInput;
-    orderBy?: ModelOrderByInput<M>;
-    select?: S;
-    cast?: CustomModelCast<SelectedModel<M, S, ModelSelectAll>>;
-  }): Promise<SelectedModel<M, S, ModelSelectAll>[]> {
-    const where = getWhere(input.where, this.tableName);
+  async findMany<S extends ModelSelectColumnsInput<M> = undefined>(
+    input: ModelFindManyInput<M, S, ModelSelectAll>
+  ): Promise<SelectedModel<M, S, ModelSelectAll>[]> {
+    const where = getWhere(input, this.tableName);
     const orderBy = getOrderBy(input.orderBy, this.tableName);
     const limit = getLimitOffset(input.paging);
     const getSelectForFieldName = (fieldName: string): Sql => {
@@ -213,12 +211,9 @@ export class ViewDatabase<
     return rows;
   }
 
-  async findFirst<S extends ModelSelectColumnsInput<M> = undefined>(input: {
-    where: Partial<M> | Sql;
-    orderBy?: ModelOrderByInput<M> | Sql;
-    select?: S;
-    cast?: CustomModelCast<SelectedModel<M, S, ModelSelectAll>>;
-  }): Promise<SelectedModel<M, S, ModelSelectAll> | null> {
+  async findFirst<S extends ModelSelectColumnsInput<M> = undefined>(
+    input: ModelFindOneInput<M, S, ModelSelectAll>
+  ): Promise<SelectedModel<M, S, ModelSelectAll> | null> {
     const rows = await this.findMany({
       ...input,
       paging: { page: 1, rpp: 1 }
@@ -226,14 +221,9 @@ export class ViewDatabase<
     return rows[0] || null;
   }
 
-  async findFirstOrThrow<
-    S extends ModelSelectColumnsInput<M> = undefined
-  >(input: {
-    where: Partial<M> | Sql;
-    orderBy?: ModelOrderByInput<M>;
-    select?: S;
-    cast?: CustomModelCast<SelectedModel<M, S, ModelSelectAll>>;
-  }): Promise<SelectedModel<M, S, ModelSelectAll>> {
+  async findFirstOrThrow<S extends ModelSelectColumnsInput<M> = undefined>(
+    input: ModelFindOneInput<M, S, ModelSelectAll>
+  ): Promise<SelectedModel<M, S, ModelSelectAll>> {
     const result = await this.findFirst(input);
     if (!result) {
       throw new Error('findFirstOrThrow failed to find a record.');
@@ -241,8 +231,8 @@ export class ViewDatabase<
     return result;
   }
 
-  async countBigInt(input: { where: ModelWhereInput<M> }): Promise<bigint> {
-    const where = getWhere(input.where, this.tableName);
+  async countBigInt(input: ModelInputWithWhere<M>): Promise<bigint> {
+    const where = getWhere(input, this.tableName);
     const query = sql`SELECT COUNT(*) AS \`ct\` FROM ${bt(
       this.tableName
     )} ${where}`;
@@ -251,7 +241,7 @@ export class ViewDatabase<
     });
     return result.rows[0] ? result.rows[0].ct : 0n;
   }
-  async count(input: { where: ModelWhereInput<M> }): Promise<number> {
+  async count(input: ModelInputWithWhere<M>): Promise<number> {
     const ct = await this.countBigInt(input);
     if (ct > BigInt(Number.MAX_SAFE_INTEGER)) {
       throw new Error(
@@ -385,10 +375,7 @@ export class TableDatabase<
     return primaryKey;
   }
 
-  async updateWhere(input: {
-    data: UpdateData;
-    where: ModelWhereInput<M> | Sql;
-  }): Promise<ExecutedQuery> {
+  async updateWhere(input: ModelUpdateInput<M>): Promise<ExecutedQuery> {
     const keys = Object.keys(input.data);
     const updates: Sql[] = keys.map((k) => {
       if (input.data[k] === null) {
@@ -405,7 +392,7 @@ export class TableDatabase<
       }
     });
     const updateSql = join(updates);
-    const where = getWhere(input.where, this.tableName);
+    const where = getWhere(input, this.tableName);
     const query = sql`UPDATE ${bt(this.tableName)} SET ${updateSql} ${where}`;
     return await this.execute(query);
   }
@@ -417,10 +404,10 @@ export class TableDatabase<
     return await this.updateWhere(input);
   }
 
-  async deleteWhere(input: {
-    where: ModelWhereInput<M> | Sql;
-  }): Promise<ExecutedQuery> {
-    const where = getWhere(input.where, this.tableName);
+  async deleteWhere(
+    input: ModelInputWithWhereRequired<M>
+  ): Promise<ExecutedQuery> {
+    const where = getWhere(input, this.tableName);
     const query = sql`DELETE FROM ${bt(this.tableName)} ${where}`;
     return await this.execute(query);
   }

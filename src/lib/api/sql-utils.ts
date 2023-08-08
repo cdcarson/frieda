@@ -1,7 +1,7 @@
 import type {
   FullTextSearchIndex,
+  ModelInputWithWhere,
   ModelOrderByInput,
-  ModelWhereInput,
   ModelWithSearchRelevance,
   OneBasedPagingInput
 } from './types.js';
@@ -32,21 +32,22 @@ export const bt = (first: string, second?: string): Sql => {
  * - undefined returns empty
  */
 export const getWhere = <M extends Record<string, unknown>>(
-  input: ModelWhereInput<M>,
+  input: ModelInputWithWhere<M>,
   tableName?: string
 ): Sql => {
-  if (!input) {
-    return empty;
+  if (input.whereSql instanceof Sql) {
+    return sql`WHERE ${input.whereSql}`;
   }
-  if (input instanceof Sql) {
-    return sql`WHERE ${input}`;
+  if (input.where) {
+    const where = input.where as Partial<M>;
+    const ands = Object.keys(where).map((k) => {
+      const v = where[k];
+      const ticked = tableName ? bt(tableName, k) : bt(k);
+      return sql`${ticked} = ${v}`;
+    });
+    return ands.length > 0 ? sql`WHERE ${join(ands, ' AND ')}` : empty;
   }
-  const ands = Object.keys(input).map((k) => {
-    const v = input[k];
-    const ticked = tableName ? bt(tableName, k) : bt(k);
-    return sql`${ticked} = ${v}`;
-  });
-  return ands.length > 0 ? sql`WHERE ${join(ands, ' AND ')}` : empty;
+  return empty;
 };
 
 /**

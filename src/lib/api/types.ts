@@ -120,10 +120,12 @@ export type SelectedModel<
   ? Required<M>
   : SelectAll;
 
-export type ModelWhereInput<M extends Record<string, unknown>> =
-  | Partial<M>
-  | Sql
-  | undefined;
+export type InputWithWhere<
+  M extends Record<string, unknown> = Record<string, unknown>,
+  W extends Partial<M> | Sql | undefined = undefined
+> = {
+  where: W;
+};
 
 export type ModelOrderByInput<M extends Record<string, unknown>> =
   | {
@@ -152,3 +154,49 @@ export type FullTextSearchIndex = {
 export type ModelWithSearchRelevance<M extends Record<string, unknown>> = M & {
   _searchRelevance?: number;
 };
+
+export type ModelInputWithWhere<M extends Record<string, unknown>> =
+  | {
+      where?: Partial<M>;
+      whereSql?: never;
+    }
+  | {
+      where?: never;
+      whereSql?: Sql;
+    };
+
+export type ModelInputWithWhereRequired<M extends Record<string, unknown>> =
+  | {
+      where: Partial<M>;
+      whereSql?: never;
+    }
+  | {
+      where?: never;
+      whereSql: Sql;
+    };
+
+export type ModelFindManyInput<
+  M extends Record<string, unknown>,
+  S extends ModelSelectColumnsInput<M> = undefined,
+  ModelSelectAll extends { [K in keyof M]?: M[K] } = M
+> = ModelInputWithWhere<M> & {
+  paging?: OneBasedPagingInput;
+  orderBy?: ModelOrderByInput<M>;
+  select?: S;
+  cast?: CustomModelCast<SelectedModel<M, S, ModelSelectAll>>;
+};
+
+export type ModelFindOneInput<
+  M extends Record<string, unknown>,
+  S extends ModelSelectColumnsInput<M> = undefined,
+  ModelSelectAll extends { [K in keyof M]?: M[K] } = M
+> = ModelInputWithWhereRequired<M> & {
+  orderBy?: ModelOrderByInput<M>;
+  select?: S;
+  cast?: CustomModelCast<SelectedModel<M, S, ModelSelectAll>>;
+};
+
+export type ModelUpdateInput<M extends Record<string, unknown>> =
+  ModelInputWithWhereRequired<M> & {
+    data: { [K in keyof M]?: M[K] };
+  };
