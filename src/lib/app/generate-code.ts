@@ -226,20 +226,18 @@ export const getFriedaTsCode = (schema: ParsedSchema): string => {
     return md;
   });
 
-  const searchIndexes: FullTextSearchIndex[] = schema.models.flatMap(
-    (m) => {
-      const indexes = m.indexes
-        ? m.indexes.filter((i) => i.isFullTextSearch)
-        : [];
-      return indexes.map((i) => {
-        return {
-          indexedFields: i.indexedColumns,
-          key: i.indexName,
-          tableName: m.tableName
-        };
-      });
-    }
-  );
+  const searchIndexes: FullTextSearchIndex[] = schema.models.flatMap((m) => {
+    const indexes = m.indexes
+      ? m.indexes.filter((i) => i.isFullTextSearch)
+      : [];
+    return indexes.map((i) => {
+      return {
+        indexedFields: i.indexedColumns,
+        key: i.indexName,
+        tableName: m.tableName
+      };
+    });
+  });
   const searchIndexConstants = searchIndexes
     .map((i) => {
       return `
@@ -290,9 +288,9 @@ export const getFriedaTsCode = (schema: ParsedSchema): string => {
     /** Database Classes **/
 
     export class ModelsDatabase extends BaseDatabase {
-      #models: Partial<{${
-        schema.models.map(m => `${m.appDbKey}: ${m.dbTypeName};`).join('\n')
-      }}> = {};
+      #models: Partial<{${schema.models
+        .map((m) => `${m.appDbKey}: ${m.dbTypeName};`)
+        .join('\n')}}> = {};
 
      
       constructor(
@@ -668,14 +666,3 @@ export const getViewDbTypeDeclaration = (
   )}>`;
   return [comment, declaration].join('\n');
 };
-
-
-
-
-
-
-
-
-
-
-

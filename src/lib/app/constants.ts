@@ -11,12 +11,5 @@ export const DEFAULT_PRETTIER_OPTIONS: prettier.Options = {
 };
 
 export const FRIEDA_RC_FILENAME = '.friedarc.json';
-export const FRIEDA_DATABASE_FILENAME = 'frieda.ts'
+export const FRIEDA_DATABASE_FILENAME = 'frieda.ts';
 export const MODEL_DEFINITION_FILENAME = 'frieda-models.ts';
-
-
-
-
-
-
-

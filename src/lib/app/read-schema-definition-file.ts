@@ -14,7 +14,9 @@ export const readSchemaDefinitionFile = async (
   const files = FilesIO.get();
   const relPath = options.modelDefinitionFilePath;
   const readSpinner = ora(`Reading ${fmtPath(relPath)}`).start();
-  const { exists, contents } = await files.read(options.modelDefinitionFilePath);
+  const { exists, contents } = await files.read(
+    options.modelDefinitionFilePath
+  );
   readSpinner.succeed();
   const models: SchemaModel[] = [];
 

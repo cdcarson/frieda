@@ -42,9 +42,7 @@ export class Options {
       MODEL_DEFINITION_FILENAME
     )}, 
       which you can edit to fine-tune the schema's javascript types, and (2) 
-      ${fmtPath(
-        FRIEDA_FILENAME
-      )}, which contains the generated database code.
+      ${fmtPath(FRIEDA_FILENAME)}, which contains the generated database code.
      Example: ${fmtPath('src/db')} `,
     init: `(Re)initialize options in ${fmtPath(FRIEDA_RC_FILENAME)}.`,
     help: 'Show this help'
@@ -87,8 +85,6 @@ export class Options {
   get friedaFilePath(): string {
     return join(this.outputDirectoryPath, FRIEDA_FILENAME);
   }
-
-  
 
   async init() {
     const readSpinner = ora('Reading options...').start();
