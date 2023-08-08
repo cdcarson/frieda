@@ -785,10 +785,8 @@ export const getAppDbCode = (
   getGeneratedFileBannerComment: (explanation: string) => string
 ): string => {
   const bannerComment = getGeneratedFileBannerComment(`
-    The main \`ApllicationDatabase\` class. This is the class
+    The main \`AplicationDatabase\` class. This is the class
     that should be instantiated by application code. 
-  
-    
   `);
 
   return `
@@ -893,7 +891,7 @@ export const getGeneratedIndexTsCode = (
   return `
     ${banner}
 
-    export * from './models.js';
+    export * from './models.d';
     export * from './database-classes/application-database.js';
     export * from './database-classes/models-database.js';
     export * from './database-classes/transaction-database.js';
