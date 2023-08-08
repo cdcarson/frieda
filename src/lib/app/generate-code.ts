@@ -91,7 +91,7 @@ export const generateCode = async (
 
   const schemaDefinitionFile: { path: string; contents: string } = {
     path: options.modelDefinitionFilePath,
-    contents: getSchemaDefinitionDTsCode(options, parsedSchema, fetchedSchema)
+    contents: getSchemaDefinitionDTsCode(parsedSchema)
   };
   const friedaFile: { path: string; contents: string } = {
     path: options.friedaFilePath,
@@ -347,37 +347,43 @@ export const getFriedaTsCode = (schema: ParsedSchema): string => {
 };
 
 export const getSchemaDefinitionDTsCode = (
-  options: Options,
   parsedSchema: ParsedSchema,
-  fetchedSchema: FetchedSchema
 ): string => {
   const code = `
   /**
-   * Schema from database: ${fetchedSchema.databaseName}
-   * Fetched: ${fetchedSchema.fetchedAt.toISOString()}
+   * Database:        ${parsedSchema.databaseName}
+   * Schema Fetched:  ${parsedSchema.fetchedAt.toISOString()}
+   * Frieda Version:  ${FRIEDA_VERSION}
    * 
    * Edit this file to modify javascript field types. 
    * 
    * Notes:
    * 
-   * - Don't export the model types here. They are only used
-   *   to calculate the actual types in generated/models.d.ts.
-   *   Application code should import them from there, not here.
+   * - This file contains a "virtual" model type for each table and view in the 
+   *   database. It's the primary source of truth for Frieda to generate the "real" 
+   *   application model types found in \`frieda.ts\`.
    * 
-   * - Don't use top level import declaration(s) to import 
-   *   external types. Such imports cannot be preserved. Instead
-   *   use import types. Example:
+   * - Edit this file to change the javascript type of model fields. Although the file 
+   *   is regenerated each time you run \`freida\`, a change you make here is preserved,
+   *   so long as the column or its table has not been dropped from the schema. Previous 
+   *   versions are saved in .frieda-metadata/history. 
    * 
-   *      type Bar = {
-   *        // import from a project path...
-   *        foo: import('../api.ts').Foo;
-   *        // import from a library
-   *        stripeCustomer: import('stripe').Stripe.Customer
-   *      }
-   *  
-   * - This file is regenerated every time you run \`frieda\` based 
-   *   on (1) your edits here and (2) the current database schema.
-   *   Previous versions of this file are saved in .frieda-metadata/history
+   * - The model types in this file are not (and cannot be) exported. This prevents your code 
+   *   from importing the "virtual" types by accident. The types here only exist to be analyzed by Frieda.
+   *   Changes made here do not automatically update the types in \`frieda.ts\`. You need to 
+   *   re-run \`frieda\` for the changes to take effect.
+   * 
+   * - Field types in this file **should not** include \`|null\` or optionality (\`?\`), just the javascript 
+   *   type. Frieda adds \`|null\` and optionality to the actual model types where appropriate.
+   * 
+   * - Top-level import declarations are not allowed. Such imports cannot be preserved. Use 
+   *   inline \`import('foo').Bar\` statements instead:
+   *   \`\`\`
+   *   type StripeCustomer = {
+   *      userId: string;
+   *      customer: import('stripe').Stripe.Customer;
+   *   }
+   *   \`\`\`
    */
 
   ${parsedSchema.models
