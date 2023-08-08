@@ -49,16 +49,12 @@ export const readSchemaDefinitionFile = async (
           ),
           { language: 'ts' }
         )
-        .split('\n')
+        .split('\n'),
+      `More info: ${fmtPath(
+        'https://github.com/cdcarson/frieda#modify-field-types-in-frieda-modelsts'
+      )}`
     ]);
-    const continueAnyway = await prompt({
-      type: 'confirm',
-      name: 'continueAnyway',
-      message: 'Continue anyway?'
-    });
-    if (!continueAnyway) {
-      return onUserCancelled();
-    }
+    return onUserCancelled();
   }
 
   const nodes = query(schemaAst, 'TypeAliasDeclaration');
