@@ -3,8 +3,8 @@ import ora from 'ora';
 import { parse } from 'dotenv';
 import {
   ENV_DB_URL_KEYS,
+  FRIEDA_DATABASE_FILENAME as FRIEDA_FILENAME,
   FRIEDA_RC_FILENAME,
-  GENERATED_CODE_FOLDERNAME,
   MODEL_DEFINITION_FILENAME
 } from './constants.js';
 import { connect, type Connection } from '@planetscale/database';
@@ -38,18 +38,13 @@ export class Options {
     envFile: `The path to an environment variables file containing the database url as either ${ENV_DB_URL_KEYS.map(
       (s) => fmtVarName(s)
     ).join(' or ')}.`,
-    outputDirectory: `Database code directory. It contains (1) a ${fmtPath(
+    outputDirectory: `Database code directory. It has (1) ${fmtPath(
       MODEL_DEFINITION_FILENAME
-    )} file, 
-      which you can edit to fine-tune the schema's javascript types, and (2) a ${fmtPath(
-        GENERATED_CODE_FOLDERNAME
-      )}
-      directory, where Frieda writes generated code files. You can have other files and folders in this directory
-      as long as they do not conflict with the paths mentioned above (however, you should not put your own code 
-      in the ${fmtPath(
-        GENERATED_CODE_FOLDERNAME
-      )} folder, since Frieda nukes its contents before regenerating files.)
-      The contents of this directory should be added to git and your build process.
+    )}, 
+      which you can edit to fine-tune the schema's javascript types, and (2) 
+      ${fmtPath(
+        FRIEDA_FILENAME
+      )}, which contains the generated database code.
      Example: ${fmtPath('src/db')} `,
     init: `(Re)initialize options in ${fmtPath(FRIEDA_RC_FILENAME)}.`,
     help: 'Show this help'
@@ -86,13 +81,14 @@ export class Options {
     return this.options.outputDirectory;
   }
 
-  get schemaDefinitionPath(): string {
+  get modelDefinitionFilePath(): string {
     return join(this.outputDirectoryPath, MODEL_DEFINITION_FILENAME);
   }
-
-  get generatedDirectoryPath(): string {
-    return join(this.outputDirectoryPath, GENERATED_CODE_FOLDERNAME);
+  get friedaFilePath(): string {
+    return join(this.outputDirectoryPath, FRIEDA_FILENAME);
   }
+
+  
 
   async init() {
     const readSpinner = ora('Reading options...').start();

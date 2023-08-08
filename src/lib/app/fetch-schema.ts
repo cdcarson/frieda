@@ -114,7 +114,7 @@ export const fetchSchema = async (
   return {
     fetchedSchema: {
       databaseName,
-      fetched: new Date(),
+      fetchedAt: new Date(),
       tables
     },
     tableCreateStatements

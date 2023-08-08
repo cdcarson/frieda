@@ -91,7 +91,7 @@ export type FetchedTable<Type extends TableType = TableType> =
 
 export type FetchedSchema = {
   databaseName: string;
-  fetched: Date;
+  fetchedAt: Date;
   tables: FetchedTable[];
 };
 
@@ -137,6 +137,8 @@ export type ParsedModel<Type extends TableType = TableType> = {
 };
 
 export type ParsedSchema = {
+  databaseName: string;
+  fetchedAt: Date;
   models: ParsedModel[];
 };
 
