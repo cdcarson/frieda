@@ -66,7 +66,6 @@ src/lib/db           <-- outputDirectory
 └── get-db.js        <-- add this
 ```
 
-
 ```js
 // get-db.js
 // Example quick start code. Exports a function that returns a singleton ApplicationDatabase instance.
