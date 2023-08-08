@@ -155,6 +155,7 @@ type Cat = {
 ```
 
 ...and in the generated `Cat*` types:
+
 ```ts
 // frieda.ts
 export type Cat = {
@@ -165,8 +166,6 @@ export type Cat = {
 };
 // ...other Cat* types
 ```
-
-
 
 This is probably not what you want. Edit the `Cat` type.
 
