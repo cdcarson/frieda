@@ -23,6 +23,8 @@ export const parseSchema = (
   fetchedSchema: FetchedSchema
 ): ParsedSchema => {
   return {
+    databaseName: fetchedSchema.databaseName,
+    fetchedAt: fetchedSchema.fetchedAt,
     models: fetchedSchema.tables.map((t) => parseModel(t, schemaModels))
   };
 };

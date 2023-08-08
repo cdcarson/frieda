@@ -4,12 +4,21 @@ CREATE TABLE `CatPerson` (
   PRIMARY KEY (`id`)
 );
 
-CREATE TABLE Cat (
+CREATE TABLE `Cat` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `ownerId` bigint unsigned NOT NULL,
   `name` varchar(100) NOT NULL,
-  `fleaCount` bigint DEFAULT 0,
-  PRIMARY KEY (`id`)
+  `email` varchar(350) NOT NULL,
+  `lastSeen` json,
+  `shortDescription` varchar(320),
+  `longDescription` text INVISIBLE,
+  `fleaCount` bigint NOT NULL DEFAULT(0),
+  `height` double NOT NULL,
+  `length` double NOT NULL,
+  `breadth` double NOT NULL,
+  `volume` double GENERATED ALWAYS AS (`height` * `length` * `breadth`) STORED NOT NULL
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `CatEmail` (`email`)
 )
 SELECT
   CatPerson.id AS catPersonId,
@@ -31,9 +40,9 @@ FROM
 ALTER TABLE
   CompanyStripeAccount
 MODIFY
-  COLUMN `stripeAccount` json NOT NULL COMMENT '@json(import(''stripe'').Stripe.Account)';
+  COLUMN ` stripeAccount ` json NOT NULL COMMENT '@json(import(''stripe'').Stripe.Account)';
 
 ALTER TABLE
   PricingPlan
 MODIFY
-  COLUMN `discounts` json NOT NULL COMMENT '@json(import(''../types.js'').DiscountTier)';
+  COLUMN ` discounts ` json NOT NULL COMMENT '@json(import(''../types.js'').DiscountTier)';

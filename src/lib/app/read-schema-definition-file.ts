@@ -12,9 +12,11 @@ export const readSchemaDefinitionFile = async (
   options: Options
 ): Promise<SchemaModel[]> => {
   const files = FilesIO.get();
-  const relPath = options.schemaDefinitionPath;
+  const relPath = options.modelDefinitionFilePath;
   const readSpinner = ora(`Reading ${fmtPath(relPath)}`).start();
-  const { exists, contents } = await files.read(options.schemaDefinitionPath);
+  const { exists, contents } = await files.read(
+    options.modelDefinitionFilePath
+  );
   readSpinner.succeed();
   const models: SchemaModel[] = [];
 
