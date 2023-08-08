@@ -347,7 +347,7 @@ export const getFriedaTsCode = (schema: ParsedSchema): string => {
 };
 
 export const getSchemaDefinitionDTsCode = (
-  parsedSchema: ParsedSchema,
+  parsedSchema: ParsedSchema
 ): string => {
   const code = `
   /**

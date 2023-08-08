@@ -303,7 +303,7 @@ In some cases, however, you will want to override the convention or narrow the t
 
 The `frieda-models.ts` file contains a "virtual" model type for each table and view in the database. It's the primary source of truth for Frieda to generate the "real" application model types found in `frieda.ts`.
 
-Edit this file to change the javascript type of model fields. Although the file is regenerated each time you run `freida`, a change you make here is preserved &mdash; so long as the column or its table has not been dropped from the schema. Previous versions are saved in `.frieda-metadata/history`. 
+Edit this file to change the javascript type of model fields. Although the file is regenerated each time you run `freida`, a change you make here is preserved &mdash; so long as the column or its table has not been dropped from the schema. Previous versions are saved in `.frieda-metadata/history`.
 
 The model types in `frieda-models.ts` are not (and cannot be) exported. This prevents your code from importing the "virtual" types by accident. The types in this file only exist to be analyzed by Frieda. Changes do not automatically update the types in `frieda.ts`. You need to re-run `frieda` for the changes to take effect.
 
