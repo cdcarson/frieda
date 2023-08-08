@@ -112,8 +112,7 @@ export const generateCode = async (
   const examplePath = join(options.outputDirectoryPath, 'get-db.js');
   const exampleCode = `
       // ${examplePath}
-      // Example quick start code. Exports a function that 
-      // returns a singleton ApplicationDatabase instance.
+      // Example quick start code. Exports a function that returns a singleton ApplicationDatabase instance.
 
       import { connect } from '@planetscale/database';
 
@@ -122,7 +121,7 @@ export const generateCode = async (
       import { DATABASE_URL } from '$env/static/private';
 
       // Import the generated ApplicationDatabase class...
-      import { ApplicationDatabase } from './generated';
+      import { ApplicationDatabase } from './frieda';
 
       /** @type {ApplicationDatabase|undefined} */
       let _appDb = undefined;
