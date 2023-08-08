@@ -11,14 +11,17 @@ Javascript code generator for the PlanetScale serverless driver.
 - [Project Structure](#project-structure)
   - [Metadata and option files](#metadata-and-option-files)
   - [`outputDirectory` files (generated code)](#outputdirectory-files-generated-code)
+- [Naming Conventions](#naming-conventions)
 - [Field Types](#field-types)
   - [Field Type Conventions](#field-type-conventions)
   - [Modify field types in `frieda-models.ts`](#modify-field-types-in-model-typesdts)
     - [Recipe: Typing `json` fields](#recipe-typing-json-fields)
     - [Recipe: Typing `bigint` aggregate fields](#recipe-typing-bigint-aggregate-fields)
 - [Model Types](#model-types)
-- [Field Casting](#casting)
+- [Casting](#casting)
+- [Typing Arbitrary `SELECT` Queries](#arbitrary-select-queries)
 - [Options](#options)
+- [API](#api)
 
 ## Why?
 
@@ -238,6 +241,16 @@ Notes:
 
 - You can co-locate other files and folders in `outputDirectory`. Frieda only writes to the two file paths mentioned above.
 - The contents of `outputDirectory` should be considered part of your source code. That is add it to git and include it in your javascript/typescript build step.
+
+## Naming Conventions
+
+- Model types are named with the PascalCase'd table name, e.g. `UserAccount`, `UserAccountCreate`, etc. for a table named with some variation of `user_account` or `UserAccount`.
+- Field names are the camelCase'd column name, e.g. `emailVerified` for `email_verified`.
+
+You can use whatever naming convention you want for tables and columns, but there are a couple of edge cases:
+
+- Frieda does not try to fix the case where two tables or two columns within the same table resolve to the same model or field name. For example, tables named `user_account`, `user__account` and `UserAccount` would all result in `UserAccount`. Net: Be consistent when naming tables and columns.
+- If a table or column name would result in an invalid javascript identifier Frieda prepends an underscore. For example, `2023_stats` is a valid MySQL name but an invalid javascript identifier. It would be turned into `_2023Stats`. Net: Try not to do this.
 
 ## Field Types
 
@@ -573,18 +586,63 @@ Notes:
 
 The serverless driver returns all database column values as javascript `string|null`. _Casting_ means turning that raw `string|null` value into a field value whose javascript type matches what you expect.
 
-A column value is `null` is always returned as `null`. Excluding that case, there are eight cast types:
+Frieda defines eight cast types:
 
-| Cast Type   | Casting Algorithm                  |
-| ----------- | ---------------------------------- |
-| `'bigint'`  | `(val) => BigInt(val)`             |
-| `'int'`     | `(val) => parseInt(val)`           |
-| `'float'`   | `(val) => parseFloat(val)`         |
-| `'boolean'` | `(val) => parseInt(val) !== 0`     |
-| `'json'`    | `(val) => JSON.parse(val)`         |
-| `'date'`    | `(val) => new Date(val)`           |
-| `'set'`     | `(val) => new Set(val.split(','))` |
-| `'string'`  | n/a                                |
+| [`CastType`](#type-casttype) | Casting Algorithm                  |
+| ---------------------------- | ---------------------------------- |
+| `'bigint'`                   | `(val) => BigInt(val)`             |
+| `'int'`                      | `(val) => parseInt(val)`           |
+| `'float'`                    | `(val) => parseFloat(val)`         |
+| `'boolean'`                  | `(val) => parseInt(val) !== 0`     |
+| `'json'`                     | `(val) => JSON.parse(val)`         |
+| `'date'`                     | `(val) => new Date(val)`           |
+| `'set'`                      | `(val) => new Set(val.split(','))` |
+| `'string'`                   | n/a                                |
+
+In all cases if a column value is `null` it isn't cast &mdash; the field value will be `null`.
+
+## Arbitrary `SELECT` Queries
+
+[`ApplicationDatabase`](#class-applicationdatabase-generated) allows for executing arbitrary `SELECT` queries with `db.selectMany(query)`, `db.selectFirst(query)` and `db.selectFirstOrThrow(query)`. These methods accept a second, optional [`CustomModelCast`](#type-custommodelcast) argument. This is a partial map from the selected fields to a [`CastType`](#type-casttype).
+
+Example:
+
+```ts
+type CatPersonStats = {
+  catPersonId: string;
+  catCount: bigint;
+  fleaCount: bigint;
+};
+const customCast: CustomModelCast<CatPersonStats> = {
+  catCount: 'number',
+  fleaCount: 'bigint'
+};
+const { rows } = await db.selectMany<CatPersonStats>(
+  sql`
+    SELECT
+      CatPerson.id AS catPersonId,
+      COALESCE(CatStats.catCount, 0) AS catCount,
+      COALESCE(CatStats.fleaCount, 0) AS fleaCount
+    FROM
+      CatPerson
+      LEFT JOIN (
+        SELECT
+          Cat.ownerId AS ownerId,
+          COUNT(*) AS catCount,
+          SUM(Cat.fleaCount) AS fleaCount
+        FROM
+          Cat
+        GROUP BY
+          Cat.ownerId
+      ) AS CatStats ON CatStats.ownerId = CatPerson.id;
+  `,
+  customCast
+);
+```
+
+- `rows` is typed as `CatPersonStats[]`
+- `catCount` is cast with `parseInt(value)`
+- `fleaCount` is cast with `BigInt(value)`
 
 ## Options
 
@@ -609,12 +667,12 @@ Notes:
 The folder where the generated database code should go, e.g. `src/db`. After you run `frieda` this folder will contain:
 
 - `frieda-models.ts` A file you can edit to modify the javascript types.
-- `generated` A folder containing the generated code.
+- `frieda.ts` A file that exports the generated code
 
 Notes:
 
-- You can keep other files and folders in the `outputDirectory` as long as they do not conflict with the paths mentioned above. But do not put your own code in the `generated` folder, since Frieda nukes its contents before regenerating code.
-- `frieda-models.ts` and the generated code should be considered part of your source code, that is, added to git and included in your javascript/typescript build step. (Unlike with, say, Prisma, there is no separate build step on deploy.)
+- You can keep other files and folders in the `outputDirectory` as long as they do not conflict with the paths mentioned above.
+- The generated code should be considered part of your source code, that is, added to git and included in your javascript/typescript build step.
 - You can override the value in `.friedarc.json` by doing `frieda --output-directory <some-other-path>`.
 
 ### CLI-only Options
@@ -625,6 +683,10 @@ Notes:
 ## API
 
 ### type `CastType`
+
+Documentation TKTK
+
+### type `CustomModelCast`
 
 Documentation TKTK
 
@@ -659,122 +721,3 @@ Documentation TKTK
 ### utility function: `getSearchSql`
 
 Documentation TKTK
-
-# OLD STUFF
-
-## How?
-
-The primary problem Frieda solves is how to map MySQL column types to javascript types. Most MySQL column types can be mapped unambiguously to javascript types. The exceptions to this rule (according to Frieda) are:
-
-1. How to type `bigint` columns in javascript.
-1. How to represent javascript `boolean`s in the database.
-1. Specifying the javascript type of `json` columns.
-1. Whether to type `set` columns as javascript `Set`
-1. Column types where there's no equivalent in plain javascript, like the [geospatial types](https://dev.mysql.com/doc/refman/8.0/en/spatial-type-overview.html).
-
-Frieda (initially, partially) solves this ambiguity with the following conventions:
-
-1. `bigint` columns are typed as javascript `string`
-1. `tinyint(1)` columns are typed as `boolean`; all other `tinyint` columns are typed as `number`
-1. `json` columns are typed as `unknown`
-1. `set('a','b')` is typed as `Set<'a'|'b'>`
-1. un
-
-### `.frieda-metadata`
-
-The `.frieda-metadata` directory contains convenient information about the schema. Frieda only updates the contents; it does not rely on them. You can safely add it to `.gitignore`, and probably should, since a version folder gets added to `.frieda-metadata/history` every time `frieda` runs. Contents:
-
-- `schema.json`: The schema as (1) fetched and (2) parsed. Useful for debugging and filing issues.
-- `schema.sql`: The current `CREATE TABLE` / `CREATE VIEW` statements
-- `history`: A directory where past versions are saved. Each version has a folder containing:
-  - The previous versions of `schema.json` and `schema.sql`
-  - The previous version of `<outputDirectory>/frieda-models.ts`
-
-### `.friedarc.json`
-
-Contains the two main [options](#options). It should be added to git.
-
-### `frieda-models.ts`
-
-The `<outputDirectory>/frieda-models.ts` file is (initially) populated from the database schema, using some reasonable assumptions mapping MySQL column types to javascript field types. Edit this file as needed to override those assumptions, or narrow the type. Examples:
-
-- Type a `bigint` column as javascript `bigint` or `number` rather than the default of `string`.
-- Assign a `json` column a type imported from your project or a library.
-- See [Field Types](#field-types) for more examples.
-
-## Javascript Types
-
-### Naming Conventions
-
-- Model types are named with the PascalCase'd table name, e.g. `UserAccount`, `UserAccountCreate`, etc. for a table named with some variation of `user_account` or `UserAccount`.
-- Field names are the camelCase'd column name, e.g. `emailVerified` for `email_verified`.
-
-You can use whatever naming convention you want for tables and columns, but there are a couple of edge cases:
-
-- Frieda does not try to fix the case where two tables or two columns within the same table resolve to the same model or field name. For example, tables named `user_account`, `user__account` and `UserAccount` would all result in `UserAccount`. Net: Be consistent when naming tables and columns.
-- If a table or column name would result in an invalid javascript identifier Frieda prepends an underscore. For example, `2023_stats` is a valid MySQL name but an invalid javascript identifier. It would be turned into `_2023Stats`. Net: Try not to do this.
-
-### Field Types
-
-With some exceptions MySQL column types can be mapped unambiguously and usefully to javascript types. The exceptions (according to Frieda) are:
-
-1. How to type `bigint` columns in javascript.
-1. How to represent javascript `boolean`s in the database.
-1. Specifying the javascript type of `json` columns.
-1. Whether to type `set` columns as javascript `Set`
-1. Column types where there's no equivalent in plain javascript, like the [geospatial types](https://dev.mysql.com/doc/refman/8.0/en/spatial-type-overview.html).
-
-Frieda (initially) uses the following assumptions to map MySQL to javascript types. These assumptions can be overridden in `frieda-models.ts`. Except for the arcane column types case (5) all the exceptions can be easily overcome in this way.
-
-#### Field Type Recipes
-
-How to modify javascript field types in `frieda-models.ts`.
-
-It's worth having a word here about casting from numerical database types. There are two determining factors. First, the javascript type assigned to a field in `frieda-models.ts`. Second, whether or not the underlying MySQL type is float-y (in the limited javascript sense that "float-y" values should be sent to `parseFloat` rather than `parseInt`)
-
-- If the javascript type is `boolean` the value is always cast with `parseInt(value) !== 0`.
-- If the javascript type is `bigint` the value is always cast with `BigInt(value)`.
-- If the javascript type is `number`:
-  - If the MySQL column type is float-y, the value is cast with `parseFloat(value)`.
-  - Otherwise the value is cast with `parseInt(value)`.
-
-### Typing arbitrary `SELECT` queries
-
-Second, you can use a custom model cast TKTK LINK:
-
-```ts
-type CatPersonStats = {
-  catPersonId: string;
-  catCount: bigint;
-  fleaCount: bigint;
-};
-const customCast: CustomModelCast<CatPersonStats> = {
-  catCount: 'bigint',
-  fleaCount: 'bigint'
-};
-const results = await db.executeSelect<CatPersonStats>(
-  sql`
-    SELECT
-      CatPerson.id AS catPersonId,
-      COALESCE(CatStats.catCount, 0) AS catCount,
-      COALESCE(CatStats.fleaCount, 0) AS fleaCount
-    FROM
-      CatPerson
-      LEFT JOIN (
-        SELECT
-          Cat.ownerId AS ownerId,
-          COUNT(*) AS catCount,
-          SUM(Cat.fleaCount) AS fleaCount
-        FROM
-          Cat
-        GROUP BY
-          Cat.ownerId
-      ) AS CatStats ON CatStats.ownerId = CatPerson.id;
-  `,
-  customCast
-);
-```
-
-## API
-
-### type `CustomModelCast`
