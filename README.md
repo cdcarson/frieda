@@ -185,7 +185,7 @@ Re-run `frieda`...
 ./node_modules/.bin/frieda
 ```
 
-You won't see any changes to `frieda-models.ts` (your changes to this file are always preserved as long as the model and field are not dropped in the database,) but the **generated** `Cat` model types in `frieda.ts` will reflect the change:
+You won't see any changes to `frieda-models.ts` (your changes to this file are always preserved as long as the model and field are not dropped in the database,) but the **generated** `Cat*` model types in `frieda.ts` will reflect the change:
 
 ```diff
 // frieda.ts
@@ -196,7 +196,7 @@ export type Cat = {
 -  fleaCount: string;
 +  fleaCount: bigint;
 };
-// ditto for the other generated Cat model types, `CatCreate`, `CatUpdate`, etc.
+// ditto for the other generated Cat* types, `CatCreate`, `CatUpdate`, etc.
 ```
 
 ## Project Structure
