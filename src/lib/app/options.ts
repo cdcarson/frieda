@@ -44,6 +44,9 @@ export class Options {
       which you can edit to fine-tune the schema's javascript types, and (2) 
       ${fmtPath(FRIEDA_FILENAME)}, which contains the generated database code.
      Example: ${fmtPath('src/db')} `,
+    compileJs: `
+      Whether or not to produce javascript files rather than typescript.
+    `,
     init: `(Re)initialize options in ${fmtPath(FRIEDA_RC_FILENAME)}.`,
     help: 'Show this help'
   };
@@ -151,6 +154,7 @@ export class Options {
     }
     let compileJs = rcOptions.compileJs === true;
     if (!rcExists || this.cliArgs.init) {
+      log.info(squishWords(Options.optionDescriptions.compileJs).split('\n'));
       compileJs = await prompt({
         type: 'confirm',
         name: 'compileJs',
