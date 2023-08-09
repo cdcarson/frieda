@@ -44,6 +44,9 @@ export class Options {
       which you can edit to fine-tune the schema's javascript types, and (2) 
       ${fmtPath(FRIEDA_FILENAME)}, which contains the generated database code.
      Example: ${fmtPath('src/db')} `,
+    compileJs: `
+      Whether or not to produce javascript files rather than typescript.
+    `,
     init: `(Re)initialize options in ${fmtPath(FRIEDA_RC_FILENAME)}.`,
     help: 'Show this help'
   };
@@ -74,6 +77,9 @@ export class Options {
     }
     return this.#connection;
   }
+  get compileJs(): boolean {
+    return this.options.compileJs;
+  }
 
   get outputDirectoryPath(): string {
     return this.options.outputDirectory;
@@ -90,7 +96,7 @@ export class Options {
     const readSpinner = ora('Reading options...').start();
     await FilesIO.init(this.cwd);
     const filesIo = FilesIO.get();
-    const rcOptions = await this.readFriedaRc();
+    const { exists: rcExists, rcOptions } = await this.readFriedaRc();
 
     const envFile =
       typeof this.cliArgs.envFile === 'string' &&
@@ -146,10 +152,21 @@ export class Options {
 
       outputDirectory = await this.promptOutputDirectory(outputDirectory);
     }
+    let compileJs = rcOptions.compileJs === true;
+    if (!rcExists || this.cliArgs.init) {
+      log.info(squishWords(Options.optionDescriptions.compileJs).split('\n'));
+      compileJs = await prompt({
+        type: 'confirm',
+        name: 'compileJs',
+        message: 'Compile to javascript?',
+        initial: compileJs
+      });
+    }
 
     const changed =
       databaseOptions.envFile !== rcOptions.envFile ||
-      outputDirectory !== rcOptions.outputDirectory;
+      outputDirectory !== rcOptions.outputDirectory ||
+      compileJs !== rcOptions.compileJs;
     if (changed) {
       const saveChanges = await prompt({
         name: 'saveChanges',
@@ -164,7 +181,8 @@ export class Options {
           JSON.stringify({
             ...rcOptions,
             outputDirectory,
-            envFile: databaseOptions.envFile
+            envFile: databaseOptions.envFile,
+            compileJs
           })
         );
         writeSpinner.succeed(`${fmtPath(FRIEDA_RC_FILENAME)} saved.`);
@@ -172,7 +190,8 @@ export class Options {
     }
     this.#options = {
       outputDirectory,
-      envFile: databaseOptions.envFile
+      envFile: databaseOptions.envFile,
+      compileJs
     };
     this.#databaseOptions = databaseOptions;
   }
@@ -299,15 +318,27 @@ export class Options {
     return relPath;
   }
 
-  async readFriedaRc(): Promise<Partial<FriedaOptions>> {
+  async readFriedaRc(): Promise<{
+    exists: boolean;
+    rcOptions: Partial<FriedaOptions>;
+  }> {
     const { exists, contents } = await FilesIO.get().read(FRIEDA_RC_FILENAME);
     if (!exists) {
-      return {};
+      return {
+        exists,
+        rcOptions: {}
+      };
     }
     try {
-      return JSON.parse(contents);
+      return {
+        exists: true,
+        rcOptions: JSON.parse(contents)
+      };
     } catch (error) {
-      return {};
+      return {
+        exists: false,
+        rcOptions: {}
+      };
     }
   }
 }

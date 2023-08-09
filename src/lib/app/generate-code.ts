@@ -1,6 +1,5 @@
 import type {
   DebugSchema,
-  FetchedSchema,
   ParsedField,
   ParsedModel,
   ParsedSchema
@@ -15,99 +14,35 @@ import type {
 } from '$lib/index.js';
 import { FilesIO } from './files-io.js';
 import { FRIEDA_VERSION } from '$lib/version.js';
-import { join, basename, dirname } from 'node:path';
+import { join, basename, dirname, extname } from 'node:path';
 import { DEFAULT_PRETTIER_OPTIONS } from './constants.js';
 import { format as fmtSql } from 'sql-formatter';
 import type { Options } from './options.js';
 import kleur from 'kleur';
 import highlight from 'cli-highlight';
 import prettier from 'prettier';
+import { Project } from 'ts-morph';
+import ts from 'typescript';
 
 export const generateCode = async (
   options: Options,
   parsedSchema: ParsedSchema,
-  fetchedSchema: FetchedSchema,
   tableCreateStatements: string[]
 ) => {
   const writeSpinner = ora(`Generating code...`).start();
   const files = FilesIO.get();
 
-  const prevFilePaths = [
-    join('.frieda-metadata', 'schema.json'),
-    join('.frieda-metadata', 'schema.sql'),
-    options.modelDefinitionFilePath
-  ];
+  const friedaModelsDTypescript = getFriedaModelsDTsCode(parsedSchema);
+  const friedaTypescript = getFriedaTsCode(parsedSchema);
 
-  const schemaHistoryFiles: { path: string; contents: string }[] = [];
-  const prevFiles = await Promise.all(prevFilePaths.map((p) => files.read(p)));
-  const gitIgnore = await files.read(join('.frieda-metadata', '.gitignore'));
-  if (!gitIgnore.exists) {
-    await files.write(join('.frieda-metadata', '.gitignore'), 'history');
-  }
-  if (prevFiles[0].exists) {
-    try {
-      const s: DebugSchema = JSON.parse(prevFiles[0].contents);
-      if (s && s.fetchedSchema.fetchedAt) {
-        const historyPath = join(
-          '.frieda-metadata',
-          'history',
-          new Date(s.fetchedSchema.fetchedAt).toISOString()
-        );
-        prevFiles.forEach((p) => {
-          schemaHistoryFiles.push({
-            path: join(historyPath, basename(p.abspath)),
-            contents: p.contents
-          });
-        });
-      }
-    } catch (error) {
-      // ignore
-    }
-  }
-
-  const debugSchema: DebugSchema = {
-    fetchedSchema,
-    parsedSchema
-  };
-  const schemaSql =
-    `-- Database: ${
-      fetchedSchema.databaseName
-    } \n--Fetched: ${fetchedSchema.fetchedAt.toISOString()}\n\n` +
+  // order is important, history first...
+  const historyFiles = await writeSchemaHistoryFiles(options);
+  const schemaFiles = await writeMetadataFiles(
+    parsedSchema,
     tableCreateStatements
-      .map((s) => s.trim())
-      .map((s) => s.replace(/^CREATE.*VIEW/, 'CREATE VIEW'))
-      .map((s) => `${s};`)
-      .join('\n\n');
-  const schemaFiles: { path: string; contents: string }[] = [
-    {
-      path: join('.frieda-metadata', 'schema.json'),
-      contents: JSON.stringify(debugSchema)
-    },
-    {
-      path: join('.frieda-metadata', 'schema.sql'),
-      contents: fmtSql(schemaSql)
-    }
-  ];
-
-  const schemaDefinitionFile: { path: string; contents: string } = {
-    path: options.modelDefinitionFilePath,
-    contents: getSchemaDefinitionDTsCode(parsedSchema)
-  };
-  const friedaFile: { path: string; contents: string } = {
-    path: options.friedaFilePath,
-    contents: getFriedaTsCode(parsedSchema)
-  };
-
-  await Promise.all(
-    [
-      schemaDefinitionFile,
-      friedaFile,
-      ...schemaFiles,
-      ...schemaHistoryFiles
-    ].map((o) => {
-      return files.write(o.path, o.contents);
-    })
   );
+  await files.write(options.modelDefinitionFilePath, friedaModelsDTypescript);
+  const friedaFiles = await writeFrieda(options, friedaTypescript);
 
   const examplePath = join(options.outputDirectoryPath, 'get-db.js');
   const exampleCode = `
@@ -149,24 +84,22 @@ export const generateCode = async (
   console.log();
   log.info([
     'Current schema information files:',
-    ...schemaFiles.map((o) => `- ${fmtPath(o.path)}`),
-    ...(schemaHistoryFiles.length > 0
+    ...schemaFiles.map((p) => `- ${fmtPath(p)}`),
+    ...(historyFiles.length > 0
       ? [
           `${kleur.dim('- Previous schema saved to ')}${fmtPath(
-            dirname(schemaHistoryFiles[0].path)
+            dirname(historyFiles[0])
           )}`
         ]
       : [])
   ]);
-  console.log();
-
   log.info([
     'Schema definition file updated:',
-    `- ${fmtPath(schemaDefinitionFile.path)}`
+    `- ${fmtPath(options.modelDefinitionFilePath)}`
   ]);
   log.info([
-    'Frieda database file generated:',
-    `- ${fmtPath(friedaFile.path)}`
+    'Frieda database file(s) generated:',
+    ...friedaFiles.map((p) => `- ${fmtPath(p)}`)
   ]);
   console.log();
   log.info(['Quick start example:']);
@@ -346,9 +279,7 @@ export const getFriedaTsCode = (schema: ParsedSchema): string => {
   return code;
 };
 
-export const getSchemaDefinitionDTsCode = (
-  parsedSchema: ParsedSchema
-): string => {
+export const getFriedaModelsDTsCode = (parsedSchema: ParsedSchema): string => {
   const code = `
   /**
    * Database:        ${parsedSchema.databaseName}
@@ -670,4 +601,128 @@ export const getViewDbTypeDeclaration = (
     ','
   )}>`;
   return [comment, declaration].join('\n');
+};
+
+export const writeFrieda = async (
+  options: Options,
+  tsCode: string
+): Promise<string[]> => {
+  const files = FilesIO.get();
+  const tsPath = options.friedaFilePath;
+  const dTsPath = join(
+    options.outputDirectoryPath,
+    basename(tsPath, extname(tsPath)) + '.d.ts'
+  );
+  const jsPath = join(
+    options.outputDirectoryPath,
+    basename(tsPath, extname(tsPath)) + '.js'
+  );
+
+  if (!options.compileJs) {
+    await files.write(tsPath, tsCode);
+    // delete the .js and .d.ts files in case the setting has changed...
+    await Promise.all([files.delete(dTsPath), files.delete(jsPath)]);
+    return [tsPath];
+  }
+
+  // We'll rename this later...
+  await files.write(tsPath, tsCode);
+  const project = new Project({
+    compilerOptions: {
+      module: ts.ModuleKind.ES2022,
+      target: ts.ScriptTarget.ESNext,
+      lib: ['esnext'],
+      declaration: true,
+      preserveConstEnums: true,
+      preserveValueImports: true
+    }
+  });
+  const jsFilesToWrite: { path: string; contents: string }[] = [
+    { path: dTsPath, contents: tsCode }
+  ];
+  project.addSourceFileAtPath(tsPath);
+  project
+    .emitToMemory()
+    .getFiles()
+    .forEach((f) => {
+      // just to make sure we're not writing other things...
+      if (f.filePath.endsWith(jsPath)) {
+        jsFilesToWrite.unshift({ path: jsPath, contents: f.text });
+      }
+    });
+  await Promise.all(jsFilesToWrite.map((o) => files.write(o.path, o.contents)));
+  // delete the .ts file, since we've written it as frieda.d.ts above
+  await files.delete(tsPath);
+  return [...jsFilesToWrite.map((o) => o.path)];
+};
+
+export const writeMetadataFiles = async (
+  schema: ParsedSchema,
+  tableCreateStatements: string[]
+): Promise<string[]> => {
+  const files = FilesIO.get();
+  const schemaSql =
+    `-- Database: ${
+      schema.databaseName
+    } \n--Fetched: ${schema.fetchedAt.toISOString()}\n\n` +
+    tableCreateStatements
+      .map((s) => s.trim())
+      .map((s) => s.replace(/^CREATE.*VIEW/, 'CREATE VIEW'))
+      .map((s) => `${s};`)
+      .join('\n\n');
+  const schemaFiles: { path: string; contents: string }[] = [
+    {
+      path: join('.frieda-metadata', 'schema.json'),
+      contents: JSON.stringify(schema)
+    },
+    {
+      path: join('.frieda-metadata', 'schema.sql'),
+      contents: fmtSql(schemaSql)
+    }
+  ];
+
+  await Promise.all(schemaFiles.map((o) => files.write(o.path, o.contents)));
+  return schemaFiles.map((o) => o.path);
+};
+
+export const writeSchemaHistoryFiles = async (
+  options: Options
+): Promise<string[]> => {
+  const files = FilesIO.get();
+  const prevFilePaths = [
+    join('.frieda-metadata', 'schema.json'),
+    join('.frieda-metadata', 'schema.sql'),
+    options.modelDefinitionFilePath
+  ];
+
+  const schemaHistoryFiles: { path: string; contents: string }[] = [];
+  const prevFiles = await Promise.all(prevFilePaths.map((p) => files.read(p)));
+  const gitIgnore = await files.read(join('.frieda-metadata', '.gitignore'));
+  if (!gitIgnore.exists) {
+    await files.write(join('.frieda-metadata', '.gitignore'), 'history');
+  }
+  if (prevFiles[0].exists) {
+    try {
+      const s: DebugSchema = JSON.parse(prevFiles[0].contents);
+      if (s && s.fetchedSchema.fetchedAt) {
+        const historyPath = join(
+          '.frieda-metadata',
+          'history',
+          new Date(s.fetchedSchema.fetchedAt).toISOString()
+        );
+        prevFiles.forEach((p) => {
+          schemaHistoryFiles.push({
+            path: join(historyPath, basename(p.abspath)),
+            contents: p.contents
+          });
+        });
+      }
+    } catch (error) {
+      // ignore
+    }
+  }
+  await Promise.all(
+    schemaHistoryFiles.map((o) => files.write(o.path, o.contents))
+  );
+  return schemaHistoryFiles.map((o) => o.path);
 };

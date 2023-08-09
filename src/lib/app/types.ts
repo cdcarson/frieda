@@ -3,6 +3,7 @@ import type { CastType, MysqlBaseType } from '$lib/index.js';
 export type FriedaOptions = {
   envFile: string;
   outputDirectory: string;
+  compileJs: boolean;
 };
 export type FriedaCliArgs = FriedaOptions & {
   init: boolean;
