@@ -759,5 +759,7 @@ TKTK, basically:
 
 The dog. She disavows any responsibility for this project, and considers the time I've spent on it, when I could have been playing keep away with her and the sheep, to have been wasted.
 
+<img src="./docs/frieda.jpeg" alt="the dog Frieda with her toys"/>
+
 
 
