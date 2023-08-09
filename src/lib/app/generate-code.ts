@@ -22,6 +22,8 @@ import type { Options } from './options.js';
 import kleur from 'kleur';
 import highlight from 'cli-highlight';
 import prettier from 'prettier';
+import { Project } from 'ts-morph';
+import ts from 'typescript';
 
 export const generateCode = async (
   options: Options,
@@ -108,6 +110,8 @@ export const generateCode = async (
       return files.write(o.path, o.contents);
     })
   );
+
+  await compileToJs(options)
 
   const examplePath = join(options.outputDirectoryPath, 'get-db.js');
   const exampleCode = `
@@ -670,4 +674,16 @@ export const getViewDbTypeDeclaration = (
     ','
   )}>`;
   return [comment, declaration].join('\n');
+};
+
+export const compileToJs = async (options: Options) => {
+
+  const project = new Project({
+    compilerOptions: {
+      module: ts.ModuleKind.NodeNext,
+      declaration: true
+    }
+  });
+  project.addSourceFileAtPath(join(options.cwd, options.friedaFilePath));
+  await project.emit()
 };
