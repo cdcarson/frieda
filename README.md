@@ -754,12 +754,10 @@ TKTK, basically:
 - PRs
 - Tests
 
-
 ## Who's Frieda?
 
-The dog. She disavows any responsibility for this project, and considers the time I've spent on it, when I could have been playing keep away with her and the sheep, to have been wasted.
+The dog. She disavows any responsibility for this project, and considers the time I've spent on it, when I could have been playing keep away with her and Mr. Sheep, to have been wasted.
 
-<img src="./docs/frieda.jpeg" alt="the dog Frieda with her toys"/>
-
-
-
+<div style="display:flex; justify-content:center">
+<img src="./docs/frieda.jpeg" alt="The dog Frieda with her toys" style="max-width:95vw"/>
+</div>
