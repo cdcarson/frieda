@@ -38,7 +38,6 @@ export const generateCode = async (
   // order is important, history first...
   const historyFiles = await writeSchemaHistoryFiles(options);
   const schemaFiles = await writeMetadataFiles(
-    options,
     parsedSchema,
     tableCreateStatements
   );
@@ -606,59 +605,58 @@ export const getViewDbTypeDeclaration = (
 
 export const writeFrieda = async (
   options: Options,
-  friedaTypescript: string
+  tsCode: string
 ): Promise<string[]> => {
   const files = FilesIO.get();
-  const friedaTsPath = options.friedaFilePath;
-  const freidaDTsPath = join(
+  const tsPath = options.friedaFilePath;
+  const dTsPath = join(
     options.outputDirectoryPath,
-    basename(friedaTsPath, extname(friedaTsPath)) + '.d.ts'
+    basename(tsPath, extname(tsPath)) + '.d.ts'
   );
-  const freidaJsPath = join(
+  const jsPath = join(
     options.outputDirectoryPath,
-    basename(friedaTsPath, extname(friedaTsPath)) + '.js'
+    basename(tsPath, extname(tsPath)) + '.js'
   );
 
-  //try this, write the ts file...
-  await files.write(friedaTsPath, friedaTypescript);
-  const jsFilesToWrite: { path: string; contents: string }[] = [];
-  if (options.compileJs) {
-    const project = new Project({
-      compilerOptions: {
-        module: ts.ModuleKind.ES2022,
-        target: ts.ScriptTarget.ESNext,
-        lib: ['esnext'],
-        declaration: true,
-        preserveConstEnums: true,
-        preserveValueImports: true
-      }
-    });
-    project.addSourceFileAtPath(friedaTsPath);
-    project
-      .emitToMemory()
-      .getFiles()
-      .forEach((f) => {
-        // leaving this here as is, though the .d.ts file never gets emitted...
-        if (f.filePath.endsWith(freidaJsPath)) {
-          jsFilesToWrite.push({ path: freidaJsPath, contents: f.text });
-        } else if (f.filePath.endsWith(freidaDTsPath)) {
-          jsFilesToWrite.push({ path: freidaDTsPath, contents: f.text });
-        }
-      });
-  } else {
-    // handle the case where compileJs has been turned off...
-    // delete the old fellows...
-    await Promise.all(
-      [freidaDTsPath, freidaJsPath].map((p) => files.delete(p))
-    );
+  if (!options.compileJs) {
+    await files.write(tsPath, tsCode);
+    // delete the .js and .d.ts files in case the setting has changed...
+    await Promise.all([files.delete(dTsPath), files.delete(jsPath)]);
+    return [tsPath];
   }
 
+  // We'll rename this later...
+  await files.write(tsPath, tsCode);
+  const project = new Project({
+    compilerOptions: {
+      module: ts.ModuleKind.ES2022,
+      target: ts.ScriptTarget.ESNext,
+      lib: ['esnext'],
+      declaration: true,
+      preserveConstEnums: true,
+      preserveValueImports: true
+    }
+  });
+  const jsFilesToWrite: { path: string; contents: string }[] = [
+    { path: dTsPath, contents: tsCode }
+  ];
+  project.addSourceFileAtPath(tsPath);
+  project
+    .emitToMemory()
+    .getFiles()
+    .forEach((f) => {
+      // just to make sure we're not writing other things...
+      if (f.filePath.endsWith(jsPath)) {
+        jsFilesToWrite.unshift({ path: jsPath, contents: f.text });
+      }
+    });
   await Promise.all(jsFilesToWrite.map((o) => files.write(o.path, o.contents)));
-  return [...jsFilesToWrite.map((o) => o.path), friedaTsPath];
+  // delete the .ts file, since we've written it as frieda.d.ts above
+  await files.delete(tsPath);
+  return [...jsFilesToWrite.map((o) => o.path)];
 };
 
 export const writeMetadataFiles = async (
-  options: Options,
   schema: ParsedSchema,
   tableCreateStatements: string[]
 ): Promise<string[]> => {
