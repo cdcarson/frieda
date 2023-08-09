@@ -66,10 +66,9 @@ export class BaseDatabase {
   ) => void {
     return (
       this.loggingOptions.performanceLogger ||
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       ((e: ExecutedQuery, t: number) => {
-        if (e && t) {
-          // noop
-        }
+        // noop
       })
     );
   }
@@ -77,10 +76,9 @@ export class BaseDatabase {
   get errorLogger(): (error: ExecuteError) => void {
     return (
       this.loggingOptions.errorLogger ||
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       ((e: ExecuteError) => {
-        if (e) {
-          // noop
-        }
+        // noop
       })
     );
   }
@@ -239,6 +237,7 @@ export class ViewDatabase<
     const result = await this.selectMany<{ ct: bigint }>(query, {
       ct: 'bigint'
     });
+
     return result.rows[0] ? result.rows[0].ct : 0n;
   }
   async count(input: ModelInputWithWhere<M>): Promise<number> {

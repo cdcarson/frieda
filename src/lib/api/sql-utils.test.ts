@@ -17,14 +17,14 @@ describe('bt', () => {
 
 describe('getWhere', () => {
   it('model where', () => {
-    const where = getWhere({ a: 'foo', b: 'bar' });
+    const where = getWhere({ where: { a: 'foo', b: 'bar' } });
     expect(where.sql).toEqual(
       expect.stringMatching(/^WHERE\s+`a`\s+=\s+\?\s+AND\s+`b`\s+=\s+\?/)
     );
     expect(where.values).toEqual(['foo', 'bar']);
   });
   it('model where with table name', () => {
-    const where = getWhere({ a: 'foo', b: 'bar' }, 't');
+    const where = getWhere({ where: { a: 'foo', b: 'bar' } }, 't');
     expect(where.sql).toEqual(
       expect.stringMatching(
         /^WHERE\s+`t`.`a`\s+=\s+\?\s+AND\s+`t`.`b`\s+=\s+\?/
@@ -39,7 +39,7 @@ describe('getWhere', () => {
   });
   it('sql where', () => {
     const foo = 1;
-    const where = getWhere(sql`id=${foo}`);
+    const where = getWhere({ whereSql: sql`id=${foo}` });
     expect(where.sql).toEqual('WHERE id=?');
     expect(where.values).toEqual([1]);
   });
