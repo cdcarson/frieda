@@ -1,4 +1,4 @@
-# Frieda
+# Frieda 🦮
 
 Javascript code generator for the PlanetScale serverless driver.
 
