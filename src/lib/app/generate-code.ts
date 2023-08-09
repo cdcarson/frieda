@@ -628,7 +628,7 @@ export const writeFrieda = async (
   if (options.compileJs) {
     const project = new Project({
       compilerOptions: {
-        module: ts.ModuleKind.NodeNext,
+        module: ts.ModuleKind.ES2022,
         declaration: true
       },
       useInMemoryFileSystem: true
