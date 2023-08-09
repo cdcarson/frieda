@@ -29,7 +29,7 @@ export const generateCode = async (
   parsedSchema: ParsedSchema,
   tableCreateStatements: string[]
 ) => {
-  const writeSpinner = ora(`Generating code...`).start();
+  // const writeSpinner = ora(`Generating code...`).start();
   const files = FilesIO.get();
 
   const friedaModelsDTypescript = getFriedaModelsDTsCode(parsedSchema);
@@ -81,34 +81,34 @@ export const generateCode = async (
   const lineLength =
     Math.max(...examplePrettified.split(`\n`).map((s) => s.trim().length)) + 5;
 
-  writeSpinner.succeed(`Code generated.`);
+  // writeSpinner.succeed(`Code generated.`);
   console.log();
-  log.info([
-    'Current schema information files:',
-    ...schemaFiles.map((p) => `- ${fmtPath(p)}`),
-    ...(historyFiles.length > 0
-      ? [
-          `${kleur.dim('- Previous schema saved to ')}${fmtPath(
-            dirname(historyFiles[0])
-          )}`
-        ]
-      : [])
-  ]);
-  console.log();
+  // log.info([
+  //   'Current schema information files:',
+  //   ...schemaFiles.map((p) => `- ${fmtPath(p)}`),
+  //   ...(historyFiles.length > 0
+  //     ? [
+  //         `${kleur.dim('- Previous schema saved to ')}${fmtPath(
+  //           dirname(historyFiles[0])
+  //         )}`
+  //       ]
+  //     : [])
+  // ]);
+  // console.log();
 
-  log.info([
-    'Schema definition file updated:',
-    `- ${fmtPath(options.modelDefinitionFilePath)}`
-  ]);
-  log.info([
-    'Frieda database file(s) generated:',
-    ...friedaFiles.map((p) => `- ${fmtPath(p)}`)
-  ]);
-  console.log();
-  log.info(['Quick start example:']);
-  console.log(kleur.dim('-'.repeat(lineLength)));
-  log.message(exampleCodeColorized.split('\n'), 0);
-  console.log(kleur.dim('-'.repeat(lineLength)));
+  // log.info([
+  //   'Schema definition file updated:',
+  //   `- ${fmtPath(options.modelDefinitionFilePath)}`
+  // ]);
+  // log.info([
+  //   'Frieda database file(s) generated:',
+  //   ...friedaFiles.map((p) => `- ${fmtPath(p)}`)
+  // ]);
+  // console.log();
+  // log.info(['Quick start example:']);
+  // console.log(kleur.dim('-'.repeat(lineLength)));
+  // log.message(exampleCodeColorized.split('\n'), 0);
+  // console.log(kleur.dim('-'.repeat(lineLength)));
 };
 
 export const getFriedaTsCode = (schema: ParsedSchema): string => {
@@ -624,22 +624,26 @@ export const writeFrieda = async (
   await Promise.all(
     [freidaDTsPath, friedaTsPath, freidaJsPath].map((p) => files.delete(p))
   );
+  //try this, write the ts file...
+  await files.write(friedaTsPath, friedaTypescript);
   const filesToWrite: { path: string; contents: string }[] = [];
   if (options.compileJs) {
     const project = new Project({
       compilerOptions: {
-        module: ts.ModuleKind.ES2022,
-        declaration: true
-      },
-      useInMemoryFileSystem: true
+        module: ts.ModuleKind.ES2020,
+        target: ts.ScriptTarget.ESNext,
+        lib: ['esnext'],
+        declaration: true,
+        preserveConstEnums: true,
+        preserveValueImports: true
+      }
     });
-    project.createSourceFile(files.abspath(friedaTsPath), friedaTypescript, {
-      overwrite: true
-    });
+    project.addSourceFileAtPath(friedaTsPath);
     project
       .emitToMemory()
       .getFiles()
       .forEach((f) => {
+        console.log(f.filePath);
         if (f.filePath.endsWith(freidaJsPath)) {
           filesToWrite.push({ path: freidaJsPath, contents: f.text });
         } else if (f.filePath.endsWith(freidaDTsPath)) {
