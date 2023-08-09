@@ -61,12 +61,7 @@ export const main = async (cwd: string, args: string[]) => {
     options.connection
   );
   const parsedSchema = parseSchema(schemaModels, fetchedSchema);
-  await generateCode(
-    options,
-    parsedSchema,
-    fetchedSchema,
-    tableCreateStatements
-  );
-  console.log(`Done in ${Date.now() - start}ms.`, '🦮');
+  await generateCode(options, parsedSchema, tableCreateStatements);
+  console.log(`Done in ${(Date.now() - start) / 1000} seconds.`, '🦮');
   console.log();
 };

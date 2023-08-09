@@ -1,7 +1,7 @@
 import { ast, query } from '@phenomnomnominal/tsquery';
 import type ts from 'typescript';
 import type { SchemaField, SchemaModel } from './types.js';
-import { fmtPath, log, onUserCancelled, prompt, squishWords } from './utils.js';
+import { fmtPath, log, onUserCancelled, squishWords } from './utils.js';
 import prettier from 'prettier';
 import highlight from 'cli-highlight';
 import ora from 'ora';

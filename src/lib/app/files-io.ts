@@ -66,6 +66,10 @@ export class FilesIO {
     await fsExtra.emptyDir(this.abspath(relPath));
   }
 
+  async delete(relPath: string): Promise<void> {
+    await fsExtra.remove(this.abspath(relPath));
+  }
+
   abspath(relPath: string): string {
     return resolve(this.cwd, relPath);
   }
