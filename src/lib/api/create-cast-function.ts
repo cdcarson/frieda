@@ -15,6 +15,7 @@ export const createCastFunction = <M extends Record<string, unknown>>(
   customModelCast?: CustomModelCast<M>
 ): Cast => {
   const custom: CustomModelCast<M> = customModelCast || {};
+
   const decoder = new TextDecoder('utf-8');
   const decode = (text: string | null): string => {
     return text ? decoder.decode(Uint8Array.from(bytes(text))) : '';
