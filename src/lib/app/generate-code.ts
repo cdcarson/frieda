@@ -29,7 +29,7 @@ export const generateCode = async (
   parsedSchema: ParsedSchema,
   tableCreateStatements: string[]
 ) => {
-  // const writeSpinner = ora(`Generating code...`).start();
+  const writeSpinner = ora(`Generating code...`).start();
   const files = FilesIO.get();
 
   const friedaModelsDTypescript = getFriedaModelsDTsCode(parsedSchema);
@@ -81,34 +81,32 @@ export const generateCode = async (
   const lineLength =
     Math.max(...examplePrettified.split(`\n`).map((s) => s.trim().length)) + 5;
 
-  // writeSpinner.succeed(`Code generated.`);
+  writeSpinner.succeed(`Code generated.`);
   console.log();
-  // log.info([
-  //   'Current schema information files:',
-  //   ...schemaFiles.map((p) => `- ${fmtPath(p)}`),
-  //   ...(historyFiles.length > 0
-  //     ? [
-  //         `${kleur.dim('- Previous schema saved to ')}${fmtPath(
-  //           dirname(historyFiles[0])
-  //         )}`
-  //       ]
-  //     : [])
-  // ]);
-  // console.log();
-
-  // log.info([
-  //   'Schema definition file updated:',
-  //   `- ${fmtPath(options.modelDefinitionFilePath)}`
-  // ]);
-  // log.info([
-  //   'Frieda database file(s) generated:',
-  //   ...friedaFiles.map((p) => `- ${fmtPath(p)}`)
-  // ]);
-  // console.log();
-  // log.info(['Quick start example:']);
-  // console.log(kleur.dim('-'.repeat(lineLength)));
-  // log.message(exampleCodeColorized.split('\n'), 0);
-  // console.log(kleur.dim('-'.repeat(lineLength)));
+  log.info([
+    'Current schema information files:',
+    ...schemaFiles.map((p) => `- ${fmtPath(p)}`),
+    ...(historyFiles.length > 0
+      ? [
+          `${kleur.dim('- Previous schema saved to ')}${fmtPath(
+            dirname(historyFiles[0])
+          )}`
+        ]
+      : [])
+  ]);
+  log.info([
+    'Schema definition file updated:',
+    `- ${fmtPath(options.modelDefinitionFilePath)}`
+  ]);
+  log.info([
+    'Frieda database file(s) generated:',
+    ...friedaFiles.map((p) => `- ${fmtPath(p)}`)
+  ]);
+  console.log();
+  log.info(['Quick start example:']);
+  console.log(kleur.dim('-'.repeat(lineLength)));
+  log.message(exampleCodeColorized.split('\n'), 0);
+  console.log(kleur.dim('-'.repeat(lineLength)));
 };
 
 export const getFriedaTsCode = (schema: ParsedSchema): string => {
@@ -620,17 +618,14 @@ export const writeFrieda = async (
     options.outputDirectoryPath,
     basename(friedaTsPath, extname(friedaTsPath)) + '.js'
   );
-  // delete the old fellows...
-  await Promise.all(
-    [freidaDTsPath, friedaTsPath, freidaJsPath].map((p) => files.delete(p))
-  );
+
   //try this, write the ts file...
   await files.write(friedaTsPath, friedaTypescript);
-  const filesToWrite: { path: string; contents: string }[] = [];
+  const jsFilesToWrite: { path: string; contents: string }[] = [];
   if (options.compileJs) {
     const project = new Project({
       compilerOptions: {
-        module: ts.ModuleKind.ES2020,
+        module: ts.ModuleKind.ES2022,
         target: ts.ScriptTarget.ESNext,
         lib: ['esnext'],
         declaration: true,
@@ -643,19 +638,23 @@ export const writeFrieda = async (
       .emitToMemory()
       .getFiles()
       .forEach((f) => {
-        console.log(f.filePath);
+        // leaving this here as is, though the .d.ts file never gets emitted...
         if (f.filePath.endsWith(freidaJsPath)) {
-          filesToWrite.push({ path: freidaJsPath, contents: f.text });
+          jsFilesToWrite.push({ path: freidaJsPath, contents: f.text });
         } else if (f.filePath.endsWith(freidaDTsPath)) {
-          filesToWrite.push({ path: freidaDTsPath, contents: f.text });
+          jsFilesToWrite.push({ path: freidaDTsPath, contents: f.text });
         }
       });
   } else {
-    filesToWrite.push({ path: friedaTsPath, contents: friedaTypescript });
+    // handle the case where compileJs has been turned off...
+    // delete the old fellows...
+    await Promise.all(
+      [freidaDTsPath, freidaJsPath].map((p) => files.delete(p))
+    );
   }
 
-  await Promise.all(filesToWrite.map((o) => files.write(o.path, o.contents)));
-  return filesToWrite.map((o) => o.path);
+  await Promise.all(jsFilesToWrite.map((o) => files.write(o.path, o.contents)));
+  return [...jsFilesToWrite.map((o) => o.path), friedaTsPath];
 };
 
 export const writeMetadataFiles = async (
