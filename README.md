@@ -1,4 +1,4 @@
-# Frieda
+# Frieda 🦮
 
 Javascript code generator for the PlanetScale serverless driver.
 
@@ -10,18 +10,20 @@ Javascript code generator for the PlanetScale serverless driver.
   - [Example: Modifying a field type](#example-modifying-a-field-type)
 - [Project Structure](#project-structure)
   - [Metadata and option files](#metadata-and-option-files)
-  - [`outputDirectory` files (generated code)](#outputdirectory-files-generated-code)
+  - [Generated code files](#generated-code-files)
 - [Naming Conventions](#naming-conventions)
 - [Field Types](#field-types)
   - [Field Type Conventions](#field-type-conventions)
-  - [Modify field types in `frieda-models.ts`](#modify-field-types-in-model-typesdts)
+  - [Modifying field types](#modifying-field-types)
     - [Recipe: Typing `json` fields](#recipe-typing-json-fields)
     - [Recipe: Typing `bigint` aggregate fields](#recipe-typing-bigint-aggregate-fields)
 - [Model Types](#model-types)
 - [Casting](#casting)
-- [Typing Arbitrary `SELECT` Queries](#arbitrary-select-queries)
+- [Arbitrary `SELECT` Queries](#arbitrary-select-queries)
 - [Options](#options)
 - [API](#api)
+- [Contributing](#contributing)
+- [Who's Frieda](#whos-frieda)
 
 ## Why?
 
@@ -298,7 +300,7 @@ In some cases, however, you will want to override the convention or narrow the t
 - There's no other valid typescript type for this case. For example things like `{}` or `any|any[]` would throw typescript linting errors in addition to (probably) being factually incorrect.
 - It's easy to [specify a useful type](#recipe-typing-json-fields) in `frieda-models.ts`.
 
-### Modify field types in `frieda-models.ts`
+### Modifying field types
 
 The `frieda-models.ts` file contains a "virtual" model type for each table and view in the database. It's the primary source of truth for Frieda to generate the "real" application model types found in `frieda.ts`.
 
@@ -743,3 +745,19 @@ Documentation TKTK
 ### utility function: `getSearchSql`
 
 Documentation TKTK
+
+## Contributing
+
+TKTK, basically:
+
+- Setup, including reference userland projects
+- PRs
+- Tests
+
+## Who's Frieda?
+
+The dog. She disavows any responsibility for this project, and considers the time I've spent on it, when I could have been playing keep away with her and Mr. Sheep, to have been wasted.
+
+<div style="display:flex; justify-content:center">
+<img src="./docs/frieda.jpeg" alt="The dog Frieda with her toys" style="max-width:95vw"/>
+</div>
