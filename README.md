@@ -23,6 +23,7 @@ Javascript code generator for the PlanetScale serverless driver.
 - [Options](#options)
 - [API](#api)
 - [Contributing](#contributing)
+- [Who's Frieda](#whos-frieda)
 
 ## Why?
 
@@ -752,3 +753,8 @@ TKTK, basically:
 - Setup, including reference userland projects
 - PRs
 - Tests
+
+
+## Who's Frieda?
+
+
