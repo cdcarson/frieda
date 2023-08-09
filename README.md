@@ -646,7 +646,7 @@ const { rows } = await db.selectMany<CatPersonStats>(
 
 ## Options
 
-Frieda's two main options are stored in a `.friedarc.json` file at the root of the project. This file should be added to git. If it doesn't exist or is somehow invalid, Frieda will prompt you for:
+Frieda's three main options are stored in a `.friedarc.json` file at the root of the project. This file should be added to git. If it doesn't exist or is somehow invalid, Frieda will prompt you for:
 
 ### `envFilePath`
 
@@ -674,6 +674,27 @@ Notes:
 - You can keep other files and folders in the `outputDirectory` as long as they do not conflict with the paths mentioned above.
 - The generated code should be considered part of your source code, that is, added to git and included in your javascript/typescript build step.
 - You can override the value in `.friedarc.json` by doing `frieda --output-directory <some-other-path>`.
+
+### `compileJs`
+
+Whether or not to produce javascript files rather than typescript. If set, Frieda will generate `frieda.js` and `frieda.d.ts` rather than `frieda.ts`. Javascript is compiled with:
+
+```ts
+{
+  compilerOptions: {
+    module: ts.ModuleKind.ES2022,
+    target: ts.ScriptTarget.ESNext,
+    lib: ['esnext'],
+    preserveConstEnums: true,
+    preserveValueImports: true
+  }
+}
+```
+
+Notes:
+
+- Support for compiling to javascript is **experimental**. It works on a SvelteKit javascript project. If you run into problems with a similar modern framework/build setup please file an issue.
+- You can override the value in `.friedarc.json` by doing `frieda --compile-js`.
 
 ### CLI-only Options
 
