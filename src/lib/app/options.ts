@@ -177,7 +177,8 @@ export class Options {
           JSON.stringify({
             ...rcOptions,
             outputDirectory,
-            envFile: databaseOptions.envFile
+            envFile: databaseOptions.envFile,
+            compileJs
           })
         );
         writeSpinner.succeed(`${fmtPath(FRIEDA_RC_FILENAME)} saved.`);
