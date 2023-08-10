@@ -281,6 +281,7 @@ export const getFriedaTsCode = (schema: ParsedSchema): string => {
 
 export const getFriedaModelsDTsCode = (parsedSchema: ParsedSchema): string => {
   const code = `
+  /* eslint-disable @typescript-eslint/no-unused-vars */
   /**
    * Database:        ${parsedSchema.databaseName}
    * Schema Fetched:  ${parsedSchema.fetchedAt.toISOString()}
