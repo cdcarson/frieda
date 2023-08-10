@@ -55,7 +55,7 @@ Frieda will ask for a few [options](#options):
 
 - Where to find your database URL.
 - Where you want the generated database code to go.
-- ([Experimental](#compilejs).) Whether you want to compile to javascript rather typescript.
+- Whether you want to compile to javascript rather typescript. ([Experimental](#compilejs).)
 
 These options are saved to `.friedarc.json`, so you don't have to go through the prompts every time.
 
