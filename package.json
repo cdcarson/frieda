@@ -1,6 +1,6 @@
 {
   "name": "frieda",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Javascript code generator for the PlanetScale serverless driver.",
   "keywords": [
     "serverless",
