@@ -329,7 +329,7 @@ export const getFriedaModelsDTsCode = (parsedSchema: ParsedSchema): string => {
     })
     .join('\n\n')}
 
-    // kepe the types above showing up in autocomplete...
+    // keep the types above showing up in autocomplete...
     export default {};
   `;
 
