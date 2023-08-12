@@ -579,7 +579,7 @@ export const getBaseTableDbTypeDeclaration = (
     model.updateTypeName,
     model.findUniqueTypeName
   ];
-  const declaration = `export type ${model.dbTypeName}=TableDatabase<${els.join(
+  const declaration = `type ${model.dbTypeName}=TableDatabase<${els.join(
     ','
   )}>`;
   return [comment, declaration].join('\n');
@@ -601,9 +601,7 @@ export const getViewDbTypeDeclaration = (
     '\n'
   );
   const els = [model.modelName];
-  const declaration = `export type ${model.dbTypeName}=ViewDatabase<${els.join(
-    ','
-  )}>`;
+  const declaration = `type ${model.dbTypeName}=ViewDatabase<${els.join(',')}>`;
   return [comment, declaration].join('\n');
 };
 
