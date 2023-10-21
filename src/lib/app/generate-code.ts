@@ -16,7 +16,6 @@ import { FilesIO } from './files-io.js';
 import { FRIEDA_VERSION } from '$lib/version.js';
 import { join, basename, dirname, extname } from 'node:path';
 import { DEFAULT_PRETTIER_OPTIONS } from './constants.js';
-import { format as fmtSql } from 'sql-formatter';
 import type { Options } from './options.js';
 import kleur from 'kleur';
 import highlight from 'cli-highlight';
@@ -669,7 +668,6 @@ export const writeMetadataFiles = async (
     } \n--Fetched: ${schema.fetchedAt.toISOString()}\n\n` +
     tableCreateStatements
       .map((s) => s.trim())
-      .map((s) => s.replace(/^CREATE.*VIEW/, 'CREATE VIEW'))
       .map((s) => `${s};`)
       .join('\n\n');
   const schemaFiles: { path: string; contents: string }[] = [
@@ -679,7 +677,7 @@ export const writeMetadataFiles = async (
     },
     {
       path: join('.frieda-metadata', 'schema.sql'),
-      contents: fmtSql(schemaSql)
+      contents: schemaSql
     }
   ];
 
