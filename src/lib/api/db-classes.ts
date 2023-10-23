@@ -62,7 +62,8 @@ export class BaseDatabase {
 
   get performanceLogger(): (
     executedQuery: ExecutedQuery,
-    roundTripMs: number
+    roundTripMs: number,
+    queryTag?: string
   ) => void {
     return (
       this.loggingOptions.performanceLogger ||
@@ -73,7 +74,7 @@ export class BaseDatabase {
     );
   }
 
-  get errorLogger(): (error: ExecuteError) => void {
+  get errorLogger(): (error: ExecuteError, queryTag?: string) => void {
     return (
       this.loggingOptions.errorLogger ||
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -85,7 +86,8 @@ export class BaseDatabase {
 
   public async execute(
     query: Sql,
-    customModelCast?: CustomModelCast<Record<string, unknown>>
+    customModelCast?: CustomModelCast<Record<string, unknown>>,
+    queryTag?: string
   ): Promise<ExecutedQuery> {
     try {
       const start = Date.now();
@@ -94,34 +96,37 @@ export class BaseDatabase {
         cast: createCastFunction(this.schema.cast, customModelCast)
       });
       // noop by default, see getter
-      this.performanceLogger(result, Date.now() - start);
+      this.performanceLogger(result, Date.now() - start, queryTag);
       return result;
     } catch (error) {
-      this.errorLogger(new ExecuteError(error, query));
+      this.errorLogger(new ExecuteError(error, query), queryTag);
       throw new Error(`Internal server error.`);
     }
   }
 
   public async selectMany<M extends Record<string, unknown>>(
     query: Sql,
-    customModelCast?: CustomModelCast<M>
+    customModelCast?: CustomModelCast<M>,
+    queryTag?: string
   ): Promise<{ executedQuery: ExecutedQuery; rows: M[] }> {
-    const executedQuery = await this.execute(query, customModelCast);
+    const executedQuery = await this.execute(query, customModelCast, queryTag);
     return { executedQuery, rows: executedQuery.rows as M[] };
   }
 
   public async selectFirst<M extends Record<string, unknown>>(
     query: Sql,
-    customModelCast?: CustomModelCast<M>
+    customModelCast?: CustomModelCast<M>,
+    queryTag?: string
   ): Promise<M | null> {
-    const { rows } = await this.selectMany(query, customModelCast);
+    const { rows } = await this.selectMany(query, customModelCast, queryTag);
     return rows[0] || null;
   }
   public async selectFirstOrThrow<M extends Record<string, unknown>>(
     query: Sql,
-    customModelCast?: CustomModelCast<M>
+    customModelCast?: CustomModelCast<M>,
+    queryTag?: string
   ): Promise<M> {
-    const result = await this.selectFirst(query, customModelCast);
+    const result = await this.selectFirst(query, customModelCast, queryTag);
     if (!result) {
       throw new Error('selectFirstOrThrow failed to find a record.');
     }
@@ -168,6 +173,9 @@ export class ViewDatabase<
   async findMany<S extends ModelSelectColumnsInput<M> = undefined>(
     input: ModelFindManyInput<M, S, ModelSelectAll>
   ): Promise<SelectedModel<M, S, ModelSelectAll>[]> {
+    if (!input.queryTag) {
+      input.queryTag = `${this.model.modelName} - findMany`;
+    }
     const where = getWhere(input, this.tableName);
     const orderBy = getOrderBy(input.orderBy, this.tableName);
     const limit = getLimitOffset(input.paging);
@@ -204,7 +212,8 @@ export class ViewDatabase<
         ${limit}`;
     const { rows } = await this.selectMany<SelectedModel<M, S, ModelSelectAll>>(
       query,
-      input.cast
+      input.cast,
+      input.queryTag
     );
     return rows;
   }
@@ -212,6 +221,9 @@ export class ViewDatabase<
   async findFirst<S extends ModelSelectColumnsInput<M> = undefined>(
     input: ModelFindOneInput<M, S, ModelSelectAll>
   ): Promise<SelectedModel<M, S, ModelSelectAll> | null> {
+    if (!input.queryTag) {
+      input.queryTag = `${this.model.modelName} - findFirst`;
+    }
     const rows = await this.findMany({
       ...input,
       paging: { page: 1, rpp: 1 }
@@ -222,6 +234,9 @@ export class ViewDatabase<
   async findFirstOrThrow<S extends ModelSelectColumnsInput<M> = undefined>(
     input: ModelFindOneInput<M, S, ModelSelectAll>
   ): Promise<SelectedModel<M, S, ModelSelectAll>> {
+    if (!input.queryTag) {
+      input.queryTag = `${this.model.modelName} - findFirstOrThrow`;
+    }
     const result = await this.findFirst(input);
     if (!result) {
       throw new Error('findFirstOrThrow failed to find a record.');
@@ -230,17 +245,27 @@ export class ViewDatabase<
   }
 
   async countBigInt(input: ModelInputWithWhere<M>): Promise<bigint> {
+    if (!input.queryTag) {
+      input.queryTag = `${this.model.modelName} - countBigInt`;
+    }
     const where = getWhere(input, this.tableName);
     const query = sql`SELECT COUNT(*) AS \`ct\` FROM ${bt(
       this.tableName
     )} ${where}`;
-    const result = await this.selectMany<{ ct: bigint }>(query, {
-      ct: 'bigint'
-    });
+    const result = await this.selectMany<{ ct: bigint }>(
+      query,
+      {
+        ct: 'bigint'
+      },
+      input.queryTag
+    );
 
     return result.rows[0] ? result.rows[0].ct : 0n;
   }
   async count(input: ModelInputWithWhere<M>): Promise<number> {
+    if (!input.queryTag) {
+      input.queryTag = `${this.model.modelName} - count`;
+    }
     const ct = await this.countBigInt(input);
     if (ct > BigInt(Number.MAX_SAFE_INTEGER)) {
       throw new Error(
@@ -283,7 +308,11 @@ export class TableDatabase<
   async findUnique<S extends ModelSelectColumnsInput<M> = undefined>(input: {
     where: FindUniqueParams;
     select?: S;
+    queryTag?: string;
   }): Promise<SelectedModel<M, S, ModelSelectAll> | null> {
+    if (!input.queryTag) {
+      input.queryTag = `${this.model.modelName} - findUnique`;
+    }
     return await this.findFirst(input);
   }
   async findUniqueOrThrow<
@@ -291,11 +320,21 @@ export class TableDatabase<
   >(input: {
     where: FindUniqueParams;
     select?: S;
+    queryTag?: string;
   }): Promise<SelectedModel<M, S, ModelSelectAll>> {
+    if (!input.queryTag) {
+      input.queryTag = `${this.model.modelName} - findUniqueOrThrow`;
+    }
     return await this.findFirstOrThrow(input);
   }
 
-  async createMany(input: { data: CreateData[] }): Promise<ExecutedQuery> {
+  async createMany(input: {
+    data: CreateData[];
+    queryTag?: string;
+  }): Promise<ExecutedQuery> {
+    if (!input.queryTag) {
+      input.queryTag = `${this.model.modelName} - createMany`;
+    }
     const rawColumnNamesSet: Set<string> = input.data.reduce((acc, c) => {
       const s = new Set(acc);
       Object.keys(c).forEach((k) => s.add(k));
@@ -329,10 +368,16 @@ export class TableDatabase<
         VALUES 
         ${join(inserts, ',\n')}
     `;
-    return await this.execute(statement);
+    return await this.execute(statement, undefined, input.queryTag);
   }
 
-  async create(input: { data: CreateData }): Promise<PrimaryKey> {
+  async create(input: {
+    data: CreateData;
+    queryTag?: string;
+  }): Promise<PrimaryKey> {
+    if (!input.queryTag) {
+      input.queryTag = `${this.model.modelName} - create`;
+    }
     const names: Sql[] = [];
     const insertValues: Sql[] = [];
     const data: Partial<M> = input.data || {};
@@ -359,7 +404,7 @@ export class TableDatabase<
     const query = sql`INSERT INTO ${bt(
       this.tableName
     )} (${namesSql}) VALUES (${valuseSql})`;
-    const executedQuery = await this.execute(query);
+    const executedQuery = await this.execute(query, undefined, input.queryTag);
     const autoGeneratedPrimaryKey = this.autoIncrementingPrimaryKey;
     let primaryKey: PrimaryKey;
     if (autoGeneratedPrimaryKey) {
@@ -375,6 +420,9 @@ export class TableDatabase<
   }
 
   async updateWhere(input: ModelUpdateInput<M>): Promise<ExecutedQuery> {
+    if (!input.queryTag) {
+      input.queryTag = `${this.model.modelName} - updateWhere`;
+    }
     const keys = Object.keys(input.data);
     const updates: Sql[] = keys.map((k) => {
       if (input.data[k] === null) {
@@ -399,19 +447,32 @@ export class TableDatabase<
   async update(input: {
     data: UpdateData;
     where: PrimaryKey;
+    queryTag?: string;
   }): Promise<ExecutedQuery> {
+    if (!input.queryTag) {
+      input.queryTag = `${this.model.modelName} - update`;
+    }
     return await this.updateWhere(input);
   }
 
   async deleteWhere(
     input: ModelInputWithWhereRequired<M>
   ): Promise<ExecutedQuery> {
+    if (!input.queryTag) {
+      input.queryTag = `${this.model.modelName} - deleteWhere`;
+    }
     const where = getWhere(input, this.tableName);
     const query = sql`DELETE FROM ${bt(this.tableName)} ${where}`;
-    return await this.execute(query);
+    return await this.execute(query, undefined, input.queryTag);
   }
 
-  async delete(input: { where: PrimaryKey }): Promise<ExecutedQuery> {
+  async delete(input: {
+    where: PrimaryKey;
+    queryTag?: string;
+  }): Promise<ExecutedQuery> {
+    if (!input.queryTag) {
+      input.queryTag = `${this.model.modelName} - deleteWhere`;
+    }
     return this.deleteWhere(input);
   }
 }

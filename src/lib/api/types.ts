@@ -100,9 +100,10 @@ export interface DbExecuteError {
 export type DbLoggingOptions = {
   performanceLogger?: (
     executedQuery: ExecutedQuery,
-    roundTripMs: number
+    roundTripMs: number,
+    queryTag?: string
   ) => void;
-  errorLogger?: (error: DbExecuteError) => void;
+  errorLogger?: (error: DbExecuteError, queryTag?: string) => void;
 };
 
 export type ModelSelectColumnsInput<M extends Record<string, unknown>> =
@@ -159,20 +160,24 @@ export type ModelInputWithWhere<M extends Record<string, unknown>> =
   | {
       where?: Partial<M>;
       whereSql?: never;
+      queryTag?: string;
     }
   | {
       where?: never;
       whereSql?: Sql;
+      queryTag?: string;
     };
 
 export type ModelInputWithWhereRequired<M extends Record<string, unknown>> =
   | {
       where: Partial<M>;
       whereSql?: never;
+      queryTag?: string;
     }
   | {
       where?: never;
       whereSql: Sql;
+      queryTag?: string;
     };
 
 export type ModelFindManyInput<
@@ -184,6 +189,7 @@ export type ModelFindManyInput<
   orderBy?: ModelOrderByInput<M>;
   select?: S;
   cast?: CustomModelCast<SelectedModel<M, S, ModelSelectAll>>;
+  queryTag?: string;
 };
 
 export type ModelFindOneInput<
@@ -194,9 +200,11 @@ export type ModelFindOneInput<
   orderBy?: ModelOrderByInput<M>;
   select?: S;
   cast?: CustomModelCast<SelectedModel<M, S, ModelSelectAll>>;
+  queryTag?: string;
 };
 
 export type ModelUpdateInput<M extends Record<string, unknown>> =
   ModelInputWithWhereRequired<M> & {
     data: { [K in keyof M]?: M[K] };
+    queryTag?: string;
   };
