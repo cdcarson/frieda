@@ -15,6 +15,11 @@ export class FilesIO {
     if (!prettierOptions) {
       prettierOptions = { ...DEFAULT_PRETTIER_OPTIONS };
     }
+    prettierOptions = {
+      ...prettierOptions,
+      plugins: [],
+      overrides: []
+    } as prettier.Options;
     FilesIO.#inst = new FilesIO(cwd, prettierOptions);
   }
   static get(): FilesIO {
